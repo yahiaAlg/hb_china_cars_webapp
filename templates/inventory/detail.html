@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ vehicle.make }} {{ vehicle.model }} - Détails Véhicule{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">
+            <i class="ph ph-car me-2"></i>
+            {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}
+        </h1>
+        <p class="text-muted">
+            VIN: {{ vehicle.vin_chassis }} • {{ vehicle.color }}
+            <span class="badge badge-status-{{ vehicle.status }} ms-2">
+                {{ vehicle.get_status_display }}
+            </span>
+        </p>
+    </div>
+    <div>
+        {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+        <a href="{% url 'inventory:edit' vehicle.pk %}" class="btn btn-outline-primary">
+            <i class="ph ph-pencil me-2"></i>Modifier
+        </a>
+        {% endif %}
+        <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à l'Inventaire
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Vehicle Photos -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-camera me-2"></i>Photos du Véhicule
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if vehicle.photos.exists %}
+                <div id="vehicleCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for photo in vehicle.photos.all %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <img src="{{ photo.photo.url }}" class="d-block w-100 rounded" 
+                                 alt="{{ photo.caption|default:'Photo du véhicule' }}" 
+                                 style="height: 400px; object-fit: cover;">
+                            {% if photo.caption %}
+                            <div class="carousel-caption d-none d-md-block">
+                                <p class="mb-0 bg-dark bg-opacity-75 rounded px-3 py-1">{{ photo.caption }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if vehicle.photos.count > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#vehicleCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#vehicleCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- Photo Thumbnails -->
+                {% if vehicle.photos.count > 1 %}
+                <div class="row mt-3">
+                    {% for photo in vehicle.photos.all %}
+                    <div class="col-2">
+                        <img src="{{ photo.photo.url }}" class="img-thumbnail" 
+                             style="height: 60px; object-fit: cover; cursor: pointer;"
+                             onclick="goToSlide({{ forloop.counter0 }})"
+                             alt="Miniature {{ forloop.counter }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="ph ph-camera fs-1 mb-3 d-block"></i>
+                    <p>Aucune photo disponible</p>
+                    {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                    <a href="{% url 'inventory:add_photo' vehicle.pk %}" class="btn btn-primary">
+                        <i class="ph ph-plus me-2"></i>Ajouter des Photos
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vehicle Specifications -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-gear me-2"></i>Spécifications Techniques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Marque</label>
+                            <div class="fw-semibold">{{ vehicle.make }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Modèle</label>
+                            <div class="fw-semibold">{{ vehicle.model }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Année</label>
+                            <div class="fw-semibold">{{ vehicle.year }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Couleur</label>
+                            <div class="fw-semibold">{{ vehicle.color }}</div>
+                        </div>
+                        {% if vehicle.engine_type %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Type de Moteur</label>
+                            <div class="fw-semibold">{{ vehicle.engine_type }}</div>
+                        </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">VIN/Châssis</label>
+                            <div class="font-monospace">{{ vehicle.vin_chassis }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% if vehicle.specifications %}
+                <div class="mt-3">
+                    <label class="form-label text-muted">Spécifications Détaillées</label>
+                    <div class="p-3 bg-light rounded">{{ vehicle.specifications|linebreaks }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Purchase Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-shopping-bag me-2"></i>Informations d'Achat
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Fournisseur</label>
+                            <div>
+                                <a href="{% url 'suppliers:detail' vehicle.vehicle_purchase.supplier.pk %}">
+                                    {{ vehicle.vehicle_purchase.supplier.name }}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Date d'Achat</label>
+                            <div>{{ vehicle.vehicle_purchase.purchase_date|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Prix FOB</label>
+                            <div class="fw-semibold">{{ vehicle.vehicle_purchase.purchase_price_fob|floatformat:2 }} {{ vehicle.vehicle_purchase.currency.code }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Prix FOB (DA)</label>
+                            <div class="fw-semibold">{{ vehicle.vehicle_purchase.purchase_price_da|floatformat:0 }} DA</div>
+                        </div>
+                        {% if vehicle.vehicle_purchase.freight_cost %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Coût de Fret</label>
+                            <div>{{ vehicle.vehicle_purchase.freight_cost.total_freight_cost_da|floatformat:0 }} DA</div>
+                        </div>
+                        {% endif %}
+                        {% if vehicle.vehicle_purchase.customs_declaration %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Droits de Douane</label>
+                            <div>{{ vehicle.vehicle_purchase.customs_declaration.total_customs_cost_da|floatformat:0 }} DA</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><strong>Coût Total Débarqué:</strong></span>
+                                <span class="fs-5 fw-bold">{{ vehicle.landed_cost|floatformat:0 }} DA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Status and Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-lightning me-2"></i>Statut et Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Statut Actuel</label>
+                    <div>
+                        <span class="badge badge-status-{{ vehicle.status }} fs-6">
+                            {{ vehicle.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if vehicle.status == 'reserved' %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Réservé par</label>
+                    <div>{{ vehicle.reserved_by.get_full_name|default:vehicle.reserved_by.username }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted">Expire le</label>
+                    <div>{{ vehicle.reservation_expires|date:"d/m/Y H:i" }}</div>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Jours en Stock</label>
+                    <div class="{% if vehicle.days_in_stock > 90 %}text-warning{% elif vehicle.days_in_stock > 180 %}text-danger{% endif %}">
+                        {{ vehicle.days_in_stock }} jours
+                        {% if vehicle.is_slow_moving %}
+                            <span class="badge bg-danger">Rotation Lente</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                <div class="d-grid gap-2">
+                    {% if vehicle.status == 'available' %}
+                    <button type="button" class="btn btn-warning" onclick="reserveVehicle({{ vehicle.pk }})">
+                        <i class="ph ph-clock me-2"></i>Réserver
+                    </button>
+                    <a href="{% url 'sales:create' %}?vehicle={{ vehicle.pk }}" class="btn btn-success">
+                        <i class="ph ph-handshake me-2"></i>Créer Vente
+                    </a>
+                    {% elif vehicle.status == 'reserved' and vehicle.reserved_by == user %}
+                    <button type="button" class="btn btn-outline-secondary" onclick="releaseReservation({{ vehicle.pk }})">
+                        <i class="ph ph-x me-2"></i>Libérer Réservation
+                    </button>
+                    <a href="{% url 'sales:create' %}?vehicle={{ vehicle.pk }}" class="btn btn-success">
+                        <i class="ph ph-handshake me-2"></i>Créer Vente
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-currency-circle-dollar me-2"></i>Résumé Financier
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Prix FOB:</span>
+                    <span>{{ vehicle.vehicle_purchase.purchase_price_da|floatformat:0 }} DA</span>
+                </div>
+                {% if vehicle.vehicle_purchase.freight_cost %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Fret:</span>
+                    <span>{{ vehicle.vehicle_purchase.freight_cost.total_freight_cost_da|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+                {% if vehicle.vehicle_purchase.customs_declaration %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Douane:</span>
+                    <span>{{ vehicle.vehicle_purchase.customs_declaration.total_customs_cost_da|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+                <hr>
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>Coût Total:</span>
+                    <span>{{ vehicle.landed_cost|floatformat:0 }} DA</span>
+                </div>
+                
+                {% if vehicle.status == 'sold' %}
+                <hr>
+                <div class="d-flex justify-content-between text-success">
+                    <span>Prix de Vente:</span>
+                    <span>{{ vehicle.sale.sale_price|floatformat:0 }} DA</span>
+                </div>
+                <div class="d-flex justify-content-between fw-bold text-success">
+                    <span>Marge:</span>
+                    <span>{{ vehicle.sale.margin_amount|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-link me-2"></i>Liens Rapides
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'purchases:detail' vehicle.vehicle_purchase.pk %}" class="list-group-item list-group-item-action border-0 ps-0">
+                        <i class="ph ph-shopping-bag me-2"></i>Détails d'Achat
+                    </a>
+                    <a href="{% url 'suppliers:detail' vehicle.vehicle_purchase.supplier.pk %}" class="list-group-item list-group-item-action border-0 ps-0">
+                        <i class="ph ph-buildings me-2"></i>Fournisseur
+                    </a>
+                    {% if vehicle.status == 'sold' %}
+                    <a href="{% url 'sales:detail' vehicle.sale.pk %}" class="list-group-item list-group-item-action border-0 ps-0">
+                        <i class="ph ph-handshake me-2"></i>Détails de Vente
+                    </a>
+                    {% endif %}
+                    {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                    <a href="{% url 'inventory:add_photo' vehicle.pk %}" class="list-group-item list-group-item-action border-0 ps-0">
+                        <i class="ph ph-camera me-2"></i>Ajouter Photos
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reservation Modal -->
+<div class="modal fade" id="reservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Réserver Véhicule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reservationForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">Durée de réservation</label>
+                        <select class="form-select" id="duration" name="duration_days">
+                            <option value="3">3 jours</option>
+                            <option value="7" selected>7 jours</option>
+                            <option value="14">14 jours</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optionnel)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-warning" onclick="submitReservation()">Réserver</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function goToSlide(index) {
+    const carousel = new bootstrap.Carousel(document.getElementById('vehicleCarousel'));
+    carousel.to(index);
+}
+
+async function reserveVehicle(vehicleId) {
+    const modal = new bootstrap.Modal(document.getElementById('reservationModal'));
+    modal.show();
+}
+
+async function submitReservation() {
+    const form = document.getElementById('reservationForm');
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch(`{% url 'inventory:reserve' vehicle.pk %}`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Véhicule réservé avec succès', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de la réservation', 'danger');
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('reservationModal'));
+        modal.hide();
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+async function releaseReservation(vehicleId) {
+    if (!confirm('Êtes-vous sûr de vouloir libérer cette réservation ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`{% url 'inventory:release_reservation' vehicle.pk %}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Réservation libérée', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,450 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tableau de Bord des Rapports{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Rapports et Analyses</h1>
+        <p class="text-muted">Insights et métriques de performance</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+            <i class="ph ph-download me-2"></i>Exporter
+        </button>
+    </div>
+</div>
+
+<!-- Quick Report Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <a href="{% url 'reports:profit_analysis' %}" class="text-decoration-none">
+            <div class="card h-100 report-card">
+                <div class="card-body text-center">
+                    <div class="display-6 text-success mb-3">
+                        <i class="ph ph-chart-line"></i>
+                    </div>
+                    <h5 class="card-title">Analyse de Profitabilité</h5>
+                    <p class="card-text text-muted">Marges, commissions et tendances financières</p>
+                    <div class="badge bg-success">Mise à jour en temps réel</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <a href="{% url 'reports:inventory_status' %}" class="text-decoration-none">
+            <div class="card h-100 report-card">
+                <div class="card-body text-center">
+                    <div class="display-6 text-info mb-3">
+                        <i class="ph ph-warehouse"></i>
+                    </div>
+                    <h5 class="card-title">Statut de l'Inventaire</h5>
+                    <p class="card-text text-muted">Analyse des stocks et rotation des véhicules</p>
+                    <div class="badge bg-info">Mis à jour quotidiennement</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <a href="{% url 'reports:sales_summary' %}" class="text-decoration-none">
+            <div class="card h-100 report-card">
+                <div class="card-body text-center">
+                    <div class="display-6 text-primary mb-3">
+                        <i class="ph ph-chart-bar"></i>
+                    </div>
+                    <h5 class="card-title">Résumé des Ventes</h5>
+                    <p class="card-text text-muted">Performance commerciale et tendances</p>
+                    <div class="badge bg-primary">Temps réel</div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <a href="{% url 'reports:payment_status' %}" class="text-decoration-none">
+            <div class="card h-100 report-card">
+                <div class="card-body text-center">
+                    <div class="display-6 text-warning mb-3">
+                        <i class="ph ph-credit-card"></i>
+                    </div>
+                    <h5 class="card-title">Statut des Paiements</h5>
+                    <p class="card-text text-muted">Suivi des encaissements et impayés</p>
+                    <div class="badge bg-warning">Mise à jour continue</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Chart and Quick Stats -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-chart-line me-2"></i>Performance Globale (12 derniers mois)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-target me-2"></i>Indicateurs Clés
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="metrics-grid">
+                    <div class="metric-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Marge Moyenne</div>
+                                <div class="fs-4 fw-bold text-success">18.5%</div>
+                            </div>
+                            <div class="text-success">
+                                <i class="ph ph-trend-up fs-3"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Rotation Stock</div>
+                                <div class="fs-4 fw-bold text-info">45 jours</div>
+                            </div>
+                            <div class="text-info">
+                                <i class="ph ph-clock fs-3"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-item mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Taux Conversion</div>
+                                <div class="fs-4 fw-bold text-warning">12.3%</div>
+                            </div>
+                            <div class="text-warning">
+                                <i class="ph ph-target fs-3"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-muted small">Impayés (%)</div>
+                                <div class="fs-4 fw-bold text-danger">3.2%</div>
+                            </div>
+                            <div class="text-danger">
+                                <i class="ph ph-warning fs-3"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Reports and Quick Actions -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-clock me-2"></i>Rapports Récents
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <h6 class="mb-1">Analyse Profitabilité Q4 2024</h6>
+                            <small class="text-muted">Généré le 15/12/2024 par {{ user.get_full_name }}</small>
+                        </div>
+                        <div>
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                <i class="ph ph-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <h6 class="mb-1">Rapport Stock Décembre</h6>
+                            <small class="text-muted">Généré le 12/12/2024 par Système</small>
+                        </div>
+                        <div>
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                <i class="ph ph-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <h6 class="mb-1">Performance Traders Novembre</h6>
+                            <small class="text-muted">Généré le 30/11/2024 par Finance</small>
+                        </div>
+                        <div>
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                <i class="ph ph-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="#" class="btn btn-outline-secondary btn-sm">
+                        Voir tous les rapports archivés
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-lightning me-2"></i>Actions Rapides
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'reports:profit_analysis' %}" class="btn btn-outline-primary">
+                        <i class="ph ph-chart-line me-2"></i>Générer Rapport Profitabilité
+                    </a>
+                    <a href="{% url 'reports:sales_summary' %}" class="btn btn-outline-success">
+                        <i class="ph ph-chart-bar me-2"></i>Résumé Ventes Mensuel
+                    </a>
+                    <a href="{% url 'reports:inventory_status' %}" class="btn btn-outline-info">
+                        <i class="ph ph-warehouse me-2"></i>Statut Inventaire Complet
+                    </a>
+                    <a href="{% url 'reports:payment_status' %}" class="btn btn-outline-warning">
+                        <i class="ph ph-credit-card me-2"></i>Suivi Paiements
+                    </a>
+                </div>
+
+                <hr class="my-4">
+
+                <h6 class="text-muted mb-3">Programmation de Rapports</h6>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="autoDaily" checked>
+                    <label class="form-check-label" for="autoDaily">
+                        Rapport quotidien automatique
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="autoWeekly" checked>
+                    <label class="form-check-label" for="autoWeekly">
+                        Résumé hebdomadaire
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="autoMonthly" checked>
+                    <label class="form-check-label" for="autoMonthly">
+                        Analyse mensuelle détaillée
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Exporter les Données</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label for="reportType" class="form-label">Type de Rapport</label>
+                        <select class="form-select" id="reportType">
+                            <option value="profit">Analyse de Profitabilité</option>
+                            <option value="inventory">Statut Inventaire</option>
+                            <option value="sales">Résumé des Ventes</option>
+                            <option value="payments">Statut des Paiements</option>
+                            <option value="all">Rapport Complet</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dateRange" class="form-label">Période</label>
+                        <select class="form-select" id="dateRange">
+                            <option value="current_month">Mois Courant</option>
+                            <option value="last_month">Mois Précédent</option>
+                            <option value="quarter">Trimestre</option>
+                            <option value="year">Année</option>
+                            <option value="custom">Personnalisée</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="format" class="form-label">Format</label>
+                        <select class="form-select" id="format">
+                            <option value="pdf">PDF</option>
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="exportReport()">
+                    <i class="ph ph-download me-2"></i>Exporter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    box-shadow: var(--shadow);
+}
+
+.report-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.metric-item {
+    padding: var(--spacing);
+    background-color: var(--gray-50);
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary-navy);
+}
+
+.metrics-grid .metric-item:last-child {
+    margin-bottom: 0;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Performance Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(performanceCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+            datasets: [{
+                label: 'Chiffre d\'Affaires (DA)',
+                data: [1200000, 1400000, 1600000, 1800000, 1500000, 1700000, 2000000, 2200000, 1900000, 2100000, 2300000, 2500000],
+                borderColor: window.chartColors.primary,
+                backgroundColor: window.chartColors.primary + '20',
+                fill: true,
+                tension: 0.4,
+                yAxisID: 'y'
+            }, {
+                label: 'Marge (%)',
+                data: [15, 16, 18, 17, 19, 20, 18, 19, 21, 20, 22, 19],
+                borderColor: window.chartColors.success,
+                backgroundColor: window.chartColors.success + '20',
+                fill: false,
+                tension: 0.4,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('fr-DZ') + ' DA';
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    max: 25,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (context.datasetIndex === 0) {
+                                return 'CA: ' + context.parsed.y.toLocaleString('fr-DZ') + ' DA';
+                            } else {
+                                return 'Marge: ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+function exportReport() {
+    const form = document.getElementById('exportForm');
+    const formData = new FormData(form);
+    
+    // Show loading state
+    const exportBtn = event.target;
+    const originalText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération...';
+    exportBtn.disabled = true;
+    
+    // Simulate export process
+    setTimeout(() => {
+        CarTradeUtils.showAlert('Rapport généré avec succès! Le téléchargement va commencer.', 'success');
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+        modal.hide();
+        
+        // Simulate file download
+        // In real application, this would be a proper download link
+        window.open('/reports/export/?type=' + document.getElementById('reportType').value + '&format=' + document.getElementById('format').value, '_blank');
+    }, 2000);
+}
+</script>
+{% endblock %}

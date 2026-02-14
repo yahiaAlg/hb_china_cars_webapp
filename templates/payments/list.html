@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Paiements{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Gestion des Paiements</h1>
+        <p class="text-muted">{{ total_count }} paiements enregistrés</p>
+    </div>
+    <div>
+        {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+        <a href="{% url 'payments:create' %}" class="btn btn-primary">
+            <i class="ph ph-plus me-2"></i>Nouveau Paiement
+        </a>
+        {% endif %}
+        <a href="{% url 'payments:outstanding' %}" class="btn btn-outline-warning">
+            <i class="ph ph-warning me-2"></i>Factures Impayées
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success fs-2 mb-2">
+                    <i class="ph ph-credit-card"></i>
+                </div>
+                <h4 class="card-title">{{ total_payments_today|default:0 }}</h4>
+                <p class="card-text text-muted">Paiements Aujourd'hui</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary fs-2 mb-2">
+                    <i class="ph ph-currency-circle-dollar"></i>
+                </div>
+                <h4 class="card-title">{{ total_amount_today|floatformat:0|default:0 }} DA</h4>
+                <p class="card-text text-muted">Montant Aujourd'hui</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-calendar"></i>
+                </div>
+                <h4 class="card-title">{{ total_amount_month|floatformat:0|default:0 }} DA</h4>
+                <p class="card-text text-muted">Montant ce Mois</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-clock"></i>
+                </div>
+                <h4 class="card-title">{{ pending_payments|default:0 }}</h4>
+                <p class="card-text text-muted">En Attente</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label for="search" class="form-label">Recherche</label>
+            <input type="text" class="form-control" name="search" value="{{ request.GET.search }}" 
+                   placeholder="Numéro, client, facture...">
+        </div>
+        <div class="col-md-2">
+            <label for="payment_method" class="form-label">Mode Paiement</label>
+            <select class="form-select" name="payment_method">
+                <option value="">Tous les modes</option>
+                <option value="cash" {% if request.GET.payment_method == 'cash' %}selected{% endif %}>Espèces</option>
+                <option value="bank_transfer" {% if request.GET.payment_method == 'bank_transfer' %}selected{% endif %}>Virement</option>
+                <option value="check" {% if request.GET.payment_method == 'check' %}selected{% endif %}>Chèque</option>
+                <option value="card" {% if request.GET.payment_method == 'card' %}selected{% endif %}>Carte</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="date_from" class="form-label">Date début</label>
+            <input type="date" class="form-control" name="date_from" value="{{ request.GET.date_from }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_to" class="form-label">Date fin</label>
+            <input type="date" class="form-control" name="date_to" value="{{ request.GET.date_to }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Rechercher
+            </button>
+            <a href="{% url 'payments:list' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i> Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Payments Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Paiement</th>
+                        <th>Facture</th>
+                        <th>Client</th>
+                        <th>Montant</th>
+                        <th>Mode</th>
+                        <th>Référence</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in page_obj %}
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="{% url 'payments:detail' payment.pk %}" class="fw-semibold">
+                                    {{ payment.payment_number }}
+                                </a>
+                                <div class="small text-muted">{{ payment.payment_date|date:"d/m/Y" }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <a href="{% url 'sales:invoice_detail' payment.invoice.pk %}">
+                                    {{ payment.invoice.invoice_number }}
+                                </a>
+                                <div class="small text-muted">
+                                    Total: {{ payment.invoice.total_ttc|floatformat:0 }} DA
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <a href="{% url 'customers:detail' payment.invoice.sale.customer.pk %}">
+                                    {{ payment.invoice.sale.customer.name }}
+                                </a>
+                                <div class="small text-muted">
+                                    <i class="ph ph-phone me-1"></i>{{ payment.invoice.sale.customer.phone }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-success">{{ payment.amount|floatformat:0 }} DA</div>
+                            {% if payment.invoice.balance_due > 0 %}
+                            <div class="small text-warning">
+                                Solde: {{ payment.invoice.balance_due|floatformat:0 }} DA
+                            </div>
+                            {% else %}
+                            <div class="small text-success">
+                                <i class="ph ph-check-circle me-1"></i>Soldé
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if payment.payment_method == 'cash' %}success{% elif payment.payment_method == 'bank_transfer' %}primary{% elif payment.payment_method == 'check' %}warning{% else %}info{% endif %}">
+                                {{ payment.get_payment_method_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if payment.bank_reference %}
+                            <div class="font-monospace small">{{ payment.bank_reference }}</div>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if payment.is_confirmed %}
+                                <span class="badge bg-success">Confirmé</span>
+                            {% else %}
+                                <span class="badge bg-warning">En Attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'payments:detail' payment.pk %}" class="btn btn-outline-primary btn-sm" title="Voir détails">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                <a href="{% url 'payments:edit' payment.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="ph ph-pencil"></i>
+                                </a>
+                                {% if not payment.is_confirmed %}
+                                <button type="button" class="btn btn-outline-success btn-sm" 
+                                        onclick="confirmPayment({{ payment.pk }})" title="Confirmer">
+                                    <i class="ph ph-check"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="ph ph-credit-card fs-1 mb-3 d-block"></i>
+                                <p>Aucun paiement trouvé</p>
+                                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                <a href="{% url 'payments:create' %}" class="btn btn-primary">
+                                    <i class="ph ph-plus me-2"></i>Enregistrer le premier paiement
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation paiements">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function confirmPayment(paymentId) {
+    if (!confirm('Confirmer ce paiement ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/payments/${paymentId}/confirm/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Paiement confirmé avec succès', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de la confirmation', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form with debounce
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+    
+    // Filter change auto-submit
+    const filterSelects = document.querySelectorAll('select[name="payment_method"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

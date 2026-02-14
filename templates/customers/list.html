@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Clients{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Gestion des Clients</h1>
+        <p class="text-muted">{{ total_count }} clients enregistrés</p>
+    </div>
+    {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+    <div>
+        <a href="{% url 'customers:create' %}" class="btn btn-primary">
+            <i class="ph ph-plus me-2"></i>Nouveau Client
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label for="search" class="form-label">Recherche</label>
+            {{ search_form.search }}
+        </div>
+        <div class="col-md-2">
+            <label for="customer_type" class="form-label">Type</label>
+            {{ search_form.customer_type }}
+        </div>
+        <div class="col-md-2">
+            <label for="wilaya" class="form-label">Wilaya</label>
+            {{ search_form.wilaya }}
+        </div>
+        <div class="col-md-2">
+            <label for="is_active" class="form-label">Statut</label>
+            {{ search_form.is_active }}
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Rechercher
+            </button>
+            <a href="{% url 'customers:list' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i> Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Customers Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Type</th>
+                        <th>Contact</th>
+                        <th>Localisation</th>
+                        <th>Activité</th>
+                        <th>Solde</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    {% if customer.customer_type == 'company' %}
+                                        <i class="ph ph-buildings"></i>
+                                    {% else %}
+                                        <i class="ph ph-user"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ customer.name }}</div>
+                                    {% if customer.nif_tax_id %}
+                                    <small class="text-muted">NIF: {{ customer.nif_tax_id }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if customer.customer_type == 'company' %}info{% else %}secondary{% endif %}">
+                                {{ customer.get_customer_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div>
+                                <i class="ph ph-phone me-1"></i>{{ customer.phone }}
+                            </div>
+                            {% if customer.email %}
+                            <div class="small text-muted">
+                                <i class="ph ph-envelope me-1"></i>{{ customer.email }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ customer.get_wilaya_display }}</div>
+                            <small class="text-muted">{{ customer.address|truncatechars:30 }}</small>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <div><i class="ph ph-handshake me-1"></i>{{ customer.sales_count|default:0 }} ventes</div>
+                                {% if customer.last_sale_date %}
+                                <div class="text-muted">Dernière: {{ customer.last_sale_date|date:"d/m/Y" }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if customer.outstanding_balance > 0 %}
+                                <span class="text-warning fw-semibold">{{ customer.outstanding_balance|floatformat:0 }} DA</span>
+                            {% else %}
+                                <span class="text-success">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'customers:detail' customer.pk %}" class="btn btn-outline-primary btn-sm" title="Voir détails">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                                <a href="{% url 'customers:edit' customer.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="ph ph-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="ph ph-users fs-1 mb-3 d-block"></i>
+                                <p>Aucun client trouvé</p>
+                                <a href="{% url 'customers:create' %}" class="btn btn-primary">
+                                    <i class="ph ph-plus me-2"></i>Créer le premier client
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation clients">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form with debounce
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+    
+    // Filter change auto-submit
+    const filterSelects = document.querySelectorAll('select[name="customer_type"], select[name="wilaya"], select[name="is_active"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Factures Impayées{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Factures Impayées</h1>
+        <p class="text-muted">Suivi des créances et relances clients</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary" onclick="exportOutstanding()">
+            <i class="ph ph-download me-2"></i>Exporter
+        </button>
+        <a href="{% url 'payments:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour aux Paiements
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-warning"></i>
+                </div>
+                <h4 class="card-title">{{ total_outstanding_count }}</h4>
+                <p class="card-text text-muted">Factures Impayées</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-danger fs-2 mb-2">
+                    <i class="ph ph-clock"></i>
+                </div>
+                <h4 class="card-title">{{ overdue_count }}</h4>
+                <p class="card-text text-muted">En Retard</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-currency-circle-dollar"></i>
+                </div>
+                <h4 class="card-title">{{ total_outstanding_amount|floatformat:0 }} DA</h4>
+                <p class="card-text text-muted">Montant Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-calendar"></i>
+                </div>
+                <h4 class="card-title">{{ average_days_overdue|floatformat:0 }}</h4>
+                <p class="card-text text-muted">Jours Retard Moyen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label for="customer" class="form-label">Client</label>
+            <input type="text" class="form-control" name="customer" value="{{ request.GET.customer }}" 
+                   placeholder="Nom du client">
+        </div>
+        <div class="col-md-2">
+            <label for="trader" class="form-label">Trader</label>
+            <select class="form-select" name="trader">
+                <option value="">Tous les traders</option>
+                {% for trader in traders %}
+                <option value="{{ trader.pk }}" {% if request.GET.trader == trader.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ trader.get_full_name|default:trader.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="overdue_only" class="form-label">Statut</label>
+            <select class="form-select" name="overdue_only">
+                <option value="">Toutes</option>
+                <option value="true" {% if request.GET.overdue_only == 'true' %}selected{% endif %}>En retard seulement</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="days_overdue_min" class="form-label">Jours retard min</label>
+            <input type="number" class="form-control" name="days_overdue_min" value="{{ request.GET.days_overdue_min }}" 
+                   placeholder="0">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Filtrer
+            </button>
+            <a href="{% url 'payments:outstanding' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i> Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Outstanding Invoices Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Facture</th>
+                        <th>Client</th>
+                        <th>Trader</th>
+                        <th>Date Émission</th>
+                        <th>Échéance</th>
+                        <th>Montant</th>
+                        <th>Solde Dû</th>
+                        <th>Retard</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in page_obj %}
+                    <tr class="{% if invoice.is_overdue %}table-warning{% endif %}">
+                        <td>
+                            <div>
+                                <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="fw-semibold">
+                                    {{ invoice.invoice_number }}
+                                </a>
+                                <div class="small text-muted">
+                                    Vente #{{ invoice.sale.sale_number|default:invoice.sale.pk }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <a href="{% url 'customers:detail' invoice.sale.customer.pk %}">
+                                    {{ invoice.sale.customer.name }}
+                                </a>
+                                <div class="small text-muted">
+                                    <i class="ph ph-phone me-1"></i>{{ invoice.sale.customer.phone }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}</div>
+                        </td>
+                        <td>
+                            <div>{{ invoice.invoice_date|date:"d/m/Y" }}</div>
+                        </td>
+                        <td>
+                            <div>{{ invoice.due_date|date:"d/m/Y" }}</div>
+                            {% if invoice.is_overdue %}
+                            <span class="badge bg-danger">En retard</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ invoice.total_ttc|floatformat:0 }} DA</div>
+                            {% if invoice.amount_paid > 0 %}
+                            <div class="small text-success">
+                                Payé: {{ invoice.amount_paid|floatformat:0 }} DA
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-warning">{{ invoice.balance_due|floatformat:0 }} DA</div>
+                            <div class="small text-muted">
+                                {{ invoice.balance_percentage|floatformat:1 }}% du total
+                            </div>
+                        </td>
+                        <td>
+                            {% if invoice.is_overdue %}
+                            <div class="text-danger fw-semibold">{{ invoice.days_overdue }} jours</div>
+                            {% else %}
+                            <div class="text-success">{{ invoice.days_until_due }} jours restants</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-outline-primary btn-sm" title="Voir facture">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                <a href="{% url 'payments:quick_payment' invoice.pk %}" class="btn btn-success btn-sm" title="Enregistrer paiement">
+                                    <i class="ph ph-credit-card"></i>
+                                </a>
+                                <a href="{% url 'payments:create_reminder' invoice.pk %}" class="btn btn-outline-warning btn-sm" title="Envoyer relance">
+                                    <i class="ph ph-bell"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="ph ph-check-circle fs-1 text-success mb-3 d-block"></i>
+                                <p>Aucune facture impayée</p>
+                                <small>Toutes les factures sont à jour</small>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation factures impayées">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Actions Groupées</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Action à effectuer</label>
+                    <select class="form-select" id="bulkAction">
+                        <option value="send_reminder">Envoyer relance</option>
+                        <option value="export_list">Exporter la liste</option>
+                        <option value="mark_priority">Marquer prioritaire</option>
+                    </select>
+                </div>
+                <div id="reminderOptions" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Type de relance</label>
+                        <select class="form-select" id="reminderType">
+                            <option value="email">Email</option>
+                            <option value="phone">Téléphone</option>
+                            <option value="sms">SMS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" id="reminderMessage" rows="3" 
+                                  placeholder="Message de relance personnalisé..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="executeBulkAction()">Exécuter</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportOutstanding() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'excel');
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter change auto-submit
+    const filterSelects = document.querySelectorAll('select[name="trader"], select[name="overdue_only"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    // Bulk action modal
+    const bulkActionSelect = document.getElementById('bulkAction');
+    const reminderOptions = document.getElementById('reminderOptions');
+    
+    if (bulkActionSelect) {
+        bulkActionSelect.addEventListener('change', function() {
+            if (this.value === 'send_reminder') {
+                reminderOptions.style.display = 'block';
+            } else {
+                reminderOptions.style.display = 'none';
+            }
+        });
+    }
+});
+
+function executeBulkAction() {
+    const action = document.getElementById('bulkAction').value;
+    
+    // Get selected invoices (if checkboxes were implemented)
+    const selectedInvoices = Array.from(document.querySelectorAll('input[name="selected_invoices"]:checked'))
+                                  .map(cb => cb.value);
+    
+    if (selectedInvoices.length === 0) {
+        CarTradeUtils.showAlert('Veuillez sélectionner au moins une facture', 'warning');
+        return;
+    }
+    
+    // Execute action based on selection
+    switch (action) {
+        case 'send_reminder':
+            sendBulkReminders(selectedInvoices);
+            break;
+        case 'export_list':
+            exportSelectedInvoices(selectedInvoices);
+            break;
+        case 'mark_priority':
+            markPriorityInvoices(selectedInvoices);
+            break;
+    }
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal'));
+    modal.hide();
+}
+
+async function sendBulkReminders(invoiceIds) {
+    const reminderType = document.getElementById('reminderType').value;
+    const message = document.getElementById('reminderMessage').value;
+    
+    try {
+        const response = await fetch('/payments/bulk-reminders/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                invoice_ids: invoiceIds,
+                reminder_type: reminderType,
+                message: message
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert(`${data.sent_count} relances envoyées avec succès`, 'success');
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de l\'envoi', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+</script>
+{% endblock %>

@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if sale %}Modifier Vente{% else %}Nouvelle Vente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">{% if sale %}Modifier Vente{% else %}Nouvelle Vente{% endif %}</h1>
+        <p class="text-muted">
+            {% if sale %}
+                Modifiez les informations de la vente
+            {% else %}
+                Créez une nouvelle vente de véhicule
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        {% if sale %}
+        <a href="{% url 'sales:detail' sale.pk %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à la Vente
+        </a>
+        {% else %}
+        <a href="{% url 'sales:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Liste des Ventes
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-handshake me-2"></i>Informations de Vente
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="saleForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.sale_date.id_for_label }}" class="form-label">
+                                    Date de vente *
+                                </label>
+                                {{ form.sale_date }}
+                                {% if form.sale_date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.sale_date.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.assigned_trader.id_for_label }}" class="form-label">
+                                    Trader responsable *
+                                </label>
+                                {{ form.assigned_trader }}
+                                {% if form.assigned_trader.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.assigned_trader.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.vehicle.id_for_label }}" class="form-label">
+                                    Véhicule *
+                                </label>
+                                <div class="input-group">
+                                    {{ form.vehicle }}
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            data-bs-toggle="modal" data-bs-target="#vehicleSelectModal">
+                                        <i class="ph ph-magnifying-glass"></i>
+                                    </button>
+                                </div>
+                                <div id="vehicleDetails" class="mt-2"></div>
+                                {% if form.vehicle.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.vehicle.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.customer.id_for_label }}" class="form-label">
+                                    Client *
+                                </label>
+                                <div class="input-group">
+                                    {{ form.customer }}
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            data-bs-toggle="modal" data-bs-target="#customerSelectModal">
+                                        <i class="ph ph-magnifying-glass"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-primary" 
+                                            data-bs-toggle="modal" data-bs-target="#newCustomerModal">
+                                        <i class="ph ph-plus"></i>
+                                    </button>
+                                </div>
+                                {% if form.customer.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.customer.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.sale_price.id_for_label }}" class="form-label">
+                                    Prix de vente (DA) *
+                                </label>
+                                {{ form.sale_price }}
+                                <div id="marginInfo" class="form-text"></div>
+                                {% if form.sale_price.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.sale_price.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.payment_method.id_for_label }}" class="form-label">
+                                    Mode de paiement *
+                                </label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.payment_method.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="downPaymentSection" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.down_payment.id_for_label }}" class="form-label">
+                                    Acompte (DA)
+                                </label>
+                                {{ form.down_payment }}
+                                <div class="form-text">Montant payé immédiatement</div>
+                                {% if form.down_payment.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.down_payment.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.commission_rate.id_for_label }}" class="form-label">
+                                    Taux de commission (%)
+                                </label>
+                                {{ form.commission_rate }}
+                                <div class="form-text">Taux de commission pour ce trader</div>
+                                {% if form.commission_rate.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.commission_rate.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                            Notes
+                        </label>
+                        {{ form.notes }}
+                        <div class="form-text">Informations complémentaires sur la vente</div>
+                        {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors|first }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            {% if sale %}
+                            <a href="{% url 'sales:detail' sale.pk %}" class="btn btn-outline-secondary">
+                                <i class="ph ph-x me-2"></i>Annuler
+                            </a>
+                            {% else %}
+                            <a href="{% url 'sales:list' %}" class="btn btn-outline-secondary">
+                                <i class="ph ph-x me-2"></i>Annuler
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary" name="action" value="save">
+                                <i class="ph ph-floppy-disk me-2"></i>Sauvegarder
+                            </button>
+                            <button type="submit" class="btn btn-success" name="action" value="save_and_finalize">
+                                <i class="ph ph-check me-2"></i>Sauvegarder et Finaliser
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-calculator me-2"></i>Calculs Automatiques
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="calculationResults">
+                    <div class="alert alert-info">
+                        <i class="ph ph-info me-2"></i>
+                        Sélectionnez un véhicule et entrez un prix pour voir les calculs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-lightbulb me-2"></i>Guide de Vente
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h6 class="alert-heading">Étapes à suivre</h6>
+                    <ol class="mb-0 small">
+                        <li>Sélectionner un véhicule disponible</li>
+                        <li>Choisir ou créer le client</li>
+                        <li>Définir le prix de vente</li>
+                        <li>Choisir le mode de paiement</li>
+                        <li>Finaliser la vente</li>
+                        <li>Créer la facture</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vehicle Selection Modal -->
+<div class="modal fade" id="vehicleSelectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sélectionner un Véhicule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" placeholder="Rechercher..." id="vehicleSearch">
+                <div id="vehicleList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Vehicle list will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Selection Modal -->
+<div class="modal fade" id="customerSelectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sélectionner un Client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" placeholder="Rechercher..." id="customerSearch">
+                <div id="customerList" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Customer list will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Customer Modal -->
+<div class="modal fade" id="newCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouveau Client Rapide</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="newCustomerForm">
+                <!-- Quick customer form will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const vehicleSelect = document.getElementById('{{ form.vehicle.id_for_label }}');
+    const salePriceInput = document.getElementById('{{ form.sale_price.id_for_label }}');
+    const paymentMethodSelect = document.getElementById('{{ form.payment_method.id_for_label }}');
+    const downPaymentSection = document.getElementById('downPaymentSection');
+    const traderSelect = document.getElementById('{{ form.assigned_trader.id_for_label }}');
+    const commissionRateInput = document.getElementById('{{ form.commission_rate.id_for_label }}');
+
+    // Show/hide down payment section based on payment method
+    function toggleDownPayment() {
+        if (paymentMethodSelect.value === 'installment') {
+            downPaymentSection.style.display = 'block';
+        } else {
+            downPaymentSection.style.display = 'none';
+        }
+    }
+
+    paymentMethodSelect.addEventListener('change', toggleDownPayment);
+    toggleDownPayment(); // Initial check
+
+    // Load vehicle details when vehicle is selected
+    vehicleSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadVehicleDetails(this.value);
+        }
+    });
+
+    // Calculate margin when sale price changes
+    salePriceInput.addEventListener('input', function() {
+        calculateMargin();
+    });
+
+    // Load trader's default commission rate
+    traderSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadTraderCommissionRate(this.value);
+        }
+    });
+
+    async function loadVehicleDetails(vehicleId) {
+        try {
+            const response = await CarTradeUtils.ajaxRequest(`/sales/ajax/vehicle-details/?vehicle_id=${vehicleId}`);
+            
+            if (response.success) {
+                const vehicle = response.vehicle;
+                document.getElementById('vehicleDetails').innerHTML = `
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <strong>${vehicle.make} ${vehicle.model} ${vehicle.year}</strong><br>
+                                <small>VIN: ${vehicle.vin_chassis} • Couleur: ${vehicle.color}</small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="fw-bold">Coût: ${CarTradeUtils.formatCurrency(vehicle.landed_cost)}</div>
+                                <small class="text-muted">Coût total</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                calculateMargin();
+            }
+        } catch (error) {
+            console.error('Error loading vehicle details:', error);
+        }
+    }
+
+    async function calculateMargin() {
+        const vehicleId = vehicleSelect.value;
+        const salePrice = salePriceInput.value;
+        
+        if (!vehicleId || !salePrice) return;
+
+        try {
+            const response = await CarTradeUtils.ajaxRequest(
+                `/sales/ajax/calculate-margin/?vehicle_id=${vehicleId}&sale_price=${salePrice}`
+            );
+            
+            if (response.success) {
+                const margin = response.margin;
+                const marginPercentage = response.margin_percentage;
+                
+                document.getElementById('marginInfo').innerHTML = `
+                    Marge: <span class="fw-bold ${margin >= 0 ? 'text-success' : 'text-danger'}">${CarTradeUtils.formatCurrency(margin)}</span> 
+                    (${marginPercentage.toFixed(1)}%)
+                `;
+                
+                // Update calculation results
+                updateCalculationResults(response);
+            }
+        } catch (error) {
+            console.error('Error calculating margin:', error);
+        }
+    }
+
+    function updateCalculationResults(data) {
+        const calculationDiv = document.getElementById('calculationResults');
+        calculationDiv.innerHTML = `
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <span>Prix de vente:</span>
+                        <span class="fw-bold">${CarTradeUtils.formatCurrency(data.sale_price)}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <span>Coût total:</span>
+                        <span>${CarTradeUtils.formatCurrency(data.landed_cost)}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Marge brute:</span>
+                        <span class="fw-bold ${data.margin >= 0 ? 'text-success' : 'text-danger'}">
+                            ${CarTradeUtils.formatCurrency(data.margin)}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <span>Pourcentage marge:</span>
+                        <span class="fw-bold ${data.margin_percentage >= 0 ? 'text-success' : 'text-danger'}">
+                            ${data.margin_percentage.toFixed(1)}%
+                        </span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex justify-content-between">
+                        <span>Commission trader:</span>
+                        <span class="text-info">${CarTradeUtils.formatCurrency(data.commission_amount || 0)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadTraderCommissionRate(traderId) {
+        try {
+            const response = await CarTradeUtils.ajaxRequest(`/commissions/ajax/trader-rate/?trader_id=${traderId}`);
+            
+            if (response.success && response.commission_rate) {
+                commissionRateInput.value = response.commission_rate;
+            }
+        } catch (error) {
+            console.error('Error loading trader commission rate:', error);
+        }
+    }
+
+    // Load available vehicles when modal is opened
+    document.getElementById('vehicleSelectModal').addEventListener('show.bs.modal', function() {
+        loadAvailableVehicles();
+    });
+
+    async function loadAvailableVehicles() {
+        try {
+            const response = await CarTradeUtils.ajaxRequest('/inventory/ajax/available-vehicles/');
+            const vehicleList = document.getElementById('vehicleList');
+            
+            vehicleList.innerHTML = '';
+            
+            response.vehicles.forEach(vehicle => {
+                const item = document.createElement('a');
+                item.className = 'list-group-item list-group-item-action vehicle-item';
+                item.href = '#';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${vehicle.make} ${vehicle.model} ${vehicle.year}</h6>
+                            <small class="text-muted">VIN: ${vehicle.vin_chassis} • ${vehicle.color}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge badge-status-${vehicle.status}">${vehicle.status_display}</span>
+                            <br>
+                            <small class="text-muted">${CarTradeUtils.formatCurrency(vehicle.landed_cost)}</small>
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    vehicleSelect.value = vehicle.id;
+                    vehicleSelect.dispatchEvent(new Event('change'));
+                    bootstrap.Modal.getInstance(document.getElementById('vehicleSelectModal')).hide();
+                });
+                
+                vehicleList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error loading vehicles:', error);
+        }
+    }
+
+    // Vehicle search functionality
+    document.getElementById('vehicleSearch').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const vehicles = document.querySelectorAll('.vehicle-item');
+        
+        vehicles.forEach(vehicle => {
+            const text = vehicle.textContent.toLowerCase();
+            vehicle.style.display = text.includes(searchTerm) ? 'block' : 'none';
+        });
+    });
+
+    // Form validation
+    document.getElementById('saleForm').addEventListener('submit', function(event) {
+        if (!this.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        this.classList.add('was-validated');
+    });
+
+    // Initial load if editing
+    {% if sale %}
+    if (vehicleSelect.value) {
+        loadVehicleDetails(vehicleSelect.value);
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

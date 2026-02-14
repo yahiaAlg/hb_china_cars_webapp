@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventaire Véhicules{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Inventaire des Véhicules</h1>
+        <p class="text-muted">Gestion du stock automobile</p>
+    </div>
+    <div>
+        {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+        <a href="{% url 'inventory:create' %}" class="btn btn-primary">
+            <i class="ph ph-plus me-2"></i>Ajouter Véhicule
+        </a>
+        {% endif %}
+        <a href="{% url 'inventory:alerts' %}" class="btn btn-outline-warning">
+            <i class="ph ph-bell me-2"></i>Alertes
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success fs-2 mb-2">
+                    <i class="ph ph-check-circle"></i>
+                </div>
+                <h4 class="card-title">{{ available_count|default:0 }}</h4>
+                <p class="card-text text-muted">Disponibles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-clock"></i>
+                </div>
+                <h4 class="card-title">{{ reserved_count|default:0 }}</h4>
+                <p class="card-text text-muted">Réservés</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-package"></i>
+                </div>
+                <h4 class="card-title">{{ in_customs_count|default:0 }}</h4>
+                <p class="card-text text-muted">En Douane</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary fs-2 mb-2">
+                    <i class="ph ph-truck"></i>
+                </div>
+                <h4 class="card-title">{{ in_transit_count|default:0 }}</h4>
+                <p class="card-text text-muted">En Transit</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label for="search" class="form-label">Recherche</label>
+            <input type="text" class="form-control" name="search" value="{{ request.GET.search }}" 
+                   placeholder="VIN, marque, modèle...">
+        </div>
+        <div class="col-md-2">
+            <label for="status" class="form-label">Statut</label>
+            <select class="form-select" name="status">
+                <option value="">Tous les statuts</option>
+                <option value="available" {% if request.GET.status == 'available' %}selected{% endif %}>Disponible</option>
+                <option value="reserved" {% if request.GET.status == 'reserved' %}selected{% endif %}>Réservé</option>
+                <option value="at_customs" {% if request.GET.status == 'at_customs' %}selected{% endif %}>En Douane</option>
+                <option value="in_transit" {% if request.GET.status == 'in_transit' %}selected{% endif %}>En Transit</option>
+                <option value="sold" {% if request.GET.status == 'sold' %}selected{% endif %}>Vendu</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="make" class="form-label">Marque</label>
+            <input type="text" class="form-control" name="make" value="{{ request.GET.make }}" 
+                   placeholder="Toyota, Mercedes...">
+        </div>
+        <div class="col-md-2">
+            <label for="year_from" class="form-label">Année min</label>
+            <input type="number" class="form-control" name="year_from" value="{{ request.GET.year_from }}" 
+                   min="2000" max="2025">
+        </div>
+        <div class="col-md-1">
+            <label for="year_to" class="form-label">Année max</label>
+            <input type="number" class="form-control" name="year_to" value="{{ request.GET.year_to }}" 
+                   min="2000" max="2025">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Rechercher
+            </button>
+            <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Vehicles Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Véhicule</th>
+                        <th>VIN/Châssis</th>
+                        <th>Statut</th>
+                        <th>Coût Total</th>
+                        <th>Jours Stock</th>
+                        <th>Réservation</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in page_obj %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if vehicle.photos.exists %}
+                                <img src="{{ vehicle.photos.first.photo.url }}" alt="{{ vehicle }}" 
+                                     class="rounded me-3" style="width: 50px; height: 35px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center text-muted" 
+                                     style="width: 50px; height: 35px;">
+                                    <i class="ph ph-car"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-semibold">{{ vehicle.make }} {{ vehicle.model }}</div>
+                                    <small class="text-muted">{{ vehicle.year }} • {{ vehicle.color }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-monospace">{{ vehicle.vin_chassis }}</span>
+                        </td>
+                        <td>
+                            {% if vehicle.status == 'available' %}
+                                <span class="badge badge-status-available">Disponible</span>
+                            {% elif vehicle.status == 'reserved' %}
+                                <span class="badge badge-status-reserved">Réservé</span>
+                            {% elif vehicle.status == 'sold' %}
+                                <span class="badge badge-status-sold">Vendu</span>
+                            {% elif vehicle.status == 'in_transit' %}
+                                <span class="badge badge-status-in-transit">En Transit</span>
+                            {% elif vehicle.status == 'at_customs' %}
+                                <span class="badge badge-status-at-customs">En Douane</span>
+                            {% endif %}
+                            
+                            {% if vehicle.is_slow_moving %}
+                                <span class="badge bg-danger">Lent</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ vehicle.landed_cost|floatformat:0 }} DA</div>
+                            <small class="text-muted">Coût total</small>
+                        </td>
+                        <td>
+                            <span class="{% if vehicle.days_in_stock > 90 %}text-warning{% elif vehicle.days_in_stock > 180 %}text-danger{% endif %}">
+                                {{ vehicle.days_in_stock }} jours
+                            </span>
+                        </td>
+                        <td>
+                            {% if vehicle.status == 'reserved' %}
+                                <div class="small">
+                                    <div><strong>{{ vehicle.reserved_by.get_full_name|default:vehicle.reserved_by.username }}</strong></div>
+                                    <div class="text-muted">Expire: {{ vehicle.reservation_expires|date:"d/m H:i" }}</div>
+                                </div>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn btn-outline-primary btn-sm" title="Voir détails">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                                    {% if vehicle.status == 'available' %}
+                                    <button type="button" class="btn btn-outline-warning btn-sm" 
+                                            onclick="reserveVehicle({{ vehicle.pk }})" title="Réserver">
+                                        <i class="ph ph-clock"></i>
+                                    </button>
+                                    {% elif vehicle.status == 'reserved' and vehicle.reserved_by == user %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                            onclick="releaseReservation({{ vehicle.pk }})" title="Libérer">
+                                        <i class="ph ph-x"></i>
+                                    </button>
+                                    {% endif %}
+                                {% endif %}
+                                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                <a href="{% url 'inventory:edit' vehicle.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="ph ph-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="ph ph-car fs-1 mb-3 d-block"></i>
+                                <p>Aucun véhicule trouvé</p>
+                                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                <a href="{% url 'inventory:create' %}" class="btn btn-primary">
+                                    <i class="ph ph-plus me-2"></i>Ajouter le premier véhicule
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation véhicules">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Reservation Modal -->
+<div class="modal fade" id="reservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Réserver un Véhicule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reservationForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="vehicleId" name="vehicle_id">
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">Durée de réservation</label>
+                        <select class="form-select" id="duration" name="duration_days">
+                            <option value="3">3 jours</option>
+                            <option value="7" selected>7 jours</option>
+                            <option value="14">14 jours</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optionnel)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-warning" onclick="submitReservation()">Réserver</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+    
+    // Filter change auto-submit
+    const filterSelects = document.querySelectorAll('select[name="status"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+
+async function reserveVehicle(vehicleId) {
+    document.getElementById('vehicleId').value = vehicleId;
+    const modal = new bootstrap.Modal(document.getElementById('reservationModal'));
+    modal.show();
+}
+
+async function submitReservation() {
+    const form = document.getElementById('reservationForm');
+    const formData = new FormData(form);
+    const vehicleId = formData.get('vehicle_id');
+    
+    try {
+        const response = await fetch(`/inventory/${vehicleId}/reserve/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken()
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Véhicule réservé avec succès', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de la réservation', 'danger');
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('reservationModal'));
+        modal.hide();
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+async function releaseReservation(vehicleId) {
+    if (!confirm('Êtes-vous sûr de vouloir libérer cette réservation ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/inventory/${vehicleId}/release-reservation/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Réservation libérée', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+</script>
+{% endblock %}

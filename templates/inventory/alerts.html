@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alertes de Stock{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Alertes de Stock</h1>
+        <p class="text-muted">Surveillance et gestion des alertes d'inventaire</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary" onclick="generateAlerts()">
+            <i class="ph ph-arrows-clockwise me-2"></i>Actualiser Alertes
+        </button>
+        <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à l'Inventaire
+        </a>
+    </div>
+</div>
+
+<!-- Alert Summary Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-danger fs-2 mb-2">
+                    <i class="ph ph-warning"></i>
+                </div>
+                <h4 class="card-title">{{ high_priority_count }}</h4>
+                <p class="card-text text-muted">Priorité Haute</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-clock"></i>
+                </div>
+                <h4 class="card-title">{{ slow_moving_count }}</h4>
+                <p class="card-text text-muted">Rotation Lente</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-package"></i>
+                </div>
+                <h4 class="card-title">{{ customs_delayed_count }}</h4>
+                <p class="card-text text-muted">Retard Douane</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success fs-2 mb-2">
+                    <i class="ph ph-check-circle"></i>
+                </div>
+                <h4 class="card-title">{{ resolved_today_count }}</h4>
+                <p class="card-text text-muted">Résolues Aujourd'hui</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label for="alert_type" class="form-label">Type d'Alerte</label>
+            <select class="form-select" name="alert_type">
+                <option value="">Tous les types</option>
+                <option value="slow_moving" {% if request.GET.alert_type == 'slow_moving' %}selected{% endif %}>Rotation Lente</option>
+                <option value="reservation_expired" {% if request.GET.alert_type == 'reservation_expired' %}selected{% endif %}>Réservation Expirée</option>
+                <option value="customs_delayed" {% if request.GET.alert_type == 'customs_delayed' %}selected{% endif %}>Retard Douane</option>
+                <option value="low_stock" {% if request.GET.alert_type == 'low_stock' %}selected{% endif %}>Stock Faible</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="status" class="form-label">Statut</label>
+            <select class="form-select" name="status">
+                <option value="">Tous</option>
+                <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Actives</option>
+                <option value="resolved" {% if request.GET.status == 'resolved' %}selected{% endif %}>Résolues</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="date_from" class="form-label">Date début</label>
+            <input type="date" class="form-control" name="date_from" value="{{ request.GET.date_from }}">
+        </div>
+        <div class="col-md-2">
+            <label for="date_to" class="form-label">Date fin</label>
+            <input type="date" class="form-control" name="date_to" value="{{ request.GET.date_to }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Filtrer
+            </button>
+            <a href="{% url 'inventory:alerts' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i> Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Alerts List -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if alerts %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Véhicule</th>
+                        <th>Message</th>
+                        <th>Date Création</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alerts %}
+                    <tr class="{% if not alert.is_resolved %}{% if alert.alert_type == 'slow_moving' or alert.alert_type == 'customs_delayed' %}table-warning{% else %}table-info{% endif %}{% endif %}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if alert.alert_type == 'slow_moving' %}
+                                    <i class="ph ph-clock text-warning me-2"></i>
+                                {% elif alert.alert_type == 'reservation_expired' %}
+                                    <i class="ph ph-calendar-x text-info me-2"></i>
+                                {% elif alert.alert_type == 'customs_delayed' %}
+                                    <i class="ph ph-package text-danger me-2"></i>
+                                {% elif alert.alert_type == 'low_stock' %}
+                                    <i class="ph ph-warning text-warning me-2"></i>
+                                {% endif %}
+                                <span class="badge bg-{% if alert.alert_type == 'slow_moving' %}warning{% elif alert.alert_type == 'customs_delayed' %}danger{% else %}info{% endif %}">
+                                    {{ alert.get_alert_type_display }}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if alert.vehicle %}
+                            <div>
+                                <a href="{% url 'inventory:detail' alert.vehicle.pk %}" class="fw-semibold">
+                                    {{ alert.vehicle.make }} {{ alert.vehicle.model }}
+                                </a>
+                                <div class="small text-muted">{{ alert.vehicle.vin_chassis }}</div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">Général</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ alert.message }}</div>
+                            {% if alert.vehicle and alert.alert_type == 'slow_moving' %}
+                            <small class="text-muted">{{ alert.vehicle.days_in_stock }} jours en stock</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ alert.created_at|date:"d/m/Y" }}</div>
+                            <small class="text-muted">{{ alert.created_at|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            {% if alert.is_resolved %}
+                                <span class="badge bg-success">Résolue</span>
+                                {% if alert.resolved_at %}
+                                <div class="small text-muted">{{ alert.resolved_at|date:"d/m/Y H:i" }}</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-warning">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not alert.is_resolved %}
+                            <div class="btn-group" role="group">
+                                {% if alert.vehicle %}
+                                <a href="{% url 'inventory:detail' alert.vehicle.pk %}" class="btn btn-outline-primary btn-sm" title="Voir véhicule">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-success btn-sm" 
+                                        onclick="resolveAlert({{ alert.pk }})" title="Marquer comme résolue">
+                                    <i class="ph ph-check"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="ph ph-check-circle fs-1 text-success mb-3 d-block"></i>
+            <p>Aucune alerte trouvée</p>
+            <small>Votre inventaire est en bon état</small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation alertes">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function resolveAlert(alertId) {
+    if (!confirm('Marquer cette alerte comme résolue ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/inventory/alerts/${alertId}/resolve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Alerte marquée comme résolue', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+async function generateAlerts() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/inventory/ajax/generate-alerts/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert(`${data.alerts_generated} nouvelles alertes générées`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert('Erreur lors de la génération des alertes', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Auto-submit filter form
+document.addEventListener('DOMContentLoaded', function() {
+    const filterSelects = document.querySelectorAll('select[name="alert_type"], select[name="status"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

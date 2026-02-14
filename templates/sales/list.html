@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Ventes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">Gestion des Ventes</h1>
+        <p class="text-muted">{{ total_count }} ventes enregistrées</p>
+    </div>
+    <div>
+        {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+        <a href="{% url 'sales:create' %}" class="btn btn-primary">
+            <i class="ph ph-plus me-2"></i>Nouvelle Vente
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success fs-2 mb-2">
+                    <i class="ph ph-handshake"></i>
+                </div>
+                <h4 class="card-title">{{ finalized_count|default:0 }}</h4>
+                <p class="card-text text-muted">Ventes Finalisées</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-warning fs-2 mb-2">
+                    <i class="ph ph-file-text"></i>
+                </div>
+                <h4 class="card-title">{{ draft_count|default:0 }}</h4>
+                <p class="card-text text-muted">Brouillons</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary fs-2 mb-2">
+                    <i class="ph ph-currency-circle-dollar"></i>
+                </div>
+                <h4 class="card-title">{{ total_revenue|floatformat:0|default:0 }} DA</h4>
+                <p class="card-text text-muted">Chiffre d'Affaires</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-percent"></i>
+                </div>
+                <h4 class="card-title">{{ average_margin|floatformat:1|default:0 }}%</h4>
+                <p class="card-text text-muted">Marge Moyenne</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="search-filter-bar">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label for="search" class="form-label">Recherche</label>
+            <input type="text" class="form-control" name="search" value="{{ request.GET.search }}" 
+                   placeholder="Numéro, client, véhicule...">
+        </div>
+        <div class="col-md-2">
+            <label for="trader" class="form-label">Trader</label>
+            <select class="form-select" name="trader">
+                <option value="">Tous les traders</option>
+                {% for trader in traders %}
+                <option value="{{ trader.pk }}" {% if request.GET.trader == trader.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ trader.get_full_name|default:trader.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="payment_method" class="form-label">Mode Paiement</label>
+            <select class="form-select" name="payment_method">
+                <option value="">Tous les modes</option>
+                <option value="cash" {% if request.GET.payment_method == 'cash' %}selected{% endif %}>Espèces</option>
+                <option value="bank_transfer" {% if request.GET.payment_method == 'bank_transfer' %}selected{% endif %}>Virement</option>
+                <option value="installment" {% if request.GET.payment_method == 'installment' %}selected{% endif %}>Échelonné</option>
+                <option value="check" {% if request.GET.payment_method == 'check' %}selected{% endif %}>Chèque</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="is_finalized" class="form-label">Statut</label>
+            <select class="form-select" name="is_finalized">
+                <option value="">Tous</option>
+                <option value="true" {% if request.GET.is_finalized == 'true' %}selected{% endif %}>Finalisées</option>
+                <option value="false" {% if request.GET.is_finalized == 'false' %}selected{% endif %}>Brouillons</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">
+                <i class="ph ph-magnifying-glass"></i> Rechercher
+            </button>
+            <a href="{% url 'sales:list' %}" class="btn btn-outline-secondary">
+                <i class="ph ph-x"></i> Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Sales Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Vente</th>
+                        <th>Client</th>
+                        <th>Véhicule</th>
+                        <th>Trader</th>
+                        <th>Prix</th>
+                        <th>Marge</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in page_obj %}
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="{% url 'sales:detail' sale.pk %}" class="fw-semibold">
+                                    Vente #{{ sale.sale_number|default:sale.pk }}
+                                </a>
+                                <div class="small text-muted">{{ sale.sale_date|date:"d/m/Y" }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <a href="{% url 'customers:detail' sale.customer.pk %}">
+                                    {{ sale.customer.name }}
+                                </a>
+                                <div class="small text-muted">
+                                    <i class="ph ph-phone me-1"></i>{{ sale.customer.phone }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <a href="{% url 'inventory:detail' sale.vehicle.pk %}">
+                                    {{ sale.vehicle.make }} {{ sale.vehicle.model }}
+                                </a>
+                                <div class="small text-muted">{{ sale.vehicle.year }} • {{ sale.vehicle.color }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</div>
+                            {% if sale.commission_amount %}
+                            <div class="small text-success">
+                                Commission: {{ sale.commission_amount|floatformat:0 }} DA
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ sale.sale_price|floatformat:0 }} DA</div>
+                            <div class="small text-muted">
+                                <span class="badge bg-{% if sale.payment_method == 'cash' %}success{% elif sale.payment_method == 'installment' %}warning{% else %}info{% endif %}">
+                                    {{ sale.get_payment_method_display }}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if sale.margin_amount %}
+                            <div class="fw-semibold {% if sale.margin_amount > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ sale.margin_amount|floatformat:0 }} DA
+                            </div>
+                            <div class="small text-muted">
+                                {{ sale.margin_percentage|floatformat:1 }}%
+                            </div>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sale.is_finalized %}
+                                <span class="badge bg-success">Finalisée</span>
+                                {% if sale.invoice %}
+                                <div class="small">
+                                    <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="text-decoration-none">
+                                        Facture {{ sale.invoice.invoice_number }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-warning">Brouillon</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'sales:detail' sale.pk %}" class="btn btn-outline-primary btn-sm" title="Voir détails">
+                                    <i class="ph ph-eye"></i>
+                                </a>
+                                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                                    {% if not sale.is_finalized %}
+                                    <a href="{% url 'sales:edit' sale.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                        <i class="ph ph-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-success btn-sm" 
+                                            onclick="finalizeSale({{ sale.pk }})" title="Finaliser">
+                                        <i class="ph ph-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if sale.is_finalized and not sale.invoice %}
+                                    <a href="{% url 'sales:create_invoice' sale.pk %}" class="btn btn-outline-info btn-sm" title="Créer facture">
+                                        <i class="ph ph-file-text"></i>
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="ph ph-handshake fs-1 mb-3 d-block"></i>
+                                <p>Aucune vente trouvée</p>
+                                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                                <a href="{% url 'sales:create' %}" class="btn btn-primary">
+                                    <i class="ph ph-plus me-2"></i>Créer la première vente
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation ventes">
+    <ul class="pagination justify-content-center mt-4">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                <i class="ph ph-arrow-left"></i> Précédent
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in page_obj.paginator.page_range %}
+            {% if page_num == page_obj.number %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                Suivant <i class="ph ph-arrow-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function finalizeSale(saleId) {
+    if (!confirm('Finaliser cette vente ? Cette action ne peut pas être annulée.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/sales/${saleId}/finalize/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Vente finalisée avec succès', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de la finalisation', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit search form with debounce
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+    
+    // Filter change auto-submit
+    const filterSelects = document.querySelectorAll('select[name="trader"], select[name="payment_method"], select[name="is_finalized"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

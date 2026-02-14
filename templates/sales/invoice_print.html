@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture {{ invoice.invoice_number }} - {{ invoice.sale.customer.name }}</title>
+    <style>
+        @media print {
+            @page {
+                margin: 1cm;
+                size: A4;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #1e3a5f;
+        }
+        
+        .company-info h1 {
+            color: #1e3a5f;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .company-info p {
+            margin: 2px 0;
+            color: #666;
+        }
+        
+        .invoice-title {
+            text-align: right;
+        }
+        
+        .invoice-title h2 {
+            color: #1e3a5f;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .invoice-meta {
+            color: #666;
+        }
+        
+        .invoice-meta strong {
+            color: #333;
+        }
+        
+        .billing-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .billing-info {
+            width: 48%;
+        }
+        
+        .billing-info h3 {
+            color: #1e3a5f;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .billing-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        .billing-box strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        .items-table th {
+            background: #1e3a5f;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .items-table th.text-center {
+            text-align: center;
+        }
+        
+        .items-table th.text-right {
+            text-align: right;
+        }
+        
+        .items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .items-table td.text-center {
+            text-align: center;
+        }
+        
+        .items-table td.text-right {
+            text-align: right;
+        }
+        
+        .item-description {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .item-details {
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .totals-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 30px;
+        }
+        
+        .totals-table {
+            width: 300px;
+            border-collapse: collapse;
+        }
+        
+        .totals-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .totals-table .total-row {
+            background: #1e3a5f;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .totals-table .paid-row {
+            background: #10b981;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .totals-table .balance-row {
+            background: #f59e0b;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .payment-terms {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #1e3a5f;
+            margin-bottom: 20px;
+        }
+        
+        .payment-terms h4 {
+            margin: 0 0 10px 0;
+            color: #1e3a5f;
+            font-size: 14px;
+        }
+        
+        .payment-terms p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .invoice-footer {
+            text-align: center;
+            color: #666;
+            font-size: 11px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .print-button:hover {
+            background: #2c5474;
+        }
+        
+        @media (max-width: 768px) {
+            .invoice-header,
+            .billing-section {
+                flex-direction: column;
+            }
+            
+            .billing-info {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            .invoice-title {
+                text-align: left;
+                margin-bottom: 20px;
+            }
+            
+            .totals-section {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">
+        Imprimer
+    </button>
+    
+    <div class="invoice-container">
+        <!-- Invoice Header -->
+        <div class="invoice-header">
+            <div class="company-info">
+                <h1>{{ company_name|default:"CarTrade DZ" }}</h1>
+                <p>{{ company_address|default:"Alger, Algérie" }}</p>
+                <p>Tél: {{ company_phone|default:"+213 XXX XXX XXX" }}</p>
+                <p>Email: {{ company_email|default:"contact@cartrade.dz" }}</p>
+                {% if company_nif %}<p>NIF: {{ company_nif }}</p>{% endif %}
+            </div>
+            <div class="invoice-title">
+                <h2>FACTURE</h2>
+                <div class="invoice-meta">
+                    <p><strong>N°:</strong> {{ invoice.invoice_number }}</p>
+                    <p><strong>Date:</strong> {{ invoice.invoice_date|date:"d/m/Y" }}</p>
+                    <p><strong>Échéance:</strong> {{ invoice.due_date|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing Information -->
+        <div class="billing-section">
+            <div class="billing-info">
+                <h3>Facturé à:</h3>
+                <div class="billing-box">
+                    <strong>{{ invoice.sale.customer.name }}</strong>
+                    {% if invoice.sale.customer.nif_tax_id %}
+                    <p>NIF: {{ invoice.sale.customer.nif_tax_id }}</p>
+                    {% endif %}
+                    <p>{{ invoice.sale.customer.address }}</p>
+                    <p>{{ invoice.sale.customer.get_wilaya_display }}</p>
+                    <p>Tél: {{ invoice.sale.customer.phone }}</p>
+                    {% if invoice.sale.customer.email %}
+                    <p>Email: {{ invoice.sale.customer.email }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="billing-info">
+                <h3>Détails de Vente:</h3>
+                <div class="billing-box">
+                    <strong>Vente #{{ invoice.sale.sale_number|default:invoice.sale.pk }}</strong>
+                    <p>Date de vente: {{ invoice.sale.sale_date|date:"d/m/Y" }}</p>
+                    <p>Trader: {{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}</p>
+                    <p>Mode de paiement: {{ invoice.sale.get_payment_method_display }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Items -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="text-center">Quantité</th>
+                    <th class="text-right">Prix Unitaire</th>
+                    <th class="text-right">Total HT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="item-description">
+                            {{ invoice.sale.vehicle.make }} {{ invoice.sale.vehicle.model }} {{ invoice.sale.vehicle.year }}
+                        </div>
+                        <div class="item-details">
+                            VIN: {{ invoice.sale.vehicle.vin_chassis }}<br>
+                            Couleur: {{ invoice.sale.vehicle.color }}
+                            {% if invoice.sale.vehicle.engine_type %}<br>Moteur: {{ invoice.sale.vehicle.engine_type }}{% endif %}
+                        </div>
+                    </td>
+                    <td class="text-center">1</td>
+                    <td class="text-right">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                    <td class="text-right">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Invoice Totals -->
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td><strong>Sous-total HT:</strong></td>
+                    <td class="text-right">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                </tr>
+                <tr>
+                    <td><strong>TVA ({{ invoice.tva_rate }}%):</strong></td>
+                    <td class="text-right">{{ invoice.tva_amount|floatformat:2 }} DA</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>Total TTC:</strong></td>
+                    <td class="text-right"><strong>{{ invoice.total_ttc|floatformat:2 }} DA</strong></td>
+                </tr>
+                {% if invoice.amount_paid > 0 %}
+                <tr class="paid-row">
+                    <td><strong>Montant payé:</strong></td>
+                    <td class="text-right"><strong>{{ invoice.amount_paid|floatformat:2 }} DA</strong></td>
+                </tr>
+                <tr class="{% if invoice.balance_due > 0 %}balance-row{% else %}paid-row{% endif %}">
+                    <td><strong>Solde dû:</strong></td>
+                    <td class="text-right"><strong>{{ invoice.balance_due|floatformat:2 }} DA</strong></td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Payment Terms -->
+        <div class="payment-terms">
+            <h4>Conditions de Paiement:</h4>
+            <p>
+                Paiement dû dans les {{ invoice.payment_terms|default:"30" }} jours suivant la date de facturation.
+                {% if invoice.sale.payment_method == 'installment' %}
+                Un plan de paiement échelonné a été convenu pour cette vente.
+                {% endif %}
+            </p>
+            {% if invoice.notes %}
+            <h4 style="margin-top: 15px;">Notes:</h4>
+            <p>{{ invoice.notes|linebreaks }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Invoice Footer -->
+        <div class="invoice-footer">
+            <p>Merci pour votre confiance • CarTrade DZ</p>
+            <p>Cette facture a été générée électroniquement le {{ "now"|date:"d/m/Y à H:i" }}</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print when opened in new window
+        if (window.location.search.includes('auto_print=true')) {
+            window.onload = function() {
+                setTimeout(function() {
+                    window.print();
+                }, 500);
+            };
+        }
+    </script>
+</body>
+</html>

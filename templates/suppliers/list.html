@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Suppliers - HB China Cars{% endblock %}
+
+{% block page_title %}Supplier Management{% endblock %}
+
+{% block content %}
+<main class="main-content">
+  <div class="clients-container">
+    <div class="page-header">
+      <h1>
+        <img class="page-icon" src="{% static 'images/clients-icon.png' %}" alt="suppliers icon" />
+        Supplier Management
+      </h1>
+      {% if user.userprofile.is_manager or user.userprofile.is_finance %}
+      <a href="{% url 'suppliers:create' %}" class="new-order-button">
+        <img class="new-order-icon" src="{% static 'images/new-order-icon.png' %}" alt="new supplier" />
+        New Supplier
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <h3 class="section-title">
+      <img class="filters-icon" src="{% static 'images/filters-icon.png' %}" alt="filters icon" />
+      Search and Filters
+    </h3>
+
+    <form method="get" class="filters-grid">
+      <div class="filter-group">
+        <label>Search (name, contact, email)</label>
+        <div class="search-input-container">
+          <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search for a supplier..." />
+          <i><img class="search-icon" src="{% static 'images/search-icon.png' %}" alt="search icon" /></i>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label for="country">Country</label>
+        <select name="country" id="country" class="filter-select">
+          <option value="">All countries</option>
+          <option value="China" {% if request.GET.country == 'China' %}selected{% endif %}>China</option>
+          <option value="Japan" {% if request.GET.country == 'Japan' %}selected{% endif %}>Japan</option>
+          <option value="South Korea" {% if request.GET.country == 'South Korea' %}selected{% endif %}>South Korea</option>
+          <option value="UAE" {% if request.GET.country == 'UAE' %}selected{% endif %}>UAE</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="currency">Currency</label>
+        <select name="currency" id="currency" class="filter-select">
+          <option value="">All currencies</option>
+          <option value="USD" {% if request.GET.currency == 'USD' %}selected{% endif %}>USD</option>
+          <option value="CNY" {% if request.GET.currency == 'CNY' %}selected{% endif %}>CNY</option>
+          <option value="EUR" {% if request.GET.currency == 'EUR' %}selected{% endif %}>EUR</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="status">Status</label>
+        <select name="is_active" id="status" class="filter-select">
+          <option value="">All statuses</option>
+          <option value="true" {% if request.GET.is_active == 'true' %}selected{% endif %}>Active</option>
+          <option value="false" {% if request.GET.is_active == 'false' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+    </form>
+
+    <div class="filters-actions">
+      <button type="submit" class="new-order-button">Apply filters</button>
+      <a href="{% url 'suppliers:list' %}" class="btn-secondary">✕ Clear all</a>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-section">
+    <h3 class="section-title">Supplier List ({{ page_obj.paginator.count }} total)</h3>
+
+    <div class="table-container">
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>Supplier Name</th>
+            <th>Country</th>
+            <th>Contact Person</th>
+            <th>Phone</th>
+            <th>Currency</th>
+            <th>Total Purchases</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for supplier in page_obj %}
+          <tr>
+            <td>
+              <strong>{{ supplier.name }}</strong>
+            </td>
+            <td>{{ supplier.country }}</td>
+            <td>{{ supplier.contact_person|default:"-" }}</td>
+            <td>{{ supplier.phone|default:"-" }}</td>
+            <td>
+              <span class="badge badge-individual">{{ supplier.currency.code }}</span>
+            </td>
+            <td>
+              {{ supplier.purchase_count }} purchase{{ supplier.purchase_count|pluralize }}
+              {% if supplier.total_purchase_value %}
+              <br><small class="text-muted">{{ supplier.total_purchase_value|floatformat:0|intcomma }} DA</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if supplier.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-danger">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-buttons">
+                <a href="{% url 'suppliers:detail' supplier.pk %}" class="btn-icon btn-view" title="View">
+                  <img src="{% static 'images/view-icon.png' %}" alt="View" />
+                </a>
+                {% if user.userprofile.is_manager or user.userprofile.is_finance %}
+                <a href="{% url 'suppliers:edit' supplier.pk %}" class="btn-icon btn-edit" title="Edit">
+                  <img src="{% static 'images/edit-icon.png' %}" alt="Edit" />
+                </a>
+                <button type="button" class="btn-icon btn-delete" title="Toggle Status" onclick="toggleSupplierStatus({{ supplier.pk }}, '{{ supplier.name|escapejs }}')">
+                  <img src="{% static 'images/delete-icon.png' %}" alt="Toggle" />
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-4">
+              <p class="text-muted">No suppliers found</p>
+              {% if user.userprofile.is_manager or user.userprofile.is_finance %}
+              <a href="{% url 'suppliers:create' %}" class="new-order-button mt-3">
+                <img class="new-order-icon" src="{% static 'images/new-order-icon.png' %}" alt="new supplier" />
+                Create First Supplier
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination mt-4">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn btn-secondary btn-sm">← Previous</a>
+      {% endif %}
+
+      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="btn btn-secondary btn-sm">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSupplierStatus(supplierId, supplierName) {
+    if (!confirm('Are you sure you want to change the status of "' + supplierName + '"?')) {
+        return;
+    }
+    
+    fetch('/suppliers/' + supplierId + '/toggle-status/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while changing the status.');
+    });
+}
+</script>
+{% endblock %}

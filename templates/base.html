@@ -1,0 +1,300 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/navbar-fixes.css' %}" />
+    {% block extra_css %}{% endblock %}
+
+    <link rel="icon" href="{% static 'images/logo.png' %}" />
+
+    <title>{% block title %}HB China Cars - Inventory Management System{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <div class="logo">
+        <div class="logo-img">
+          <a href="{% url 'core:index' %}">
+            <img src="{% static 'images/logo.png' %}" alt="HB Logo" />
+          </a>
+        </div>
+        <span class="logo-text">HB China Cars</span>
+      </div>
+
+      <!-- Desktop Admin Dropdown -->
+      <div class="navbar-admin d-none d-lg-block">
+        <div class="admin-dropdown">
+          <button class="admin-button">
+            <i class="fas fa-user-circle"></i>
+            <span class="text">{{ user.username }}</span>
+            <svg
+              class="chevron-icon ms-1"
+              width="12"
+              height="12"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"
+              />
+            </svg>
+          </button>
+          <div class="dropdown-content">
+            <a href="#" class="navbar-icons">
+              <img
+                class="icons-admin"
+                src="{% static 'images/profile-icon1.png' %}"
+                alt="profile"
+              />
+              Profile</a
+            >
+            <a href="#" class="navbar-icons">
+              <img
+                class="icons-admin"
+                src="{% static 'images/settings-icon1.png' %}"
+                alt="settings"
+              />
+              Settings</a
+            >
+            <a href="{% url 'logout' %}" class="navbar-icons">
+              <img
+                class="icons-admin"
+                src="{% static 'images/logout-icon1.png' %}"
+                alt="logout"
+              />
+              Logout</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Menu Toggle Button -->
+      <button
+        class="btn btn-link d-lg-none text-white p-0"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#sidebarOffcanvas"
+        aria-controls="sidebarOffcanvas"
+        style="text-decoration: none"
+        id="mobileMenuBtn"
+      >
+        <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+          <path
+            fill-rule="evenodd"
+            d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"
+          />
+        </svg>
+      </button>
+    </nav>
+
+    <!-- DESKTOP SIDEBAR -->
+    <div class="sidebar d-none d-lg-block">
+      <ul class="sidebar-menu">
+        <li>
+          <a href="{% url 'core:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active-page"{% endif %}>
+            <i class="fas fa-users fa-tachometer-alt">
+              <img
+                class="icons"
+                src="{% static 'images/dashboard-icon1.png' %}"
+                alt="dashboard"
+              />
+            </i>
+            Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="#customers">
+            <i class="fas fa-users">
+              <img class="icons" src="{% static 'images/client-icon1.png' %}" alt="clients" />
+            </i>
+            Clients
+          </a>
+        </li>
+        <li>
+          <a href="#inventory">
+            <i class="fas fa-boxes">
+              <img
+                class="icons"
+                src="{% static 'images/inventory-icon1.png' %}"
+                alt="inventory"
+              />
+            </i>
+            Inventory
+          </a>
+        </li>
+        <li>
+          <a href="#purchases">
+            <i class="fas fa-shopping-cart">
+              <img class="icons" src="{% static 'images/orders-icon1.png' %}" alt="orders" />
+            </i>
+            Orders
+          </a>
+        </li>
+        <li>
+          <a href="#invoices">
+            <i class="fas fa-file-invoice">
+              <img class="icons" src="{% static 'images/invoices-icon1.png' %}" alt="invoices" />
+            </i>
+            Invoices
+          </a>
+        </li>
+        <li>
+          <a href="#reports">
+            <i class="fas fa-file-alt">
+              <img class="icons" src="{% static 'images/reports-icon1.png' %}" alt="reports" />
+            </i>
+            Reports
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- MOBILE OFFCANVAS SIDEBAR -->
+    <div
+      class="offcanvas offcanvas-start"
+      tabindex="-1"
+      id="sidebarOffcanvas"
+      aria-labelledby="sidebarOffcanvasLabel"
+    >
+      <div
+        class="offcanvas-header"
+        style="background-color: #1e3a5f; color: white"
+      >
+        <h5 class="offcanvas-title" id="sidebarOffcanvasLabel">Menu</h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="offcanvas"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="offcanvas-body p-0">
+        <ul class="sidebar-menu">
+          <li>
+            <a href="{% url 'core:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active-page"{% endif %}>
+              <i class="fas fa-users fa-tachometer-alt">
+                <img
+                  class="icons"
+                  src="{% static 'images/dashboard-icon1.png' %}"
+                  alt="dashboard"
+                />
+              </i>
+              Dashboard
+            </a>
+          </li>
+          <li>
+            <a href="#customers">
+              <i class="fas fa-users">
+                <img class="icons" src="{% static 'images/client-icon1.png' %}" alt="clients" />
+              </i>
+              Clients
+            </a>
+          </li>
+          <li>
+            <a href="#inventory">
+              <i class="fas fa-boxes">
+                <img
+                  class="icons"
+                  src="{% static 'images/inventory-icon1.png' %}"
+                  alt="inventory"
+                />
+              </i>
+              Inventory
+            </a>
+          </li>
+          <li>
+            <a href="#purchases">
+              <i class="fas fa-shopping-cart">
+                <img class="icons" src="{% static 'images/orders-icon1.png' %}" alt="orders" />
+              </i>
+              Orders
+            </a>
+          </li>
+          <li>
+            <a href="#invoices">
+              <i class="fas fa-file-invoice">
+                <img
+                  class="icons"
+                  src="{% static 'images/invoices-icon1.png' %}"
+                  alt="invoices"
+                />
+              </i>
+              Invoices
+            </a>
+          </li>
+          <li>
+            <a href="#reports">
+              <i class="fas fa-file-alt">
+                <img
+                  class="icons"
+                  src="{% static 'images/reports-icon1.png' %}"
+                  alt="reports"
+                />
+              </i>
+              Reports
+            </a>
+          </li>
+        </ul>
+
+        <!-- Separator -->
+        <div class="offcanvas-divider"></div>
+
+        <!-- Admin Options -->
+        <ul class="sidebar-menu">
+          <li>
+            <a href="#">
+              <img
+                class="icons"
+                src="{% static 'images/profile-icon1.png' %}"
+                alt="profile"
+              />
+              Profile
+            </a>
+          </li>
+          <li>
+            <a href="#">
+              <img
+                class="icons"
+                src="{% static 'images/settings-icon1.png' %}"
+                alt="settings"
+              />
+              Settings
+            </a>
+          </li>
+          <li>
+            <a href="{% url 'logout' %}">
+              <img class="icons" src="{% static 'images/logout-icon1.png' %}" alt="logout" />
+              Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- DYNAMIC CONTENT -->
+    {% block content %}{% endblock %}
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

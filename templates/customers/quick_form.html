@@ -1,0 +1,167 @@
+{% load static %}
+
+<form method="post" id="quickCustomerForm" class="needs-validation" novalidate>
+    {% csrf_token %}
+    
+    <div class="mb-3">
+        <label for="{{ form.name.id_for_label }}" class="form-label">
+            Nom complet / Raison sociale *
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.name.errors|first }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="{{ form.customer_type.id_for_label }}" class="form-label">
+                    Type de client *
+                </label>
+                {{ form.customer_type }}
+                {% if form.customer_type.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.customer_type.errors|first }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="{{ form.phone.id_for_label }}" class="form-label">
+                    Téléphone *
+                </label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.phone.errors|first }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="nifSection" style="display: none;">
+        <div class="col-12">
+            <div class="mb-3">
+                <label for="{{ form.nif_tax_id.id_for_label }}" class="form-label">
+                    NIF / Numéro fiscal
+                </label>
+                {{ form.nif_tax_id }}
+                <div class="form-text">Obligatoire pour les entreprises</div>
+                {% if form.nif_tax_id.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.nif_tax_id.errors|first }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.address.id_for_label }}" class="form-label">
+            Adresse *
+        </label>
+        {{ form.address }}
+        {% if form.address.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.address.errors|first }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.wilaya.id_for_label }}" class="form-label">
+            Wilaya *
+        </label>
+        {{ form.wilaya }}
+        {% if form.wilaya.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.wilaya.errors|first }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">
+            <i class="ph ph-check me-2"></i>Créer Client
+        </button>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const customerTypeSelect = document.getElementById('{{ form.customer_type.id_for_label }}');
+    const nifSection = document.getElementById('nifSection');
+    const nifInput = document.getElementById('{{ form.nif_tax_id.id_for_label }}');
+
+    function toggleNifField() {
+        if (customerTypeSelect.value === 'company') {
+            nifSection.style.display = 'block';
+            nifInput.required = true;
+        } else {
+            nifSection.style.display = 'none';
+            nifInput.required = false;
+            nifInput.value = '';
+        }
+    }
+
+    customerTypeSelect.addEventListener('change', toggleNifField);
+    toggleNifField(); // Initial check
+
+    // Form submission
+    document.getElementById('quickCustomerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!this.checkValidity()) {
+            this.classList.add('was-validated');
+            return;
+        }
+
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('{% url "customers:quick_create" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': CarTradeUtils.csrfToken()
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Trigger custom event with customer data
+                window.dispatchEvent(new CustomEvent('customerCreated', {
+                    detail: data.customer
+                }));
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.querySelector('#newCustomerModal'));
+                modal.hide();
+                
+                CarTradeUtils.showAlert('Client créé avec succès', 'success');
+            } else {
+                // Show form errors
+                Object.keys(data.errors).forEach(field => {
+                    const input = document.getElementById(`id_${field}`);
+                    if (input) {
+                        input.classList.add('is-invalid');
+                        const feedback = input.parentNode.querySelector('.invalid-feedback');
+                        if (feedback) {
+                            feedback.textContent = data.errors[field][0];
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            CarTradeUtils.showAlert('Erreur lors de la création du client', 'danger');
+        }
+    });
+});
+</script>

@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/index.css' %}" />
+{% endblock %}
+
+{% block title %}HB China Cars - Home{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="pages-grid">
+        <a href="#supplier-form" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card1-icon.png' %}"
+              alt="supplier"
+            />
+            Supplier Form
+          </div>
+          <div class="page-card-description">
+            Create or edit supplier information including contact details,
+            payment terms, and banking information.
+          </div>
+          <div class="page-card-id">SUPP-FORM-01</div>
+        </a>
+
+        <a href="#purchase-list" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card2-icon.png' %}"
+              alt="supplier"
+            />
+            Purchase List
+          </div>
+          <div class="page-card-description">
+            View all purchases with FOB values, exchange rates, and status
+            tracking from supplier to customs clearance.
+          </div>
+          <div class="page-card-id">PURCH-LIST-01</div>
+        </a>
+
+        <a href="#purchase-form" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card3-icon.png' %}"
+              alt="supplier"
+            />
+            New Purchase Form
+          </div>
+          <div class="page-card-description">
+            Multi-step purchase form including supplier selection, vehicle
+            information, pricing details, and review.
+          </div>
+          <div class="page-card-id">PURCH-FORM-01</div>
+        </a>
+
+        <a href="#customs-form" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card4-icon.png' %}"
+              alt="supplier"
+            />
+            Customs Entry Form
+          </div>
+          <div class="page-card-description">
+            Complete customs processing with freight, insurance, duties, TVA
+            calculations, and landed cost breakdown.
+          </div>
+          <div class="page-card-id">CUST-FORM-01</div>
+        </a>
+
+        <a href="#inventory-list" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card5-icon.png' %}"
+              alt="supplier"
+            />
+            Inventory List
+          </div>
+          <div class="page-card-description">
+            View all vehicles in inventory with status tracking, days in
+            stock, and comprehensive filtering options.
+          </div>
+          <div class="page-card-id">INV-LIST-01</div>
+        </a>
+
+        <a href="#vehicle-detail" class="page-card">
+          <div class="page-card-title">
+            <img
+              class="icons-card"
+              src="{% static 'images/card6-icon.png' %}"
+              alt="supplier"
+            />
+            Vehicle Detail
+          </div>
+          <div class="page-card-description">
+            Complete vehicle information with tabs for overview, costs,
+            customs, sales, documents, and history timeline.
+          </div>
+          <div class="page-card-id">INV-DETAIL-01</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

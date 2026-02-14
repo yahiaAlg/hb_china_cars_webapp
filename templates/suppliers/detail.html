@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ supplier.name }} - HB China Cars{% endblock %}
+
+{% block page_title %}Supplier Details{% endblock %}
+
+{% block content %}
+<main class="main-content">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb-section">
+    <a href="{% url 'suppliers:list' %}" class="breadcrumb-link">Suppliers</a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current">{{ supplier.name }}</span>
+  </div>
+
+  <!-- Header with Actions -->
+  <div class="detail-header">
+    <div class="header-left">
+      <h1 class="customer-name">{{ supplier.name }}</h1>
+      <span class="badge badge-individual">{{ supplier.country }}</span>
+    </div>
+    <div class="header-actions">
+      {% if user.userprofile.is_manager or user.userprofile.is_finance %}
+      <a href="{% url 'suppliers:edit' supplier.pk %}" class="btn btn-secondary">
+        <img src="{% static 'images/edit-icon.png' %}" alt="edit" class="btn-icon-img" />
+        Edit
+      </a>
+      <button class="btn btn-danger" onclick="confirmDelete()">
+        <img src="{% static 'images/delete-icon.png' %}" alt="delete" class="btn-icon-img" />
+        Delete
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="summary-label">Total Purchases</div>
+      <div class="summary-value">{{ total_purchases }}</div>
+      <div class="summary-info">Vehicles purchased</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Total Value</div>
+      <div class="summary-value">{{ total_value|floatformat:0|intcomma }} DA</div>
+      <div class="summary-info">Lifetime value</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Average Value</div>
+      <div class="summary-value">{{ avg_value|floatformat:0|intcomma }} DA</div>
+      <div class="summary-info">Per purchase</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Status</div>
+      <div class="summary-value">{% if supplier.is_active %}Active{% else %}Inactive{% endif %}</div>
+      <div class="summary-info {% if supplier.is_active %}text-success{% else %}text-danger %}">
+        {% if supplier.is_active %}Currently trading{% else %}Not trading{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button class="tab-btn active" data-tab="details">Details</button>
+    <button class="tab-btn" data-tab="purchases">Purchase History</button>
+    <button class="tab-btn" data-tab="contact">Contact Info</button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Details Tab -->
+    <div class="tab-pane active" id="details-tab">
+      <div class="card">
+        <div class="card-header">Supplier Information</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Supplier Name</div>
+            <div class="info-value">{{ supplier.name }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Country</div>
+            <div class="info-value">{{ supplier.country }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Preferred Currency</div>
+            <div class="info-value">
+              <span class="badge badge-individual">{{ supplier.currency.code }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Status</div>
+            <div class="info-value">
+              {% if supplier.is_active %}
+              <span class="badge badge-active">Active</span>
+              {% else %}
+              <span class="badge badge-danger">Inactive</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Payment Information</div>
+        <div class="info-grid">
+          <div class="info-item full-width">
+            <div class="info-label">Payment Terms</div>
+            <div class="info-value">{{ supplier.payment_terms|default:"Not specified" }}</div>
+          </div>
+        </div>
+      </div>
+
+      {% if supplier.notes %}
+      <div class="card">
+        <div class="card-header">Notes</div>
+        <div class="notes-content">
+          {{ supplier.notes|linebreaks }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Purchase History Tab -->
+    <div class="tab-pane" id="purchases-tab">
+      <div class="card">
+        <div class="card-header">Purchase History ({{ total_purchases }} vehicles)</div>
+        {% if recent_purchases %}
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>FOB Price</th>
+                <th>Price in DA</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for purchase in recent_purchases %}
+              <tr>
+                <td>{{ purchase.purchase_date|date:"d/m/Y" }}</td>
+                <td>
+                  <div class="vehicle-info">
+                    {% if purchase.vehicle_set.first %}
+                    <div class="vehicle-name">{{ purchase.vehicle_set.first.make }} {{ purchase.vehicle_set.first.model }} {{ purchase.vehicle_set.first.year }}</div>
+                    <div class="vehicle-details">{{ purchase.vehicle_set.first.color }} • VIN: {{ purchase.vehicle_set.first.vin_chassis|truncatechars:20 }}</div>
+                    {% else %}
+                    <div class="vehicle-name">-</div>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="amount">{{ purchase.purchase_price_fob|floatformat:2|intcomma }} {{ purchase.currency.code }}</td>
+                <td class="amount">
+                  {% if purchase.purchase_price_da %}
+                  {{ purchase.purchase_price_da|floatformat:0|intcomma }} DA
+                  {% else %}
+                  -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if purchase.vehicle_set.first %}
+                    {% with vehicle=purchase.vehicle_set.first %}
+                      {% if vehicle.status == 'in_transit' %}
+                      <span class="badge badge-warning">In Transit</span>
+                      {% elif vehicle.status == 'at_customs' %}
+                      <span class="badge badge-info">At Customs</span>
+                      {% elif vehicle.status == 'available' %}
+                      <span class="badge badge-success">Available</span>
+                      {% elif vehicle.status == 'reserved' %}
+                      <span class="badge badge-secondary">Reserved</span>
+                      {% elif vehicle.status == 'sold' %}
+                      <span class="badge badge-success">Sold</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% else %}
+                  <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <p class="text-muted">No purchases recorded for this supplier</p>
+          {% if user.userprofile.is_manager or user.userprofile.is_finance %}
+          <a href="{% url 'purchases:create' %}?supplier={{ supplier.pk }}" class="new-order-button mt-3">
+            Create First Purchase
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Contact Info Tab -->
+    <div class="tab-pane" id="contact-tab">
+      <div class="card">
+        <div class="card-header">Contact Information</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Contact Person</div>
+            <div class="info-value">{{ supplier.contact_person|default:"Not specified" }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Phone</div>
+            <div class="info-value">
+              {% if supplier.phone %}
+              <a href="tel:{{ supplier.phone }}" class="contact-link">{{ supplier.phone }}</a>
+              {% else %}
+              <span class="text-muted">Not specified</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Email</div>
+            <div class="info-value">
+              {% if supplier.email %}
+              <a href="mailto:{{ supplier.email }}" class="contact-link">{{ supplier.email }}</a>
+              {% else %}
+              <span class="text-muted">Not specified</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="info-item full-width">
+            <div class="info-label">Address</div>
+            <div class="info-value">{{ supplier.address|default:"Not specified"|linebreaks }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tabBtns = document.querySelectorAll(".tab-btn");
+    const tabPanes = document.querySelectorAll(".tab-pane");
+
+    tabBtns.forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const targetTab = this.getAttribute("data-tab");
+
+        // Remove active class from all buttons and panes
+        tabBtns.forEach((b) => b.classList.remove("active"));
+        tabPanes.forEach((p) => p.classList.remove("active"));
+
+        // Add active class to clicked button and corresponding pane
+        this.classList.add("active");
+        document.getElementById(targetTab + "-tab").classList.add("active");
+      });
+    });
+  });
+
+  function confirmDelete() {
+    if (confirm('Are you sure you want to delete this supplier? This action cannot be undone.')) {
+      alert('Delete functionality to be implemented');
+    }
+  }
+</script>
+{% endblock %}

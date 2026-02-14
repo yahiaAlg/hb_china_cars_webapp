@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Facture {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">
+            <i class="ph ph-file-text me-2"></i>
+            Facture {{ invoice.invoice_number }}
+        </h1>
+        <p class="text-muted">
+            {{ invoice.invoice_date|date:"d F Y" }} • {{ invoice.sale.customer.name }}
+            <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'issued' %}warning{% elif invoice.status == 'cancelled' %}danger{% else %}secondary{% endif %} ms-2">
+                {{ invoice.get_status_display }}
+            </span>
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'sales:invoice_print' invoice.pk %}" class="btn btn-outline-secondary" target="_blank">
+            <i class="ph ph-printer me-2"></i>Imprimer
+        </a>
+        {% if invoice.balance_due > 0 and user.userprofile.is_finance or user.userprofile.is_manager %}
+        <a href="{% url 'payments:quick_payment' invoice.pk %}" class="btn btn-success">
+            <i class="ph ph-credit-card me-2"></i>Enregistrer Paiement
+        </a>
+        {% endif %}
+        <a href="{% url 'sales:detail' invoice.sale.pk %}" class="btn btn-outline-primary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à la Vente
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Invoice Content -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <!-- Invoice Header -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h3 class="text-primary">{{ company_name|default:"CarTrade DZ" }}</h3>
+                        <div class="text-muted">
+                            {{ company_address|default:"Alger, Algérie" }}<br>
+                            {{ company_phone|default:"+213 XXX XXX XXX" }}<br>
+                            {{ company_email|default:"contact@cartrade.dz" }}<br>
+                            {% if company_nif %}NIF: {{ company_nif }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <h4>FACTURE</h4>
+                        <div class="text-muted">
+                            <strong>N°:</strong> {{ invoice.invoice_number }}<br>
+                            <strong>Date:</strong> {{ invoice.invoice_date|date:"d/m/Y" }}<br>
+                            <strong>Échéance:</strong> {{ invoice.due_date|date:"d/m/Y" }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6>Facturé à:</h6>
+                        <div class="border p-3 rounded">
+                            <strong>{{ invoice.sale.customer.name }}</strong><br>
+                            {% if invoice.sale.customer.nif_tax_id %}
+                            NIF: {{ invoice.sale.customer.nif_tax_id }}<br>
+                            {% endif %}
+                            {{ invoice.sale.customer.address }}<br>
+                            {{ invoice.sale.customer.get_wilaya_display }}<br>
+                            Tél: {{ invoice.sale.customer.phone }}
+                            {% if invoice.sale.customer.email %}<br>Email: {{ invoice.sale.customer.email }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Détails de Vente:</h6>
+                        <div class="border p-3 rounded">
+                            <strong>Vente #{{ invoice.sale.sale_number|default:invoice.sale.pk }}</strong><br>
+                            Date de vente: {{ invoice.sale.sale_date|date:"d/m/Y" }}<br>
+                            Trader: {{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}<br>
+                            Mode de paiement: {{ invoice.sale.get_payment_method_display }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Items -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-center">Quantité</th>
+                                <th class="text-end">Prix Unitaire</th>
+                                <th class="text-end">Total HT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong>{{ invoice.sale.vehicle.make }} {{ invoice.sale.vehicle.model }} {{ invoice.sale.vehicle.year }}</strong><br>
+                                    <small class="text-muted">
+                                        VIN: {{ invoice.sale.vehicle.vin_chassis }}<br>
+                                        Couleur: {{ invoice.sale.vehicle.color }}
+                                        {% if invoice.sale.vehicle.engine_type %}<br>Moteur: {{ invoice.sale.vehicle.engine_type }}{% endif %}
+                                    </small>
+                                </td>
+                                <td class="text-center">1</td>
+                                <td class="text-end">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                                <td class="text-end">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Invoice Totals -->
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if invoice.notes %}
+                        <h6>Notes:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ invoice.notes|linebreaks }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Sous-total HT:</strong></td>
+                                <td class="text-end">{{ invoice.subtotal|floatformat:2 }} DA</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TVA ({{ invoice.tva_rate }}%):</strong></td>
+                                <td class="text-end">{{ invoice.tva_amount|floatformat:2 }} DA</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Total TTC:</strong></td>
+                                <td class="text-end"><strong>{{ invoice.total_ttc|floatformat:2 }} DA</strong></td>
+                            </tr>
+                            {% if invoice.amount_paid > 0 %}
+                            <tr class="table-success">
+                                <td><strong>Montant payé:</strong></td>
+                                <td class="text-end"><strong>{{ invoice.amount_paid|floatformat:2 }} DA</strong></td>
+                            </tr>
+                            <tr class="{% if invoice.balance_due > 0 %}table-warning{% else %}table-success{% endif %}">
+                                <td><strong>Solde dû:</strong></td>
+                                <td class="text-end"><strong>{{ invoice.balance_due|floatformat:2 }} DA</strong></td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Payment Terms -->
+                <div class="mt-4 p-3 bg-light rounded">
+                    <h6>Conditions de Paiement:</h6>
+                    <p class="mb-0 small">
+                        Paiement dû dans les {{ invoice.payment_terms|default:"30" }} jours suivant la date de facturation.
+                        {% if invoice.sale.payment_method == 'installment' %}
+                        Un plan de paiement échelonné a été convenu pour cette vente.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Payment Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-credit-card me-2"></i>Statut de Paiement
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Statut</label>
+                    <div>
+                        <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'issued' %}warning{% elif invoice.status == 'cancelled' %}danger{% else %}secondary{% endif %} fs-6">
+                            {{ invoice.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Montant Total</label>
+                    <div class="fs-5 fw-bold">{{ invoice.total_ttc|floatformat:0 }} DA</div>
+                </div>
+
+                {% if invoice.amount_paid > 0 %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Montant Payé</label>
+                    <div class="text-success fw-semibold">{{ invoice.amount_paid|floatformat:0 }} DA</div>
+                </div>
+                {% endif %}
+
+                {% if invoice.balance_due > 0 %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">Solde Dû</label>
+                    <div class="text-warning fw-semibold">{{ invoice.balance_due|floatformat:0 }} DA</div>
+                </div>
+
+                {% if invoice.is_overdue %}
+                <div class="alert alert-warning">
+                    <i class="ph ph-warning me-2"></i>
+                    <strong>Facture en retard</strong><br>
+                    Échue depuis {{ invoice.days_overdue }} jour{{ invoice.days_overdue|pluralize }}
+                </div>
+                {% endif %}
+
+                {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                <div class="d-grid gap-2">
+                    <a href="{% url 'payments:quick_payment' invoice.pk %}" class="btn btn-success">
+                        <i class="ph ph-credit-card me-2"></i>Enregistrer Paiement
+                    </a>
+                    <a href="{% url 'payments:create_reminder' invoice.pk %}" class="btn btn-outline-warning">
+                        <i class="ph ph-bell me-2"></i>Envoyer Relance
+                    </a>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment History -->
+        {% if invoice.payments.exists %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-clock-clockwise me-2"></i>Historique des Paiements
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for payment in invoice.payments.all %}
+                <div class="border-start border-4 border-success ps-3 mb-3">
+                    <div class="fw-semibold">{{ payment.amount|floatformat:0 }} DA</div>
+                    <div class="small text-muted">
+                        {{ payment.payment_date|date:"d/m/Y" }} • {{ payment.get_payment_method_display }}
+                        {% if payment.bank_reference %}<br>Réf: {{ payment.bank_reference }}{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-lightning me-2"></i>Actions Rapides
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'sales:invoice_print' invoice.pk %}" class="btn btn-outline-primary" target="_blank">
+                        <i class="ph ph-printer me-2"></i>Imprimer Facture
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="downloadPDF()">
+                        <i class="ph ph-download me-2"></i>Télécharger PDF
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="emailInvoice()">
+                        <i class="ph ph-envelope me-2"></i>Envoyer par Email
+                    </button>
+                    {% if invoice.status != 'cancelled' and user.userprofile.is_manager %}
+                    <button type="button" class="btn btn-outline-danger" onclick="cancelInvoice()">
+                        <i class="ph ph-x me-2"></i>Annuler Facture
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadPDF() {
+    window.open('{% url "sales:invoice_print" invoice.pk %}?format=pdf', '_blank');
+}
+
+async function emailInvoice() {
+    const email = prompt('Adresse email du destinataire:', '{{ invoice.sale.customer.email|default:"" }}');
+    if (!email) return;
+    
+    try {
+        const response = await fetch(`/sales/invoice/{{ invoice.pk }}/email/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Facture envoyée par email avec succès', 'success');
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de l\'envoi', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+
+async function cancelInvoice() {
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette facture ? Cette action ne peut pas être annulée.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/sales/invoice/{{ invoice.pk }}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert('Facture annulée', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message || 'Erreur lors de l\'annulation', 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+</script>
+{% endblock %}

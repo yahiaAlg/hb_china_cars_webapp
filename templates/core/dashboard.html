@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
+<link rel="stylesheet" href="{% static 'css/clients.css' %}" />
+{% endblock %}
+
+{% block title %}HB China Cars - Dashboard{% endblock %}
+
+{% block content %}
+<main class="main-content">
+  <div class="clients-container">
+    <div class="page-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+      <h1>
+        <img
+          class="page-icon"
+          src="{% static 'images/dashboard-page-icon.png' %}"
+          alt="dashboard icon"
+        />
+        Dashboard
+        {% if user_role %}
+        <small style="font-size: 0.6em; color: #666; font-weight: normal;">
+          ({{ user.userprofile.get_role_display }})
+        </small>
+        {% endif %}
+      </h1>
+      <a href="#invoice-edit" class="new-order-button mt-2 mt-sm-0">
+        <img
+          class="new-order-icon"
+          src="{% static 'images/new-order-icon.png' %}"
+          alt="new order"
+        />
+        New invoice
+      </a>
+    </div>
+  </div>
+
+  <div class="dashboard-main">
+    <!-- METRICS GRID -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <h3>Total Inventory Value</h3>
+        <p>{{ total_inventory_value|floatformat:0 }} DA</p>
+        <small>
+          {% if inventory_change_pct > 0 %}
+            <span style="color: #10b981;">↑ {{ inventory_change_pct|floatformat:1 }}%</span> vs last month
+          {% elif inventory_change_pct < 0 %}
+            <span style="color: #ef4444;">↓ {{ inventory_change_pct|floatformat:1|slice:"1:" }}%</span> vs last month
+          {% else %}
+            No change vs last month
+          {% endif %}
+        </small>
+      </div>
+      
+      <div class="metric-card">
+        <h3>Vehicles in Stock</h3>
+        <p>{{ vehicles_in_stock }}</p>
+        <small>Reserved: {{ vehicles_reserved }} | Target: 30</small>
+      </div>
+      
+      <div class="metric-card">
+        <h3>Pending Customs</h3>
+        <p>{{ vehicles_in_customs }}</p>
+        <small>
+          {% if vehicles_in_customs > 3 %}
+            <span style="color: #f59e0b;">⚠ Alert: High volume</span>
+          {% else %}
+            Normal processing
+          {% endif %}
+        </small>
+      </div>
+      
+      <div class="metric-card">
+        <h3>Month Sales</h3>
+        <p>{{ monthly_revenue|floatformat:0 }} DA</p>
+        <small>
+          {% if revenue_change_pct > 0 %}
+            <span style="color: #10b981;">↑ {{ revenue_change_pct|floatformat:1 }}%</span> vs last month
+          {% elif revenue_change_pct < 0 %}
+            <span style="color: #ef4444;">↓ {{ revenue_change_pct|floatformat:1|slice:"1:" }}%</span> vs last month
+          {% else %}
+            No change vs last month
+          {% endif %}
+        </small>
+      </div>
+      
+      <div class="metric-card">
+        <h3>Month Profit</h3>
+        <p>{{ monthly_margin|floatformat:0 }} DA</p>
+        <small>Margin: {{ margin_percentage|floatformat:1 }}%</small>
+      </div>
+      
+      <div class="metric-card">
+        <h3>Unpaid Invoices</h3>
+        <p>{{ outstanding_count }}</p>
+        <small>
+          Total: {{ total_outstanding|floatformat:0 }} DA
+          {% if overdue_count > 0 %}
+            <br><span style="color: #ef4444;">⚠ {{ overdue_count }} overdue</span>
+          {% endif %}
+        </small>
+      </div>
+    </div>
+
+    <!-- CHARTS SECTION -->
+    <div class="chart-section">
+      <div class="chart-card">
+        <h3>Sales Trend (Last 12 Months)</h3>
+        <div style="position: relative; height: 250px; width: 100%;">
+          <canvas id="salesTrendChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <h3>Trader Performance Comparison</h3>
+        <div style="position: relative; height: 250px; width: 100%;">
+          <canvas id="traderPerformanceChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY STATUS -->
+    <div class="inventory-section">
+      <h3>Inventory Status</h3>
+      <div class="inventory-charts">
+        <div style="width: 250px; height: 250px;">
+          <canvas id="inventoryDonutChart"></canvas>
+        </div>
+        <div class="status-breakdown">
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem;">
+              <div style="width: 16px; height: 16px; background-color: #10b981; border-radius: 2px;"></div>
+              <strong>In Stock:</strong> <span style="margin-left: auto;">{{ vehicles_in_stock }} vehicles</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem;">
+              <div style="width: 16px; height: 16px; background-color: #f59e0b; border-radius: 2px;"></div>
+              <strong>Reserved:</strong> <span style="margin-left: auto;">{{ vehicles_reserved }} vehicles</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem;">
+              <div style="width: 16px; height: 16px; background-color: #3b82f6; border-radius: 2px;"></div>
+              <strong>In Customs:</strong> <span style="margin-left: auto;">{{ vehicles_in_customs }} vehicles</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 16px; height: 16px; background-color: #6b7280; border-radius: 2px;"></div>
+              <strong>In Transit:</strong> <span style="margin-left: auto;">{{ vehicles_in_transit }} vehicles</span>
+            </div>
+          </div>
+          <hr style="margin: 1.5rem 0;">
+          <p style="font-size: 0.9rem; color: #666;">
+            <strong>Total Vehicles:</strong> {{ vehicles_in_stock|add:vehicles_reserved|add:vehicles_in_customs|add:vehicles_in_transit }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS & NOTIFICATIONS -->
+    <div class="alerts-section">
+      <h3>Alerts &amp; Notifications</h3>
+      
+      {% if alerts_list %}
+        {% for alert in alerts_list %}
+        <div class="alert {% if alert.priority == 'high' %}high-priority{% else %}medium-priority{% endif %}">
+          <p>
+            <strong>
+              {% if alert.priority == 'high' %}[!] High Priority{% else %}[i] Medium Priority{% endif %}
+            </strong>
+          </p>
+          <p>{{ alert.message }}</p>
+          <div class="alert-actions">
+            {% if alert.vehicle %}
+              <button onclick="window.location.href='#vehicle-{{ alert.vehicle.id }}'">View Vehicle</button>
+            {% endif %}
+            {% if alert.invoice %}
+              <button onclick="window.location.href='#invoice-{{ alert.invoice.id }}'">View Invoice</button>
+              <button>Send Reminder</button>
+            {% endif %}
+            {% if alert.type == 'Véhicule à rotation lente' %}
+              <button>Reduce Price</button>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert" style="background-color: #f0fdf4; border-left: 4px solid #10b981;">
+          <p><strong>✓ All Clear</strong></p>
+          <p>No active alerts at this time.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- RECENT SALES (for traders and managers) -->
+    {% if recent_sales %}
+    <div class="inventory-section" style="margin-top: 2rem;">
+      <h3>
+        {% if user_role == 'trader' %}
+          Your Recent Sales
+        {% else %}
+          Recent Sales
+        {% endif %}
+      </h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Vehicle</th>
+              <th>Customer</th>
+              <th>Sale Price</th>
+              <th>Margin</th>
+              {% if user_role == 'trader' %}
+              <th>Commission</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in recent_sales %}
+            <tr>
+              <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+              <td>{{ sale.vehicle.make }} {{ sale.vehicle.model }} {{ sale.vehicle.year }}</td>
+              <td>{{ sale.customer.name }}</td>
+              <td>{{ sale.sale_price|floatformat:0 }} DA</td>
+              <td>
+                {{ sale.margin_amount|floatformat:0 }} DA
+                <small style="color: #666;">({{ sale.margin_percentage|floatformat:1 }}%)</small>
+              </td>
+              {% if user_role == 'trader' %}
+              <td>{{ sale.commission_amount|floatformat:0 }} DA</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Sales Trend Chart
+const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+const salesTrendChart = new Chart(salesTrendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ sales_trend_labels|safe }},
+        datasets: [{
+            label: 'Sales (Millions DA)',
+            data: {{ sales_trend_data|safe }},
+            borderColor: '#1e3a5f',
+            backgroundColor: 'rgba(30, 58, 95, 0.1)',
+            tension: 0.4,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + 'M DA';
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value + 'M';
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 0
+                }
+            }
+        }
+    }
+});
+
+// Trader Performance Chart
+const traderPerformanceCtx = document.getElementById('traderPerformanceChart').getContext('2d');
+const traderSalesCounts = {{ trader_sales_counts|safe }};
+const traderPerformanceChart = new Chart(traderPerformanceCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ trader_names|safe }},
+        datasets: [{
+            label: 'Revenue (Millions DA)',
+            data: {{ trader_revenues|safe }},
+            backgroundColor: '#3b82f6',
+            borderColor: '#1e3a5f',
+            borderWidth: 1,
+            maxBarThickness: 80
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return [
+                            'Revenue: ' + context.parsed.y.toFixed(2) + 'M DA',
+                            'Sales: ' + traderSalesCounts[context.dataIndex] + ' vehicles'
+                        ];
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value + 'M';
+                    }
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 0
+                }
+            }
+        }
+    }
+});
+
+// Inventory Donut Chart
+const inventoryDonutCtx = document.getElementById('inventoryDonutChart').getContext('2d');
+const inventoryDonutChart = new Chart(inventoryDonutCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['In Stock', 'Reserved', 'In Customs', 'In Transit'],
+        datasets: [{
+            data: [{{ vehicles_in_stock }}, {{ vehicles_reserved }}, {{ vehicles_in_customs }}, {{ vehicles_in_transit }}],
+            backgroundColor: [
+                '#10b981',
+                '#f59e0b',
+                '#3b82f6',
+                '#6b7280'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = {{ vehicles_in_stock|add:vehicles_reserved|add:vehicles_in_customs|add:vehicles_in_transit }};
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

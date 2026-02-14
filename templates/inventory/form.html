@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if vehicle %}Modifier Véhicule{% else %}Nouveau Véhicule{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">{% if vehicle %}Modifier Véhicule{% else %}Nouveau Véhicule{% endif %}</h1>
+        <p class="text-muted">
+            {% if vehicle %}
+                Modifiez les informations du véhicule
+            {% else %}
+                Ajoutez un nouveau véhicule à l'inventaire
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        {% if vehicle %}
+        <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour au Véhicule
+        </a>
+        {% else %}
+        <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à l'Inventaire
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-car me-2"></i>Informations du Véhicule
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.vin_chassis.id_for_label }}" class="form-label">
+                                    VIN/Numéro de châssis *
+                                </label>
+                                {{ form.vin_chassis }}
+                                <div class="form-text">Numéro d'identification unique du véhicule</div>
+                                {% if form.vin_chassis.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.vin_chassis.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.vehicle_purchase.id_for_label }}" class="form-label">
+                                    Achat associé *
+                                </label>
+                                {{ form.vehicle_purchase }}
+                                <div class="form-text">Sélectionnez l'achat correspondant</div>
+                                {% if form.vehicle_purchase.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.vehicle_purchase.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.make.id_for_label }}" class="form-label">
+                                    Marque *
+                                </label>
+                                {{ form.make }}
+                                {% if form.make.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.make.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.model.id_for_label }}" class="form-label">
+                                    Modèle *
+                                </label>
+                                {{ form.model }}
+                                {% if form.model.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.model.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.year.id_for_label }}" class="form-label">
+                                    Année *
+                                </label>
+                                {{ form.year }}
+                                {% if form.year.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.year.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.color.id_for_label }}" class="form-label">
+                                    Couleur *
+                                </label>
+                                {{ form.color }}
+                                {% if form.color.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.color.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.engine_type.id_for_label }}" class="form-label">
+                                    Type de moteur
+                                </label>
+                                {{ form.engine_type }}
+                                <div class="form-text">Ex: 2.0L Turbo, V6, Diesel, etc.</div>
+                                {% if form.engine_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.engine_type.errors|first }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.specifications.id_for_label }}" class="form-label">
+                            Spécifications détaillées
+                        </label>
+                        {{ form.specifications }}
+                        <div class="form-text">Équipements, options, caractéristiques techniques</div>
+                        {% if form.specifications.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.specifications.errors|first }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            {% if vehicle %}
+                            <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn btn-outline-secondary">
+                                <i class="ph ph-x me-2"></i>Annuler
+                            </a>
+                            {% else %}
+                            <a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">
+                                <i class="ph ph-x me-2"></i>Annuler
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ph ph-check me-2"></i>
+                                {% if vehicle %}Modifier{% else %}Créer{% endif %} le Véhicule
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-info me-2"></i>Guide
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="ph ph-lightbulb me-2"></i>Conseils
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li>Le VIN doit être unique et contenir au moins 10 caractères</li>
+                        <li>Sélectionnez l'achat correspondant pour calculer automatiquement les coûts</li>
+                        <li>Renseignez tous les détails pour faciliter la vente</li>
+                        <li>Les spécifications détaillées aident les clients</li>
+                    </ul>
+                </div>
+
+                {% if vehicle %}
+                <div class="border rounded p-3 bg-light">
+                    <h6>Informations Actuelles</h6>
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Statut:</strong> 
+                            <span class="badge badge-status-{{ vehicle.status }}">
+                                {{ vehicle.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Coût Total:</strong> {{ vehicle.landed_cost|floatformat:0 }} DA
+                        </div>
+                        <div class="mb-2">
+                            <strong>Jours en Stock:</strong> {{ vehicle.days_in_stock }} jours
+                        </div>
+                        {% if vehicle.status == 'reserved' %}
+                        <div class="mb-2">
+                            <strong>Réservé par:</strong> {{ vehicle.reserved_by.get_full_name|default:vehicle.reserved_by.username }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Purchase Information -->
+        <div class="card" id="purchaseInfo" style="display: none;">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-shopping-bag me-2"></i>Informations d'Achat
+                </h6>
+            </div>
+            <div class="card-body" id="purchaseDetails">
+                <!-- Purchase details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const purchaseSelect = document.getElementById('{{ form.vehicle_purchase.id_for_label }}');
+    const purchaseInfo = document.getElementById('purchaseInfo');
+    const purchaseDetails = document.getElementById('purchaseDetails');
+
+    // Load purchase details when selection changes
+    purchaseSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadPurchaseDetails(this.value);
+        } else {
+            purchaseInfo.style.display = 'none';
+        }
+    });
+
+    async function loadPurchaseDetails(purchaseId) {
+        try {
+            const response = await CarTradeUtils.ajaxRequest(`/purchases/ajax/purchase-details/?purchase_id=${purchaseId}`);
+            
+            if (response.success) {
+                const purchase = response.purchase;
+                purchaseDetails.innerHTML = `
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Fournisseur:</strong> ${purchase.supplier_name}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Date d'achat:</strong> ${purchase.purchase_date}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Prix FOB:</strong> ${purchase.purchase_price_fob} ${purchase.currency}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Prix FOB (DA):</strong> ${CarTradeUtils.formatCurrency(purchase.purchase_price_da)}
+                        </div>
+                        ${purchase.freight_cost ? `
+                        <div class="mb-2">
+                            <strong>Coût de fret:</strong> ${CarTradeUtils.formatCurrency(purchase.freight_cost)}
+                        </div>
+                        ` : ''}
+                        ${purchase.customs_cost ? `
+                        <div class="mb-2">
+                            <strong>Droits de douane:</strong> ${CarTradeUtils.formatCurrency(purchase.customs_cost)}
+                        </div>
+                        ` : ''}
+                        <hr>
+                        <div class="fw-bold">
+                            <strong>Coût total estimé:</strong> ${CarTradeUtils.formatCurrency(purchase.total_cost)}
+                        </div>
+                    </div>
+                `;
+                purchaseInfo.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading purchase details:', error);
+        }
+    }
+
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+
+    // Auto-suggest for make and model
+    const makeInput = document.getElementById('{{ form.make.id_for_label }}');
+    const modelInput = document.getElementById('{{ form.model.id_for_label }}');
+
+    // Common car makes for Algeria
+    const commonMakes = [
+        'Toyota', 'Hyundai', 'Renault', 'Peugeot', 'Volkswagen', 'Ford', 
+        'Nissan', 'Kia', 'Chevrolet', 'Dacia', 'Fiat', 'Opel', 'Citroën',
+        'Mercedes-Benz', 'BMW', 'Audi', 'Skoda', 'Seat', 'Mazda', 'Honda'
+    ];
+
+    // Add datalist for makes
+    const makeDatalist = document.createElement('datalist');
+    makeDatalist.id = 'makeList';
+    commonMakes.forEach(make => {
+        const option = document.createElement('option');
+        option.value = make;
+        makeDatalist.appendChild(option);
+    });
+    document.body.appendChild(makeDatalist);
+    makeInput.setAttribute('list', 'makeList');
+
+    // Initial load if editing
+    {% if vehicle %}
+    if (purchaseSelect.value) {
+        loadPurchaseDetails(purchaseSelect.value);
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

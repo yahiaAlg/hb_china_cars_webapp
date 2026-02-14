@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ customer.name }} - Détails Client{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-2">
+            <i class="ph ph-{% if customer.is_company %}buildings{% else %}user{% endif %} me-2"></i>
+            {{ customer.name }}
+        </h1>
+        <p class="text-muted">
+            {{ customer.get_customer_type_display }} • {{ customer.get_wilaya_display }}
+            {% if not customer.is_active %}
+                <span class="badge bg-danger ms-2">Inactif</span>
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+        <a href="{% url 'customers:edit' customer.pk %}" class="btn btn-outline-primary">
+            <i class="ph ph-pencil me-2"></i>Modifier
+        </a>
+        {% endif %}
+        <a href="{% url 'customers:list' %}" class="btn btn-outline-secondary">
+            <i class="ph ph-arrow-left me-2"></i>Retour à la Liste
+        </a>
+    </div>
+</div>
+
+<!-- Customer Overview Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-primary fs-2 mb-2">
+                    <i class="ph ph-handshake"></i>
+                </div>
+                <h4 class="card-title">{{ total_purchases }}</h4>
+                <p class="card-text text-muted">Achats Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-success fs-2 mb-2">
+                    <i class="ph ph-currency-circle-dollar"></i>
+                </div>
+                <h4 class="card-title">{{ total_value|floatformat:0 }} DA</h4>
+                <p class="card-text text-muted">Valeur Totale</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-{% if total_outstanding > 0 %}warning{% else %}success{% endif %} fs-2 mb-2">
+                    <i class="ph ph-{% if total_outstanding > 0 %}warning{% else %}check-circle{% endif %}"></i>
+                </div>
+                <h4 class="card-title">{{ total_outstanding|floatformat:0 }} DA</h4>
+                <p class="card-text text-muted">Solde Impayé</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-info fs-2 mb-2">
+                    <i class="ph ph-calendar"></i>
+                </div>
+                <h4 class="card-title">
+                    {% if customer.last_purchase_date %}
+                        {{ customer.last_purchase_date|date:"d/m/Y" }}
+                    {% else %}
+                        Aucun
+                    {% endif %}
+                </h4>
+                <p class="card-text text-muted">Dernier Achat</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Customer Information -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-info me-2"></i>Informations Client
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Type de Client</label>
+                            <div>{{ customer.get_customer_type_display }}</div>
+                        </div>
+                        {% if customer.nif_tax_id %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">NIF/Numéro Fiscal</label>
+                            <div class="font-monospace">{{ customer.nif_tax_id }}</div>
+                        </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Téléphone</label>
+                            <div>
+                                <i class="ph ph-phone me-1"></i>
+                                <a href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
+                            </div>
+                        </div>
+                        {% if customer.email %}
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Email</label>
+                            <div>
+                                <i class="ph ph-envelope me-1"></i>
+                                <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Adresse</label>
+                            <div>{{ customer.address }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Wilaya</label>
+                            <div>{{ customer.get_wilaya_display }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Statut</label>
+                            <div>
+                                <span class="badge bg-{% if customer.is_active %}success{% else %}danger{% endif %}">
+                                    {% if customer.is_active %}Actif{% else %}Inactif{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if customer.notes %}
+                <div class="mt-3">
+                    <label class="form-label text-muted">Notes</label>
+                    <div class="p-3 bg-light rounded">{{ customer.notes|linebreaks }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Sales -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-handshake me-2"></i>Ventes Récentes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Véhicule</th>
+                                <th>Prix</th>
+                                <th>Trader</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.sale_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'sales:detail' sale.pk %}">
+                                        {{ sale.vehicle.make }} {{ sale.vehicle.model }}
+                                    </a>
+                                </td>
+                                <td>{{ sale.sale_price|floatformat:0 }} DA</td>
+                                <td>{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</td>
+                                <td>
+                                    <span class="badge bg-{% if sale.is_finalized %}success{% else %}warning{% endif %}">
+                                        {% if sale.is_finalized %}Finalisée{% else %}Brouillon{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'sales:list' %}?customer={{ customer.pk }}" class="btn btn-outline-primary btn-sm">
+                        Voir Toutes les Ventes
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="ph ph-handshake fs-1 mb-3 d-block"></i>
+                    <p>Aucune vente enregistrée</p>
+                    {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                    <a href="{% url 'sales:create' %}?customer={{ customer.pk }}" class="btn btn-primary">
+                        <i class="ph ph-plus me-2"></i>Créer une Vente
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Outstanding Invoices -->
+        {% if outstanding_invoices %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ph ph-warning me-2 text-warning"></i>Factures Impayées
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Numéro</th>
+                                <th>Date</th>
+                                <th>Échéance</th>
+                                <th>Montant</th>
+                                <th>Solde Dû</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in outstanding_invoices %}
+                            <tr class="{% if invoice.is_overdue %}table-warning{% endif %}">
+                                <td>
+                                    <a href="{% url 'sales:invoice_detail' invoice.pk %}">
+                                        {{ invoice.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>{{ invoice.invoice_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    {{ invoice.due_date|date:"d/m/Y" }}
+                                    {% if invoice.is_overdue %}
+                                        <span class="badge bg-danger">En retard</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ invoice.total_ttc|floatformat:0 }} DA</td>
+                                <td class="fw-bold text-warning">{{ invoice.balance_due|floatformat:0 }} DA</td>
+                                <td>
+                                    {% if user.userprofile.is_finance or user.userprofile.is_manager %}
+                                    <a href="{% url 'payments:quick_payment' invoice.pk %}" class="btn btn-success btn-sm">
+                                        <i class="ph ph-credit-card"></i> Payer
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-lightning me-2"></i>Actions Rapides
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if user.userprofile.is_trader or user.userprofile.is_manager %}
+                <div class="d-grid gap-2">
+                    <a href="{% url 'sales:create' %}?customer={{ customer.pk }}" class="btn btn-primary">
+                        <i class="ph ph-plus me-2"></i>Nouvelle Vente
+                    </a>
+                    <a href="{% url 'customers:edit' customer.pk %}" class="btn btn-outline-primary">
+                        <i class="ph ph-pencil me-2"></i>Modifier Client
+                    </a>
+                    {% if customer.is_active %}
+                    <button type="button" class="btn btn-outline-warning" onclick="toggleCustomerStatus({{ customer.pk }})">
+                        <i class="ph ph-pause me-2"></i>Désactiver
+                    </button>
+                    {% else %}
+                    <button type="button" class="btn btn-outline-success" onclick="toggleCustomerStatus({{ customer.pk }})">
+                        <i class="ph ph-play me-2"></i>Activer
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Add Note -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-note me-2"></i>Ajouter une Note
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'customers:add_note' customer.pk %}">
+                    {% csrf_token %}
+                    {{ note_form.note }}
+                    <div class="form-check mt-2 mb-3">
+                        {{ note_form.is_important }}
+                        <label class="form-check-label" for="{{ note_form.is_important.id_for_label }}">
+                            Note importante
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="ph ph-plus me-2"></i>Ajouter Note
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Notes -->
+        {% if recent_notes %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ph ph-note-pencil me-2"></i>Notes Récentes
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for note in recent_notes %}
+                <div class="border-start border-4 {% if note.is_important %}border-warning{% else %}border-primary{% endif %} ps-3 mb-3">
+                    <div class="small text-muted mb-1">
+                        {{ note.created_at|date:"d/m/Y H:i" }} par {{ note.created_by.get_full_name|default:note.created_by.username }}
+                        {% if note.is_important %}
+                            <i class="ph ph-star text-warning"></i>
+                        {% endif %}
+                    </div>
+                    <div>{{ note.note|truncatewords:20 }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function toggleCustomerStatus(customerId) {
+    if (!confirm('Êtes-vous sûr de vouloir changer le statut de ce client ?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/customers/${customerId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': CarTradeUtils.csrfToken(),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            CarTradeUtils.showAlert(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            CarTradeUtils.showAlert(data.message, 'danger');
+        }
+    } catch (error) {
+        CarTradeUtils.showAlert('Erreur de communication', 'danger');
+    }
+}
+</script>
+{% endblock %}
