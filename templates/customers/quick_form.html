@@ -1,167 +1,194 @@
+{% extends 'base.html' %}
 {% load static %}
 
-<form method="post" id="quickCustomerForm" class="needs-validation" novalidate>
-    {% csrf_token %}
-    
-    <div class="mb-3">
-        <label for="{{ form.name.id_for_label }}" class="form-label">
-            Nom complet / Raison sociale *
-        </label>
-        {{ form.name }}
-        {% if form.name.errors %}
-            <div class="invalid-feedback d-block">
-                {{ form.name.errors|first }}
-            </div>
-        {% endif %}
-    </div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/customerForm.css' %}" />
+{% endblock %}
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="mb-3">
-                <label for="{{ form.customer_type.id_for_label }}" class="form-label">
-                    Type de client *
-                </label>
-                {{ form.customer_type }}
-                {% if form.customer_type.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.customer_type.errors|first }}
-                    </div>
-                {% endif %}
-            </div>
+{% block title %}HB China Cars - Customer Form{% endblock %}
+
+{% block content %}
+<!-- ============================================
+     MAIN CONTENT AREA - START
+     ============================================ -->
+<main class="main-content">
+  <div class="container">
+    <form method="post" id="customerForm">
+      {% csrf_token %}
+      
+      <!-- Basic Information Section -->
+      <div class="card">
+        <div class="card-header">
+          <img
+            src="{% static 'images/client-icon1.png' %}"
+            alt="user"
+            class="section-icon"
+            style="width: 24px; height: 24px;"
+          />
+          {{ title }}
         </div>
-        <div class="col-md-6">
-            <div class="mb-3">
-                <label for="{{ form.phone.id_for_label }}" class="form-label">
-                    Téléphone *
-                </label>
-                {{ form.phone }}
-                {% if form.phone.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.phone.errors|first }}
-                    </div>
-                {% endif %}
-            </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label class="form-label required">Full Name / Company Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              {% for error in form.name.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
         </div>
-    </div>
 
-    <div class="row" id="nifSection" style="display: none;">
-        <div class="col-12">
-            <div class="mb-3">
-                <label for="{{ form.nif_tax_id.id_for_label }}" class="form-label">
-                    NIF / Numéro fiscal
-                </label>
-                {{ form.nif_tax_id }}
-                <div class="form-text">Obligatoire pour les entreprises</div>
-                {% if form.nif_tax_id.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.nif_tax_id.errors|first }}
-                    </div>
-                {% endif %}
-            </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Customer Type</label>
+            {{ form.customer_type }}
+            {% if form.customer_type.errors %}
+              {% for error in form.customer_type.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="nifLabel">NIF (Tax ID)</label>
+            {{ form.nif_tax_id }}
+            <span class="form-hint"
+              >Required for business customers only</span
+            >
+            {% if form.nif_tax_id.errors %}
+              {% for error in form.nif_tax_id.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="mb-3">
-        <label for="{{ form.address.id_for_label }}" class="form-label">
-            Adresse *
-        </label>
-        {{ form.address }}
-        {% if form.address.errors %}
-            <div class="invalid-feedback d-block">
-                {{ form.address.errors|first }}
+      <!-- Contact Information Section -->
+      <div class="card">
+        <div class="card-header">
+          <img
+            src="{% static 'images/contact-icon.png' %}"
+            alt="contact"
+            class="section-icon"
+            style="width: 24px; height: 24px;"
+          />
+          Contact Information
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Phone</label>
+            {{ form.phone }}
+            <span class="form-hint">Algerian format: +213 or 0XXXXXXXXX</span>
+            {% if form.phone.errors %}
+              {% for error in form.phone.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              {% for error in form.email.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label class="form-label required">Address</label>
+            {{ form.address }}
+            {% if form.address.errors %}
+              {% for error in form.address.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label required">Wilaya</label>
+            {{ form.wilaya }}
+            {% if form.wilaya.errors %}
+              {% for error in form.wilaya.errors %}
+                <span class="form-error">{{ error }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+              {{ form.is_active }}
+              <label for="{{ form.is_active.id_for_label }}" style="margin: 0; font-weight: normal;">Active customer</label>
             </div>
-        {% endif %}
-    </div>
+          </div>
+        </div>
+      </div>
 
-    <div class="mb-3">
-        <label for="{{ form.wilaya.id_for_label }}" class="form-label">
-            Wilaya *
-        </label>
-        {{ form.wilaya }}
-        {% if form.wilaya.errors %}
-            <div class="invalid-feedback d-block">
-                {{ form.wilaya.errors|first }}
-            </div>
-        {% endif %}
-    </div>
+      <!-- Additional Information Section -->
+      <div class="card">
+        <div class="card-header">
+          <img src="{% static 'images/notes-icon.png' %}" alt="notes" class="section-icon" style="width: 24px; height: 24px;" />
+          Additional Information
+        </div>
 
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <div class="form-group full-width">
+          <label class="form-label">Notes</label>
+          {{ form.notes }}
+          <span class="form-hint"
+            >Customer preferences, referrals, or special requirements</span
+          >
+          {% if form.notes.errors %}
+            {% for error in form.notes.errors %}
+              <span class="form-error">{{ error }}</span>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="button-group right">
+        <a href="{% if customer %}{% url 'customers:detail' customer.pk %}{% else %}{% url 'customers:list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
         <button type="submit" class="btn btn-primary">
-            <i class="ph ph-check me-2"></i>Créer Client
+          <img src="{% static 'images/save-icon.png' %}" alt="save" class="btn-icon-img" style="width: 16px; height: 16px; filter: brightness(0) invert(1);" />
+          Save Customer
         </button>
-    </div>
-</form>
+      </div>
+    </form>
+  </div>
+</main>
+<!-- MAIN CONTENT AREA - END -->
+{% endblock %}
 
+{% block extra_js %}
+<!-- Customer Type Toggle Script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const customerTypeSelect = document.getElementById('{{ form.customer_type.id_for_label }}');
-    const nifSection = document.getElementById('nifSection');
-    const nifInput = document.getElementById('{{ form.nif_tax_id.id_for_label }}');
+  document.addEventListener("DOMContentLoaded", function () {
+    const customerTypeSelect = document.getElementById("{{ form.customer_type.id_for_label }}");
+    const nifInput = document.getElementById("{{ form.nif_tax_id.id_for_label }}");
+    const nifLabel = document.getElementById("nifLabel");
 
-    function toggleNifField() {
-        if (customerTypeSelect.value === 'company') {
-            nifSection.style.display = 'block';
-            nifInput.required = true;
-        } else {
-            nifSection.style.display = 'none';
-            nifInput.required = false;
-            nifInput.value = '';
-        }
+    function updateNifRequirement() {
+      if (customerTypeSelect.value === "company") {
+        nifLabel.classList.add("required");
+        nifInput.required = true;
+      } else {
+        nifLabel.classList.remove("required");
+        nifInput.required = false;
+      }
     }
 
-    customerTypeSelect.addEventListener('change', toggleNifField);
-    toggleNifField(); // Initial check
-
-    // Form submission
-    document.getElementById('quickCustomerForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (!this.checkValidity()) {
-            this.classList.add('was-validated');
-            return;
-        }
-
-        const formData = new FormData(this);
-        
-        try {
-            const response = await fetch('{% url "customers:quick_create" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': CarTradeUtils.csrfToken()
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Trigger custom event with customer data
-                window.dispatchEvent(new CustomEvent('customerCreated', {
-                    detail: data.customer
-                }));
-                
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.querySelector('#newCustomerModal'));
-                modal.hide();
-                
-                CarTradeUtils.showAlert('Client créé avec succès', 'success');
-            } else {
-                // Show form errors
-                Object.keys(data.errors).forEach(field => {
-                    const input = document.getElementById(`id_${field}`);
-                    if (input) {
-                        input.classList.add('is-invalid');
-                        const feedback = input.parentNode.querySelector('.invalid-feedback');
-                        if (feedback) {
-                            feedback.textContent = data.errors[field][0];
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            CarTradeUtils.showAlert('Erreur lors de la création du client', 'danger');
-        }
-    });
-});
+    customerTypeSelect.addEventListener("change", updateNifRequirement);
+    updateNifRequirement(); // Initial check
+  });
 </script>
+{% endblock %}

@@ -14,6 +14,33 @@
 }
 
 /* ============================================
+   DASHBOARD PAGE HEADER
+   ============================================ */
+
+/* Override clients-container for dashboard */
+/* .main-content > .clients-container {
+  background-color: var(--white);
+  margin: 0;
+  margin-bottom: 2rem;
+  padding: 1.5rem 2rem;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 2px solid var(--gray-300);
+}
+
+/* Page header icon sizing */
+/*
+.page-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.new-order-icon {
+  width: 16px;
+  height: 16px;
+} */
+
+/* ============================================
    METRICS GRID
    ============================================ */
 
@@ -69,7 +96,6 @@
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden; /* Prevent chart overflow */
 }
 
 .chart-card h3 {
@@ -79,16 +105,15 @@
   color: var(--primary-navy);
 }
 
-/* Chart container constraints */
-.chart-card canvas {
-  max-width: 100%;
-  height: auto !important;
-}
-
-/* Ensure charts respect their containers */
-.chart-card > div {
-  width: 100%;
-  max-width: 100%;
+.chart-placeholder {
+  height: 200px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  margin-top: 1rem;
 }
 
 /* ============================================
@@ -116,12 +141,27 @@
   margin-top: 1rem;
 }
 
+.donut-chart {
+  width: 200px;
+  height: 200px;
+  background: #f0f0f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  flex-shrink: 0;
+}
+
 .status-breakdown {
   flex: 1;
 }
 
 /* ============================================
    ALERTS SECTION
+   Scoped under .alerts-section so these do NOT
+   collide with the base.css .alert rules (which
+   set display:flex, gap, etc. for generic alerts).
    ============================================ */
 
 .alerts-section {
@@ -184,7 +224,9 @@
 }
 
 /* ============================================
-   RESPONSIVE STYLES
+   DASHBOARD RESPONSIVE STYLES
+   .main-content breakpoints live in clients.css.
+   Only dashboard-specific layout lives here.
    ============================================ */
 
 /* Below lg (< 992px): charts collapse to one column */
@@ -197,13 +239,10 @@
   .chart-section {
     grid-template-columns: 1fr;
   }
-
-  .chart-card {
-    max-width: 100%;
-  }
 }
 
-/* md and below (< 768px): single-column metrics */
+/* md and below (< 768px): single-column metrics,
+   inventory stacks, alert buttons go full-width */
 @media (max-width: 767px) {
   .metrics-grid {
     grid-template-columns: 1fr;
@@ -226,10 +265,6 @@
   .alert-actions button {
     width: 100%;
     justify-content: center;
-  }
-
-  .chart-card {
-    padding: 1rem;
   }
 }
 
