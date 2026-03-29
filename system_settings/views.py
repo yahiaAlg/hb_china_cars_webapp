@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -81,6 +83,7 @@ def exchange_rates(request):
         ):
             current_rates[key] = rate
 
+    total_count = rates.count()  # single count query
     paginator = Paginator(rates, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
     return render(
@@ -90,7 +93,7 @@ def exchange_rates(request):
             "page_obj": page_obj,
             "search_form": search_form,
             "current_rates": current_rates.values(),
-            "total_count": rates.count(),
+            "total_count": total_count,
         },
     )
 
@@ -158,6 +161,7 @@ def tax_rates(request):
             or rate.effective_date > current_rates[rate.tax_type].effective_date
         ):
             current_rates[rate.tax_type] = rate
+    total_count = rates.count()  # single count query
     paginator = Paginator(rates, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
     return render(
@@ -166,7 +170,7 @@ def tax_rates(request):
         {
             "page_obj": page_obj,
             "current_rates": current_rates.values(),
-            "total_count": rates.count(),
+            "total_count": total_count,
         },
     )
 
@@ -243,8 +247,10 @@ def system_logs(request):
         if cd.get("search"):
             logs = logs.filter(message__icontains=cd["search"])
 
+    # FIX #3: single count — reused for both stats and total_count
+    total_count = logs.count()
     stats = {
-        "total_logs": logs.count(),
+        "total_logs": total_count,
         "error_count": logs.filter(level="error").count(),
         "warning_count": logs.filter(level="warning").count(),
         "info_count": logs.filter(level="info").count(),
@@ -252,6 +258,13 @@ def system_logs(request):
     critical_logs = logs.filter(level__in=["error", "critical"])[:10]
     paginator = Paginator(logs, 50)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    # FIX #4: build a base query string for pagination links that preserves
+    # all active filter params (level, action_type, user, search, date_from/to).
+    query_params = request.GET.copy()
+    query_params.pop("page", None)  # remove page so template can append ?page=N
+    base_query_string = query_params.urlencode()  # e.g. "level=warning&search=foo"
+
     return render(
         request,
         "system_settings/system_logs.html",
@@ -260,7 +273,8 @@ def system_logs(request):
             "filter_form": filter_form,
             "stats": stats,
             "critical_logs": critical_logs,
-            "total_count": logs.count(),
+            "total_count": total_count,
+            "base_query_string": base_query_string,  # passed to template
         },
     )
 
@@ -269,12 +283,13 @@ def system_logs(request):
 def clear_old_logs(request):
     if request.method == "POST":
         days = int(request.POST.get("days", 30))
-        cutoff_date = timezone.now() - timezone.timedelta(days=days)
+        # FIX #1: timezone has no timedelta — import datetime.timedelta
+        cutoff_date = timezone.now() - timedelta(days=days)
         deleted_count, _ = SystemLog.objects.filter(created_at__lt=cutoff_date).delete()
         SystemLog.log(
             level="info",
             action_type="system",
-            message=f"Nettoyage des logs: {deleted_count} entrées supprimées",
+            message=f"Nettoyage des logs: {deleted_count} entrées supprimées (>{days} jours)",
             user=request.user,
             request=request,
         )
@@ -439,7 +454,11 @@ def user_edit(request, pk):
         profile_form = UserProfileForm(request.POST, instance=profile)
         if form.is_valid() and profile_form.is_valid():
             form.save()
-            profile_form.save()
+            saved_profile = profile_form.save(commit=False)
+            # Only managers may change the default commission rate
+            if not request.user.userprofile.is_manager:
+                saved_profile.default_commission_rate = profile.default_commission_rate
+            saved_profile.save()
             SystemLog.log(
                 level="info",
                 action_type="update",

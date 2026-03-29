@@ -101,6 +101,11 @@ def sale_create(request):
         if form.is_valid() and formset.is_valid():
             sale = form.save(commit=False)
             sale.created_by = request.user
+            # Always enforce commission rate from the assigned trader's profile
+            if sale.assigned_trader and hasattr(sale.assigned_trader, "userprofile"):
+                sale.commission_rate = (
+                    sale.assigned_trader.userprofile.default_commission_rate
+                )
             sale.save()
             formset.instance = sale
             items = formset.save(commit=False)
@@ -181,6 +186,11 @@ def sale_edit(request, pk):
         if form.is_valid() and formset.is_valid():
             sale = form.save(commit=False)
             sale.updated_by = request.user
+            # Always enforce commission rate from the assigned trader's profile
+            if sale.assigned_trader and hasattr(sale.assigned_trader, "userprofile"):
+                sale.commission_rate = (
+                    sale.assigned_trader.userprofile.default_commission_rate
+                )
             sale.save()
             items = formset.save(commit=False)
             for item in items:

@@ -38,7 +38,6 @@ class SaleForm(forms.ModelForm):
             "assigned_trader",
             "payment_method",
             "down_payment",
-            "commission_rate",
             "notes",
         ]
         widgets = {
@@ -46,9 +45,6 @@ class SaleForm(forms.ModelForm):
                 attrs={"type": "date", "class": "field-input"}
             ),
             "down_payment": forms.NumberInput(
-                attrs={"step": "0.01", "class": "field-input"}
-            ),
-            "commission_rate": forms.NumberInput(
                 attrs={"step": "0.01", "class": "field-input"}
             ),
             "notes": forms.Textarea(attrs={"rows": 3, "class": "field-input"}),
@@ -68,18 +64,11 @@ class SaleForm(forms.ModelForm):
 
         if not self.instance.pk:
             from django.utils import timezone
-            from decimal import Decimal
 
             self.fields["sale_date"].initial = timezone.now().date()
-            self.fields["commission_rate"].initial = Decimal("4.00")
             if self.user and hasattr(self.user, "userprofile"):
                 if self.user.userprofile.is_trader:
                     self.fields["assigned_trader"].initial = self.user
-                    self.fields["commission_rate"].initial = (
-                        self.user.userprofile.default_commission_rate
-                        if self.user.userprofile.default_commission_rate
-                        else Decimal("4.00")
-                    )
 
 
 class SaleLineItemForm(forms.ModelForm):
