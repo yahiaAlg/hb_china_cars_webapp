@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title|default:"Rappel de paiement" }}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Rappel de paiement{% endblock %}
+{% block page_sub_text %}Facture {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+    max-width: 960px;
+}
+
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-raised);
+}
+
+.form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-card-body { padding: 22px 20px; }
+
+.form-row { display: grid; gap: 14px; margin-bottom: 14px; }
+.form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.field-label span.req { color: var(--accent); }
+
+.field-input, .field-select, .field-textarea {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 11px 14px;
+    width: 100%;
+    min-height: 44px;
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.field-input:focus, .field-select:focus, .field-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.field-textarea { resize: vertical; min-height: 100px; }
+.field-select option { background: var(--bg-raised); }
+
+.field-error {
+    font-size: 11.5px;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.invoice-summary-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.invoice-summary-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-raised);
+}
+
+.invoice-summary-body { padding: 14px 16px; }
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--text-muted); }
+.summary-value { color: var(--text-secondary); font-weight: 500; }
+
+.fade-in { animation: fadeIn .35s ease both; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .form-layout { grid-template-columns: 1fr; }
+    .form-row.cols-2 { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Retour -->
+<div style="margin-bottom:20px;">
+    <a href="{% url 'payments:outstanding' %}" class="section-link" style="font-size:13px;color:var(--text-secondary);">
+        <i class="bi bi-arrow-left me-1"></i> Retour aux factures impayées
+    </a>
+</div>
+
+<div class="form-layout">
+
+    <!-- Gauche : formulaire -->
+    <div class="fade-in">
+        <div class="form-card">
+            <div class="form-card-head">
+                <div style="width:40px;height:40px;background:rgba(217,119,6,.12);border-radius:var(--radius-sm);display:grid;place-items:center;color:var(--accent);font-size:18px;flex-shrink:0;">
+                    <i class="bi bi-bell"></i>
+                </div>
+                <div>
+                    <div class="form-card-title">Rappel de paiement</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Facture {{ invoice.invoice_number }} — {{ invoice.customer.name|default:"—" }}</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                {% if form.non_field_errors %}
+                <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;">
+                    <div style="font-size:13px;color:#dc2626;display:flex;align-items:center;gap:6px;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Type + Date prévue -->
+                    <div class="form-row cols-2">
+                        <div class="field-group">
+                            <label class="field-label">Type de rappel <span class="req">*</span></label>
+                            <select name="{{ form.reminder_type.html_name }}"
+                                class="field-select {% if form.reminder_type.errors %}is-invalid{% endif %}">
+                                <option value="">— Sélectionner —</option>
+                                {% for value, label in form.reminder_type.field.choices %}
+                                {% if value %}
+                                <option value="{{ value }}" {% if form.reminder_type.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if form.reminder_type.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.reminder_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Date du rappel <span class="req">*</span></label>
+                            <input type="date"
+                                name="{{ form.reminder_date.html_name }}"
+                                value="{{ form.reminder_date.value|date:'Y-m-d'|default_if_none:'' }}"
+                                class="field-input {% if form.reminder_date.errors %}is-invalid{% endif %}">
+                            {% if form.reminder_date.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.reminder_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="field-group">
+                            <label class="field-label">Message</label>
+                            <textarea name="{{ form.message.html_name }}"
+                                class="field-textarea {% if form.message.errors %}is-invalid{% endif %}"
+                                placeholder="Corps du message de rappel…">{{ form.message.value|default_if_none:'' }}</textarea>
+                            {% if form.message.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.message.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+                        <button type="submit" class="btn-primary" style="flex:1;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;">
+                            <i class="bi bi-bell-fill"></i> Enregistrer le rappel
+                        </button>
+                        <a href="{% url 'payments:outstanding' %}" class="btn-ghost" style="padding:12px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+                            <i class="bi bi-x-lg"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Droite : résumé de la facture -->
+    <div class="fade-in" style="animation-delay:60ms;">
+
+        <div class="invoice-summary-card">
+            <div class="invoice-summary-head">
+                <i class="bi bi-receipt" style="color:var(--accent);"></i>
+                Facture {{ invoice.invoice_number }}
+            </div>
+            <div class="invoice-summary-body">
+                <div style="background:linear-gradient(135deg,rgba(217,119,6,.10),rgba(217,119,6,.03));border:1px solid rgba(217,119,6,.20);border-radius:var(--radius-md);padding:14px;text-align:center;margin-bottom:12px;">
+                    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Solde restant dû</div>
+                    <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);">{{ invoice.balance_due|floatformat:0 }} DA</div>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Client</span>
+                    <span class="summary-value">{{ invoice.customer.name|default:"—" }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Total facture</span>
+                    <span class="summary-value">{{ invoice.total_ttc|floatformat:0 }} DA</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Déjà payé</span>
+                    <span class="summary-value" style="color:#16a34a;font-weight:600;">{{ invoice.amount_paid|floatformat:0 }} DA</span>
+                </div>
+                {% if invoice.due_date %}
+                <div class="summary-row">
+                    <span class="summary-label">Date d'échéance</span>
+                    <span class="summary-value" style="{% if invoice.due_date < today %}color:#dc2626;font-weight:600;{% endif %}">
+                        {{ invoice.due_date|date:"j M Y" }}
+                    </span>
+                </div>
+                {% endif %}
+                <div class="summary-row">
+                    <span class="summary-label">Statut</span>
+                    <span class="summary-value">
+                        {% if invoice.due_date and invoice.due_date < today %}
+                        <span class="pill pill-danger" style="font-size:10px;">En retard</span>
+                        {% else %}
+                        <span class="pill pill-warning" style="font-size:10px;">En attente</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-sm);">
+            <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Actions rapides</div>
+            <a href="{% url 'payments:quick_payment' invoice.pk %}"
+                class="btn-primary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;font-size:13px;margin-bottom:8px;min-height:44px;">
+                <i class="bi bi-lightning-charge"></i> Paiement rapide
+            </a>
+            <a href="{% url 'sales:invoice_detail' invoice.pk %}"
+                class="btn-ghost" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;font-size:13px;min-height:44px;">
+                <i class="bi bi-receipt"></i> Voir la facture
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Pré-remplir la date du rappel avec demain
+const reminderDate = document.querySelector('input[name*="reminder_date"]');
+if (reminderDate && !reminderDate.value) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    reminderDate.value = tomorrow.toISOString().slice(0, 10);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Ma Commission{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Ma Commission{% endblock %}
+{% block page_sub_text %}
+    {% if current_period %}{{ current_period }}{% else %}Période en cours{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+.progress-bar-track {
+    height: 6px;
+    background: var(--bg-raised);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--accent);
+    transition: width .5s ease;
+}
+.progress-bar-fill.green { background: #16a34a; }
+.tier-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+.tier-row:last-child { border-bottom: none; }
+.tier-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border-strong);
+}
+.tier-indicator.current { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.tier-indicator.achieved { background: #16a34a; }
+.breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-row.total {
+    padding-top: 14px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+.table-scroll { overflow-x: auto; }
+{% endblock %}
+
+{% block content %}
+
+{% if summary %}
+<!-- Métriques -->
+<div class="row g-3 mb-4">
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-pink"><i class="bi bi-percent"></i></div>
+            <div class="metric-label">Commission Totale</div>
+            <div class="metric-value">{{ summary.total_commission|floatformat:0 }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">DA</span>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-green"><i class="bi bi-receipt"></i></div>
+            <div class="metric-label">Ventes de la Période</div>
+            <div class="metric-value">{{ summary.sales_count }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">transactions</span>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-blue"><i class="bi bi-piggy-bank"></i></div>
+            <div class="metric-label">Marge Totale</div>
+            <div class="metric-value sm">{{ summary.total_margin|floatformat:0 }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">DA</span>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-amber"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="metric-label">Taux Comm. Moyen</div>
+            <div class="metric-value sm">{{ summary.average_commission_rate|floatformat:1 }}<span style="font-size:16px;">%</span></div>
+            <span style="font-size:12px;color:var(--text-muted);">de la marge</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Disposition deux colonnes -->
+<div class="row g-3 mb-3">
+
+    <!-- Gauche : Détail de commission + Statut -->
+    <div class="col-xl-5">
+
+        <!-- Statut & versement -->
+        <div class="card mb-3" style="padding: 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+                <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Statut du Versement</span>
+                {% if summary.payout_status == 'paid' %}
+                    <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payé</span>
+                {% elif summary.payout_status == 'approved' %}
+                    <span class="pill pill-info"><i class="bi bi-clock"></i> Approuvé</span>
+                {% elif summary.payout_status == 'pending' %}
+                    <span class="pill pill-warning"><i class="bi bi-hourglass-split"></i> En attente</span>
+                {% else %}
+                    <span class="pill pill-neutral">{{ summary.get_payout_status_display }}</span>
+                {% endif %}
+            </div>
+
+            <div class="breakdown-row">
+                <span style="color:var(--text-secondary);">Commission de base</span>
+                <span style="color:var(--text-primary);">{{ summary.base_commission|floatformat:0 }} DA</span>
+            </div>
+            {% if summary.tier_bonus %}
+            <div class="breakdown-row">
+                <span style="color:var(--text-secondary);">Bonus de palier <span class="pill pill-warning" style="margin-left:4px;">Performance</span></span>
+                <span style="color:#ca8a04;">+ {{ summary.tier_bonus|floatformat:0 }} DA</span>
+            </div>
+            {% endif %}
+            {% for adj in adjustments %}
+            <div class="breakdown-row">
+                <span style="color:var(--text-secondary);">
+                    {{ adj.get_adjustment_type_display }}
+                    {% if adj.adjustment_type == 'bonus' or adj.adjustment_type == 'special' %}
+                        <span class="pill pill-success" style="margin-left:4px;">+</span>
+                    {% else %}
+                        <span class="pill pill-danger" style="margin-left:4px;">−</span>
+                    {% endif %}
+                </span>
+                <span style="color:{% if adj.adjustment_type == 'penalty' %}#dc2626{% else %}#16a34a{% endif %};">
+                    {% if adj.adjustment_type == 'penalty' %}-{% else %}+{% endif %}{{ adj.amount|floatformat:0 }} DA
+                </span>
+            </div>
+            {% endfor %}
+            <div class="breakdown-row total">
+                <span>Commission Nette</span>
+                <span style="color:var(--accent);">{{ summary.total_commission|floatformat:0 }} DA</span>
+            </div>
+
+            {% if summary.payout_status == 'paid' and summary.payout_date %}
+            <div style="margin-top:14px;padding:12px 14px;background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:var(--radius-md);">
+                <div style="font-size:12px;color:#16a34a;display:flex;align-items:center;gap:6px;">
+                    <i class="bi bi-check-circle"></i>
+                    Payé le {{ summary.payout_date|date:"j N Y" }}
+                    {% if summary.payout_reference %}&nbsp;·&nbsp; Réf. : {{ summary.payout_reference }}{% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Progression des paliers -->
+        {% if tiers %}
+        <div class="card" style="padding: 20px;">
+            <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:16px;">
+                Paliers de Commission
+            </div>
+            {% for tier in tiers %}
+            <div class="tier-row">
+                <div class="tier-indicator {% if summary.sales_count >= tier.min_sales_count %}{% if summary.sales_count <= tier.max_sales_count or not tier.max_sales_count %}current{% else %}achieved{% endif %}{% endif %}"></div>
+                <div style="flex:1;">
+                    <div style="font-size:13px;color:var(--text-primary);font-weight:500;">{{ tier.name }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">
+                        {% if tier.max_sales_count %}{{ tier.min_sales_count }}–{{ tier.max_sales_count }}{% else %}{{ tier.min_sales_count }}+{% endif %} ventes
+                    </div>
+                </div>
+                <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent);">{{ tier.commission_rate|floatformat:1 }}%</span>
+            </div>
+            {% endfor %}
+
+            {% if tiers %}
+            <div style="margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+                    <span>Progression : {{ summary.sales_count }} ventes cette période</span>
+                    <span>Prochain palier : {% for tier in tiers %}{% if summary.sales_count < tier.min_sales_count %}{{ tier.min_sales_count }} ventes{% endif %}{% endfor %}</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" style="width:{% if tiers.last.min_sales_count > 0 %}{% widthratio summary.sales_count tiers.last.min_sales_count 100 %}{% else %}100{% endif %}%;"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- Droite : Ventes récentes + Historique -->
+    <div class="col-xl-7">
+
+        <!-- Ventes contribuant à la commission -->
+        <div class="card mb-3">
+            <div style="padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Ventes de la Période</span>
+                <a href="{% url 'sales:list' %}" style="font-size:12px;color:var(--accent);display:flex;align-items:center;gap:4px;">
+                    Voir tout <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div style="padding:0 20px 4px;" class="table-scroll">
+                {% if sales %}
+                <table class="table-custom" style="margin-top:10px;">
+                    <thead>
+                        <tr>
+                            <th>Véhicule</th>
+                            <th>Client</th>
+                            <th>Date de vente</th>
+                            <th style="text-align:right;">Commission</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td>
+                                <span style="color:var(--text-primary);font-weight:500;">{{ sale.vehicle.make }} {{ sale.vehicle.model }}</span>
+                                <div style="font-size:11px;color:var(--text-muted);">{{ sale.vehicle.year }}</div>
+                            </td>
+                            <td>{{ sale.customer.name }}</td>
+                            <td style="color:var(--text-muted);">{{ sale.sale_date|date:"j N Y" }}</td>
+                            <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">
+                                {{ sale.commission_amount|floatformat:0 }} DA
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+                    <i class="bi bi-receipt" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">Aucune vente</div>
+                    <div style="font-size:13px;">Aucune vente finalisée enregistrée pour cette période.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historique des périodes -->
+        {% if past_summaries %}
+        <div class="card">
+            <div style="padding:18px 20px 0;">
+                <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Périodes Précédentes</span>
+            </div>
+            <div style="padding:4px 20px 8px;" class="table-scroll">
+                <table class="table-custom" style="margin-top:10px;">
+                    <thead>
+                        <tr>
+                            <th>Période</th>
+                            <th>Ventes</th>
+                            <th>Commission</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ps in past_summaries %}
+                        <tr>
+                            <td style="color:var(--text-primary);">{{ ps.period }}</td>
+                            <td>{{ ps.sales_count }}</td>
+                            <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">
+                                {{ ps.total_commission|floatformat:0 }} DA
+                            </td>
+                            <td>
+                                {% if ps.payout_status == 'paid' %}
+                                    <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payé</span>
+                                {% elif ps.payout_status == 'approved' %}
+                                    <span class="pill pill-info">Approuvé</span>
+                                {% elif ps.payout_status == 'pending' %}
+                                    <span class="pill pill-warning">En attente</span>
+                                {% else %}
+                                    <span class="pill pill-neutral">{{ ps.get_payout_status_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% else %}
+<!-- État vide -->
+<div style="text-align:center;padding:72px 20px;color:var(--text-muted);">
+    <i class="bi bi-percent" style="font-size:40px;display:block;margin-bottom:14px;color:var(--border-strong);"></i>
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucune Donnée de Commission</div>
+    <div style="font-size:13px;">Aucun récapitulatif de commission trouvé pour la période en cours.</div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_sub_text %}{{ invoice.invoice_date|date:"j M Y" }}{% endblock %}
+
+{% block extra_css %}
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+}
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+}
+.card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-body { padding: 20px; }
+.info-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; gap: 12px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+.totals-table { width: 100%; border-collapse: collapse; }
+.totals-table td { padding: 9px 0; font-size: 13px; color: var(--text-secondary); }
+.totals-table td:last-child { text-align: right; color: var(--text-primary); font-weight: 500; }
+.totals-table tr { border-bottom: 1px solid var(--border); }
+.totals-table tr:last-child { border-bottom: none; }
+.totals-total td { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--text-primary); padding-top: 14px; }
+.totals-total td:last-child { color: var(--accent); }
+.pay-track { height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.pay-fill { height: 100%; background: #16a34a; border-radius: 4px; width: 0; transition: width .6s ease; }
+.action-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 16px;
+    border-radius: var(--radius-md); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all var(--transition); border: none; text-decoration: none;
+    justify-content: center; margin-bottom: 8px; min-height: 44px;
+}
+.action-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+.action-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.action-primary { background: var(--accent); color: #ffffff; }
+.action-primary:hover { opacity: .9; color: #ffffff; }
+@media (max-width: 1024px) { .detail-grid { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <a href="{% url 'sales:detail' invoice.sale.pk %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);transition:color var(--transition);"
+       onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour à {{ invoice.sale.sale_number }}
+    </a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{% url 'sales:invoice_print' invoice.pk %}" target="_blank" class="btn-ghost" style="min-height:44px;">
+            <i class="bi bi-printer"></i> Imprimer
+        </a>
+        {% if invoice.balance_due > 0 and invoice.status != 'cancelled' %}
+        <a href="{% url 'payments:quick_payment' invoice.pk %}" class="btn-primary" style="min-height:44px;">
+            <i class="bi bi-credit-card"></i> Enregistrer un paiement
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- GAUCHE -->
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <div>
+                    <div class="card-title">{{ invoice.invoice_number }}</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">
+                        Émise le {{ invoice.invoice_date|date:"j M Y" }} — Échéance {{ invoice.due_date|date:"j M Y" }}
+                    </div>
+                </div>
+                {% if invoice.status == 'paid' %}
+                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payée</span>
+                {% elif invoice.status == 'cancelled' %}
+                <span class="pill pill-danger">Annulée</span>
+                {% elif invoice.is_overdue %}
+                <span class="pill pill-danger"><i class="bi bi-exclamation-circle"></i> En retard {{ invoice.days_overdue }}j</span>
+                {% else %}
+                <span class="pill pill-warning">{{ invoice.get_status_display }}</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">Client</span>
+                    <span class="info-value">
+                        <a href="{% url 'customers:detail' invoice.customer.pk %}" style="color:var(--accent);">{{ invoice.customer.name }}</a>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Vente associée</span>
+                    <span class="info-value">
+                        <a href="{% url 'sales:detail' invoice.sale.pk %}" style="color:var(--accent);">{{ invoice.sale.sale_number }}</a>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Véhicule{{ invoice.sale.line_items.count|pluralize }}</span>
+                    <span class="info-value">
+                        {% for item in invoice.sale.line_items.all %}
+                        <div>{{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}</div>
+                        {% endfor %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trader</span>
+                    <span class="info-value">{{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-calculator me-2" style="color:#7c3aed;"></i>Décomposition de la facture</div>
+            </div>
+            <div class="card-body">
+                <table class="totals-table">
+                    <tr>
+                        <td>Sous-total HT</td>
+                        <td>{{ invoice.subtotal_ht|floatformat:2 }} DA</td>
+                    </tr>
+                    <tr>
+                        <td>TVA ({{ invoice.tva_rate|floatformat:2 }}%)</td>
+                        <td>{{ invoice.tva_amount|floatformat:2 }} DA</td>
+                    </tr>
+                    <tr class="totals-total">
+                        <td>Total TTC</td>
+                        <td>{{ invoice.total_ttc|floatformat:0 }} DA</td>
+                    </tr>
+                </table>
+
+                {% if invoice.total_ttc > 0 %}
+                <div style="margin-top:16px;">
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+                        <span>Progression du paiement</span>
+                        <span id="payPct">—</span>
+                    </div>
+                    <div class="pay-track">
+                        <div class="pay-fill" id="payBar"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+                    <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.20);border-radius:var(--radius-md);padding:12px 14px;text-align:center;">
+                        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#16a34a;opacity:.8;margin-bottom:4px;">Payé</div>
+                        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#16a34a;">{{ invoice.amount_paid|floatformat:0 }} DA</div>
+                    </div>
+                    <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;text-align:center;">
+                        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#dc2626;opacity:.8;margin-bottom:4px;">Solde dû</div>
+                        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:{% if invoice.balance_due > 0 %}#dc2626{% else %}#16a34a{% endif %};">
+                            {{ invoice.balance_due|floatformat:0 }} DA
+                        </div>
+                    </div>
+                </div>
+
+                {% if invoice.notes %}
+                <div style="margin-top:14px;padding:12px 14px;background:var(--bg-raised);border-radius:var(--radius-md);font-size:13px;color:var(--text-secondary);line-height:1.6;">
+                    <i class="bi bi-chat-left-text me-2" style="color:var(--text-muted);"></i>{{ invoice.notes }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- DROITE -->
+    <div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Actions</div></div>
+            <div class="card-body">
+                <a href="{% url 'sales:invoice_print' invoice.pk %}" target="_blank" class="action-btn action-ghost">
+                    <i class="bi bi-printer"></i> Imprimer la facture
+                </a>
+                {% if invoice.balance_due > 0 and invoice.status != 'cancelled' %}
+                <a href="{% url 'payments:quick_payment' invoice.pk %}" class="action-btn action-primary">
+                    <i class="bi bi-credit-card"></i> Enregistrer un paiement
+                </a>
+                <a href="{% url 'payments:create_reminder' invoice.pk %}" class="action-btn action-ghost">
+                    <i class="bi bi-bell"></i> Envoyer un rappel
+                </a>
+                <a href="{% url 'payments:create_payment_plan' invoice.pk %}" class="action-btn action-ghost">
+                    <i class="bi bi-calendar3"></i> Créer un échéancier
+                </a>
+                {% endif %}
+                <a href="{% url 'sales:detail' invoice.sale.pk %}" class="action-btn action-ghost">
+                    <i class="bi bi-receipt"></i> Voir la vente
+                </a>
+            </div>
+        </div>
+
+        {% if invoice.is_overdue %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:20px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:6px;">
+                <i class="bi bi-exclamation-triangle me-1"></i> Facture en retard
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin:0;">
+                Cette facture a <strong style="color:#dc2626;">{{ invoice.days_overdue }} jour{{ invoice.days_overdue|pluralize }}</strong> de retard par rapport à son échéance.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Dates</div></div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">Date d'émission</span>
+                    <span class="info-value">{{ invoice.invoice_date|date:"j M Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date d'échéance</span>
+                    <span class="info-value" style="{% if invoice.is_overdue %}color:#dc2626;{% endif %}">{{ invoice.due_date|date:"j M Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Créée le</span>
+                    <span class="info-value" style="font-size:11.5px;">{{ invoice.created_at|date:"j M Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const total = {{ invoice.total_ttc }};
+    const paid = {{ invoice.amount_paid }};
+    const pct = total > 0 ? Math.min(paid / total * 100, 100) : 0;
+    const bar = document.getElementById('payBar');
+    const pctEl = document.getElementById('payPct');
+    if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 100);
+    if (pctEl) pctEl.textContent = pct.toFixed(1) + '% payé';
+});
+</script>
+{% endblock %}

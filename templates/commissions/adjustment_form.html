@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Ajustement de Commission{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Ajustement de Commission{% endblock %}
+{% block page_sub_text %}Ajustement manuel pour la période de commission{% endblock %}
+
+{% block extra_css %}
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 640px;
+    box-shadow: var(--shadow-sm);
+}
+.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+.field-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 14px;
+    min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field-input.error { border-color: rgba(220,38,38,.5); }
+.field-input option { background: var(--bg-surface); }
+.field-error {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.field-help {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+.adj-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.adj-type-option { display: none; }
+.adj-type-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: var(--bg-raised);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+    min-height: 44px;
+}
+.adj-type-label:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+.adj-type-option:checked + .adj-type-label {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+.adj-type-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+}
+.adj-type-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.adj-type-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.summary-panel {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 24px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+.summary-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 28px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition), transform .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-primary:hover { opacity: .88; }
+.btn-primary:active { transform: scale(.99); }
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 22px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+.btn-ghost:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px;">
+    <a href="{% url 'commissions:overview' %}" class="section-link">
+        <i class="bi bi-arrow-left me-1"></i> Retour à l'aperçu
+    </a>
+</div>
+
+<div class="form-card">
+
+    <div style="margin-bottom:24px;">
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Commission Manuelle</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin:0;">Nouvel Ajustement</h1>
+    </div>
+
+    <!-- Contexte du récapitulatif -->
+    {% if summary %}
+    <div class="summary-panel">
+        <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Ajustement pour</div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Trader</span>
+            <span style="color:var(--text-primary);font-weight:500;">{{ summary.trader.get_full_name|default:summary.trader.username }}</span>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Période</span>
+            <span style="color:var(--text-secondary);">{{ summary.period }}</span>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Commission actuelle</span>
+            <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">{{ summary.total_commission|floatformat:0 }} DA</span>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Nombre de ventes</span>
+            <span style="color:var(--text-secondary);">{{ summary.sales_count }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#dc2626;">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Trader (affiché si non prédéfini) -->
+        {% if not summary %}
+        <div style="margin-bottom:18px;">
+            <label class="field-label" for="{{ form.trader.id_for_label }}">Trader</label>
+            <select id="{{ form.trader.id_for_label }}" name="{{ form.trader.html_name }}"
+                    class="field-input {% if form.trader.errors %}error{% endif %}">
+                <option value="">Sélectionner un trader…</option>
+                {% for choice in form.trader.field.queryset %}
+                <option value="{{ choice.pk }}" {% if form.trader.value == choice.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ choice.get_full_name|default:choice.username }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if form.trader.errors %}
+            <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.trader.errors.0 }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Type d'ajustement -->
+        <div style="margin-bottom:20px;">
+            <label class="field-label">Type d'ajustement</label>
+            <div class="adj-type-grid">
+                <div>
+                    <input type="radio" name="{{ form.adjustment_type.html_name }}" value="bonus" id="type_bonus" class="adj-type-option"
+                           {% if form.adjustment_type.value == 'bonus' %}checked{% endif %}>
+                    <label for="type_bonus" class="adj-type-label">
+                        <div class="adj-type-icon ic-green"><i class="bi bi-plus-circle"></i></div>
+                        <div class="adj-type-name">Bonus</div>
+                        <div class="adj-type-desc">Ajouter une commission supplémentaire</div>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="{{ form.adjustment_type.html_name }}" value="penalty" id="type_penalty" class="adj-type-option"
+                           {% if form.adjustment_type.value == 'penalty' %}checked{% endif %}>
+                    <label for="type_penalty" class="adj-type-label">
+                        <div class="adj-type-icon ic-red"><i class="bi bi-dash-circle"></i></div>
+                        <div class="adj-type-name">Pénalité</div>
+                        <div class="adj-type-desc">Déduire de la commission</div>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="{{ form.adjustment_type.html_name }}" value="correction" id="type_correction" class="adj-type-option"
+                           {% if form.adjustment_type.value == 'correction' %}checked{% endif %}>
+                    <label for="type_correction" class="adj-type-label">
+                        <div class="adj-type-icon ic-blue"><i class="bi bi-arrow-repeat"></i></div>
+                        <div class="adj-type-name">Correction</div>
+                        <div class="adj-type-desc">Corriger une erreur de calcul</div>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="{{ form.adjustment_type.html_name }}" value="special" id="type_special" class="adj-type-option"
+                           {% if form.adjustment_type.value == 'special' %}checked{% endif %}>
+                    <label for="type_special" class="adj-type-label">
+                        <div class="adj-type-icon ic-purple"><i class="bi bi-star"></i></div>
+                        <div class="adj-type-name">Spécial</div>
+                        <div class="adj-type-desc">Cas spécial ponctuel</div>
+                    </label>
+                </div>
+            </div>
+            {% if form.adjustment_type.errors %}
+            <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.adjustment_type.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Montant -->
+        <div style="margin-bottom:18px;">
+            <label class="field-label" for="{{ form.amount.id_for_label }}">Montant (DA)</label>
+            <div style="position:relative;">
+                <input type="number"
+                       id="{{ form.amount.id_for_label }}"
+                       name="{{ form.amount.html_name }}"
+                       value="{{ form.amount.value|default:'' }}"
+                       step="0.01" min="0"
+                       class="field-input {% if form.amount.errors %}error{% endif %}"
+                       placeholder="0.00"
+                       style="padding-right:50px;">
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;">DA</span>
+            </div>
+            <div class="field-help">Entrez une valeur positive. Les pénalités seront soustraites automatiquement.</div>
+            {% if form.amount.errors %}
+            <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.amount.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Motif -->
+        <div style="margin-bottom:28px;">
+            <label class="field-label" for="{{ form.reason.id_for_label }}">Motif / Notes</label>
+            <textarea id="{{ form.reason.id_for_label }}"
+                      name="{{ form.reason.html_name }}"
+                      rows="3"
+                      class="field-input {% if form.reason.errors %}error{% endif %}"
+                      placeholder="Décrivez le motif de cet ajustement…">{{ form.reason.value|default:'' }}</textarea>
+            {% if form.reason.errors %}
+            <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.reason.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Avertissement -->
+        <div style="background:rgba(240,165,0,.06);border:1px solid rgba(240,165,0,.22);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:24px;font-size:13px;color:var(--text-secondary);display:flex;align-items:flex-start;gap:10px;">
+            <i class="bi bi-exclamation-triangle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+            Les ajustements sont permanents et apparaîtront dans le journal d'audit des commissions. Cette action sera enregistrée avec votre compte.
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-check-lg"></i> Enregistrer l'ajustement
+            </button>
+            <a href="{% url 'commissions:overview' %}" class="btn-ghost">Annuler</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

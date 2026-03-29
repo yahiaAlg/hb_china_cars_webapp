@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Ventes{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}Ventes{% endblock %}
+{% block page_sub_text %}{{ total_count }} transaction{{ total_count|pluralize }} trouvée{{ total_count|pluralize }}{% endblock %}
+
+{% block extra_css %}
+/* ── Barre de statistiques ── */
+.stat-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.stat-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+    animation: fadeIn .35s ease both;
+}
+.stat-item:nth-child(1) { animation-delay: 0ms; }
+.stat-item:nth-child(2) { animation-delay: 50ms; }
+.stat-item:nth-child(3) { animation-delay: 100ms; }
+.stat-item:nth-child(4) { animation-delay: 150ms; }
+.stat-eyebrow {
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 6px;
+}
+.stat-value {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+    color: var(--text-primary); line-height: 1.1;
+}
+.stat-unit { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+
+/* ── Barre de filtres ── */
+.filter-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-sm);
+}
+.filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+.filter-label {
+    font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 5px;
+}
+.form-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    appearance: none;
+}
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder { color: var(--text-muted); }
+select.form-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+}
+
+/* ── Carte tableau ── */
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.table-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.table-card-title {
+    font-family: 'Syne', sans-serif; font-size: 14px;
+    font-weight: 700; color: var(--text-primary);
+}
+.table-card-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Pagination ── */
+.pager {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.pager-btns { display: flex; gap: 4px; }
+.pager-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    transition: all var(--transition);
+    cursor: pointer; text-decoration: none;
+}
+.pager-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
+.pager-btn.active { background: var(--accent); color: #ffffff; border-color: var(--accent); font-weight: 700; }
+.pager-btn.disabled { opacity: .35; pointer-events: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+
+/* Tablette large (≤ 1200px) : 3 colonnes de filtres */
+@media (max-width: 1200px) {
+    .filter-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+    .filter-btn-group {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Tablette (≤ 960px) : 2 colonnes + stat-bar 2×2 */
+@media (max-width: 960px) {
+    .filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Mobile (≤ 600px) : 1 colonne */
+@media (max-width: 600px) {
+    .filter-grid { grid-template-columns: 1fr; }
+    .stat-bar { grid-template-columns: repeat(2, 1fr); }
+    .filter-btn-group .filter-label { display: none; }
+    .filter-btn-group > div { width: 100%; }
+    .filter-btn-group > div > .btn-primary { flex: 1; justify-content: center; }
+}
+
+@media (max-width: 400px) {
+    .stat-bar { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Statistiques -->
+<div class="stat-bar">
+    <div class="stat-item">
+        <div class="stat-eyebrow">Total des ventes</div>
+        <div class="stat-value">{{ stats.total_sales }}</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-eyebrow">Chiffre d'affaires</div>
+        <div class="stat-value">{{ stats.total_revenue|floatformat:0 }} <span class="stat-unit">DA</span></div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-eyebrow">Prix moyen</div>
+        <div class="stat-value">{{ stats.avg_sale_price|floatformat:0 }} <span class="stat-unit">DA</span></div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-eyebrow">Total commissions</div>
+        <div class="stat-value">{{ stats.total_commission|floatformat:0 }} <span class="stat-unit">DA</span></div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="filter-card">
+    <form method="get" id="filterForm">
+        <div class="filter-grid">
+            <div>
+                <div class="filter-label">Rechercher</div>
+                <div style="position:relative;">
+                    <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="text" name="search" value="{{ search_form.search.value|default:'' }}"
+                           placeholder="N° vente, client, véhicule…" class="form-input" style="padding-left:36px;">
+                </div>
+            </div>
+            <div>
+                <div class="filter-label">Trader</div>
+                {{ search_form.trader }}
+            </div>
+            <div>
+                <div class="filter-label">Client</div>
+                {{ search_form.customer }}
+            </div>
+            <div>
+                <div class="filter-label">Du</div>
+                <input type="date" name="date_from" value="{{ search_form.date_from.value|default:'' }}" class="form-input">
+            </div>
+            <div>
+                <div class="filter-label">Au</div>
+                <input type="date" name="date_to" value="{{ search_form.date_to.value|default:'' }}" class="form-input">
+            </div>
+            <div>
+                <div class="filter-label">Statut</div>
+                {{ search_form.is_finalized }}
+            </div>
+            <div class="filter-btn-group">
+                <div class="filter-label" aria-hidden="true">&nbsp;</div>
+                <div style="display:flex;gap:8px;">
+                    <button type="submit" class="btn-primary" style="white-space:nowrap;min-height:44px;">
+                        <i class="bi bi-funnel"></i> Filtrer
+                    </button>
+                    <a href="{% url 'sales:list' %}" class="btn-ghost" title="Réinitialiser les filtres" style="min-height:44px;">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Tableau -->
+<div class="table-card">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Toutes les ventes</div>
+            <div class="table-card-sub">{{ total_count }} enregistrement{{ total_count|pluralize }}</div>
+        </div>
+        {% if request.user.userprofile %}
+            {% if request.user.userprofile.is_trader or request.user.userprofile.is_manager %}
+            <a href="{% url 'sales:create' %}" class="btn-primary" style="min-height:44px;">
+                <i class="bi bi-plus-lg"></i> Nouvelle vente
+            </a>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="table-scroll">
+        {% if page_obj.object_list %}
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>N° vente</th>
+                    <th>Date</th>
+                    <th>Véhicule</th>
+                    <th>Client</th>
+                    <th>Trader</th>
+                    <th>Paiement</th>
+                    <th style="text-align:right;">Prix de vente</th>
+                    <th style="text-align:right;">Marge</th>
+                    <th style="text-align:right;">Commission</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in page_obj.object_list %}
+                <tr style="cursor:pointer;" onclick="location.href='{% url 'sales:detail' sale.pk %}'">
+                    <td style="color:var(--text-primary);font-weight:500;font-family:'Syne',sans-serif;white-space:nowrap;">
+                        {{ sale.sale_number }}
+                    </td>
+                    <td style="color:var(--text-muted);white-space:nowrap;">{{ sale.sale_date|date:"j M Y" }}</td>
+                    <td>
+                        <span style="color:var(--text-primary);font-weight:500;">
+                            {{ sale.vehicle.make }} {{ sale.vehicle.model }}
+                        </span>
+                        <div style="font-size:11px;color:var(--text-muted);">{{ sale.vehicle.year }}</div>
+                    </td>
+                    <td style="color:var(--text-secondary);">{{ sale.customer.name|default:"—" }}</td>
+                    <td style="color:var(--text-secondary);">{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</td>
+                    <td>
+                        <span class="pill pill-neutral">{{ sale.get_payment_method_display }}</span>
+                    </td>
+                    <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);white-space:nowrap;">
+                        {{ sale.sale_price|floatformat:0 }} DA
+                    </td>
+                    <td style="text-align:right;white-space:nowrap;">
+                        <span class="pill {% if sale.margin_amount > 0 %}pill-success{% else %}pill-danger{% endif %}">
+                            {{ sale.margin_amount|floatformat:0 }} DA
+                        </span>
+                    </td>
+                    <td style="text-align:right;color:var(--text-secondary);white-space:nowrap;">
+                        {% if sale.commission_amount %}{{ sale.commission_amount|floatformat:0 }} DA{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if sale.is_finalized %}
+                        <span class="pill pill-success"><i class="bi bi-check-circle"></i> Finalisé</span>
+                        {% else %}
+                        <span class="pill pill-warning"><i class="bi bi-clock"></i> Brouillon</span>
+                        {% endif %}
+                    </td>
+                    <td onclick="event.stopPropagation();" style="text-align:right;">
+                        <a href="{% url 'sales:detail' sale.pk %}" class="btn-ghost" style="padding:6px 10px;font-size:12px;min-height:36px;">
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:56px 20px;color:var(--text-muted);">
+            <i class="bi bi-receipt" style="font-size:36px;display:block;margin-bottom:14px;color:var(--border-strong);"></i>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucune vente trouvée</div>
+            <div style="font-size:13px;">Ajustez vos filtres ou créez une nouvelle vente.</div>
+            {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_trader or request.user.userprofile.is_manager %}
+                <a href="{% url 'sales:create' %}" class="btn-primary" style="margin-top:18px;display:inline-flex;align-items:center;gap:8px;min-height:44px;">
+                    <i class="bi bi-plus-lg"></i> Nouvelle vente
+                </a>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pager">
+        <span>Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        <div class="pager-btns">
+            {% if page_obj.has_previous %}
+            <a href="?page=1" class="pager-btn" title="Première page"><i class="bi bi-chevron-double-left"></i></a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="pager-btn"><i class="bi bi-chevron-left"></i></a>
+            {% else %}
+            <span class="pager-btn disabled"><i class="bi bi-chevron-double-left"></i></span>
+            <span class="pager-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                <span class="pager-btn active">{{ num }}</span>
+                {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                <a href="?page={{ num }}" class="pager-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="pager-btn"><i class="bi bi-chevron-right"></i></a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="pager-btn" title="Dernière page"><i class="bi bi-chevron-double-right"></i></a>
+            {% else %}
+            <span class="pager-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            <span class="pager-btn disabled"><i class="bi bi-chevron-double-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Synchroniser les menus déroulants avec les tokens de design */
+document.querySelectorAll('select').forEach(sel => {
+    sel.classList.add('form-input');
+});
+</script>
+{% endblock %}

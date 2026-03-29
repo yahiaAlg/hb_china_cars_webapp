@@ -1,0 +1,680 @@
+{% extends "base.html" %}
+{% load l10n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{{ purchase.supplier.name }} · {{ purchase.purchase_date|date:"j M Y" }}{% endblock %}
+
+{% block extra_css %}
+/* ── Lien retour ── */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    transition: color var(--transition);
+    text-decoration: none;
+    min-height: 44px;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── Disposition ── */
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 960px) { .form-layout { grid-template-columns: 1fr; } }
+
+/* ── Carte de formulaire ── */
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-card-body { padding: 20px; }
+
+.form-section-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    margin-top: 4px;
+}
+
+/* ── Champs ── */
+.field { margin-bottom: 16px; }
+
+.field label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 7px;
+}
+
+.field-required::after { content: ' *'; color: var(--accent); }
+
+.form-control {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 13px;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    appearance: none;
+    min-height: 44px;
+}
+.form-control:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-control::placeholder { color: var(--text-muted); }
+.form-control[readonly] { opacity: .65; cursor: not-allowed; background: var(--bg-hover); }
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.field-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media (max-width: 640px) { .field-group { grid-template-columns: 1fr; } }
+
+.form-error {
+    font-size: 11.5px;
+    color: #dc2626;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.field-help {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ── Bascule de calcul auto ── */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: 18px;
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color var(--transition);
+}
+.toggle-row:hover { border-color: var(--border-strong); }
+
+.toggle-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    transition: background var(--transition);
+    cursor: pointer;
+}
+.toggle-track::before {
+    content: '';
+    position: absolute;
+    left: 3px; top: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: transform var(--transition), background var(--transition);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
+.toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
+
+/* ── Bannière CIF ── */
+.cif-banner {
+    background: var(--accent-dim);
+    border: 1px solid rgba(217,119,6,.20);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+/* ── Aperçu total des droits ── */
+.duty-preview {
+    background: var(--accent-dim);
+    border: 1px solid rgba(217,119,6,.20);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.duty-preview-label {
+    font-size: 12.5px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.duty-preview-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+/* ── Section de dédouanement ── */
+.clearance-section {
+    background: rgba(22,163,74,.05);
+    border: 1px solid rgba(22,163,74,.18);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 4px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.checkbox-row input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* ── Boutons ── */
+.submit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-primary-x {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: var(--radius-md);
+    padding: 11px 22px;
+    border: none;
+    cursor: pointer;
+    transition: opacity .18s, transform .12s;
+    min-height: 44px;
+}
+.btn-primary-x:hover { opacity: .88; }
+.btn-primary-x:active { transform: scale(.99); }
+
+.btn-ghost-x {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: var(--radius-md);
+    padding: 11px 20px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-ghost-x:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Cartes latérales ── */
+.sidebar-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+.sidebar-row:last-child { border-bottom: none; }
+.sidebar-row-label { color: var(--text-muted); }
+.sidebar-row-value { color: var(--text-primary); font-weight: 500; }
+
+/* ── Tableau de décomposition ── */
+.calc-breakdown { display: flex; flex-direction: column; gap: 0; }
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+.calc-row:last-child { border-bottom: none; }
+.calc-row-label { color: var(--text-muted); }
+.calc-row-value { font-weight: 600; color: var(--text-secondary); }
+.calc-row-value.highlight { color: var(--accent); font-size: 13px; }
+
+/* ── Animation ── */
+.fade-in { animation: fadeIn .35s ease both; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Lien retour -->
+<a href="{% url 'purchases:detail' purchase.pk %}" class="back-link fade-in">
+    <i class="bi bi-arrow-left"></i> Retour à l'achat
+</a>
+
+<div class="form-layout fade-in">
+
+    <!-- Formulaire principal -->
+    <div>
+        <form method="post" id="customsForm" novalidate>
+            {% csrf_token %}
+
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title"><i class="bi bi-file-earmark-text me-2" style="color:#d97706;"></i>{{ title }}</div>
+                </div>
+                <div class="form-card-body">
+
+                    {% if form.non_field_errors %}
+                    <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;color:#dc2626;">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Informations de déclaration -->
+                    <div class="form-section-label">Informations de la déclaration</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Date de déclaration</label>
+                            <input type="date" name="declaration_date"
+                                   value="{{ form.declaration_date.value|default:'' }}"
+                                   class="form-control {% if form.declaration_date.errors %}border-danger{% endif %}">
+                            {% for e in form.declaration_date.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">N° de déclaration</label>
+                            <input type="text" name="declaration_number"
+                                   value="{{ form.declaration_number.value|default:'' }}"
+                                   placeholder="ex. DZ/2024/00001"
+                                   class="form-control {% if form.declaration_number.errors %}border-danger{% endif %}">
+                            {% for e in form.declaration_number.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Valeur CIF -->
+                    <div class="field">
+                        <label>Valeur CIF (DA)</label>
+                        <input type="text" inputmode="decimal" name="cif_value_da" id="cifValue"
+                               value="{{ form.cif_value_da.value|unlocalize|default:'' }}"
+                               readonly
+                               class="form-control">
+                        <div class="field-help">Calculée automatiquement : Prix d'achat FOB + Coûts de fret &amp; logistique</div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+                    <!-- Droits et taxes -->
+                    <div class="form-section-label">Droits &amp; Taxes</div>
+
+                    <!-- Bascule calcul auto -->
+                    <label class="toggle-row" for="autoCalcToggle">
+                        <span class="toggle-label">
+                            <i class="bi bi-magic" style="color:var(--accent);"></i>
+                            Calculer automatiquement les droits et la TVA
+                        </span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" name="auto_calculate" id="autoCalcToggle"
+                                   {% if form.auto_calculate.value %}checked{% endif %}
+                                   onchange="toggleAutoCalc(this.checked)">
+                            <div class="toggle-track"></div>
+                        </div>
+                    </label>
+
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Taux tarifaire (%)</label>
+                            <input type="number" name="customs_tariff_rate" id="tariffRate"
+                                   value="{{ form.customs_tariff_rate.value|unlocalize|default:'' }}"
+                                   step="0.01" min="0" max="100" placeholder="0,00"
+                                   class="form-control {% if form.customs_tariff_rate.errors %}border-danger{% endif %}"
+                                   oninput="recalculate()">
+                            {% for e in form.customs_tariff_rate.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Droits de douane (DA)</label>
+                            <input type="text" inputmode="decimal" name="import_duty_da" id="importDuty"
+                                   value="{{ form.import_duty_da.value|unlocalize|default:'' }}"
+                                   placeholder="0.00"
+                                   class="form-control {% if form.import_duty_da.errors %}border-danger{% endif %}"
+                                   oninput="recalculate()">
+                            {% for e in form.import_duty_da.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Taux de TVA (%)</label>
+                            <input type="number" name="tva_rate" id="tvaRate"
+                                   value="{{ form.tva_rate.value|unlocalize|default:'' }}"
+                                   step="0.01" min="0" max="100" placeholder="0,00"
+                                   class="form-control {% if form.tva_rate.errors %}border-danger{% endif %}"
+                                   oninput="recalculate()">
+                            {% for e in form.tva_rate.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Montant TVA (DA)</label>
+                            <input type="text" inputmode="decimal" name="tva_amount_da" id="tvaAmount"
+                                   value="{{ form.tva_amount_da.value|unlocalize|default:'' }}"
+                                   placeholder="0.00"
+                                   class="form-control {% if form.tva_amount_da.errors %}border-danger{% endif %}"
+                                   oninput="recalculate()">
+                            {% for e in form.tva_amount_da.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Autres frais (DA)</label>
+                        <input type="text" inputmode="decimal" name="other_fees_da" id="otherFees"
+                               value="{{ form.other_fees_da.value|unlocalize|default:'0' }}"
+                               placeholder="0.00"
+                               class="form-control"
+                               oninput="recalculate()">
+                    </div>
+
+                    <!-- Total des droits en direct -->
+                    <div class="duty-preview">
+                        <span class="duty-preview-label">
+                            <i class="bi bi-calculator"></i>
+                            Total des coûts douaniers
+                        </span>
+                        <span class="duty-preview-value" id="totalDuty">0 DA</span>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+                    <!-- Statut de dédouanement -->
+                    <div class="form-section-label">Statut du dédouanement</div>
+                    <div class="clearance-section">
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="is_cleared" id="isCleared"
+                                   {% if form.is_cleared.value %}checked{% endif %}
+                                   onchange="toggleClearance(this.checked)">
+                            <span>Dédouané — véhicule disponible pour le stock</span>
+                        </label>
+                        <div id="clearanceDateWrap" style="margin-top:14px;{% if not form.is_cleared.value %}display:none;{% endif %}">
+                            <label style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:7px;">
+                                Date de dédouanement
+                            </label>
+                            <input type="date" name="clearance_date"
+                                   value="{{ form.clearance_date.value|default:'' }}"
+                                   class="form-control">
+                        </div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+                    <!-- Notes -->
+                    <div class="form-section-label">Notes</div>
+                    <div class="field" style="margin-bottom:0;">
+                        <label>Remarques <span style="font-size:10px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">(facultatif)</span></label>
+                        <textarea name="notes" class="form-control" placeholder="Notes sur cette déclaration en douane…" rows="3">{{ form.notes.value|default:'' }}</textarea>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="btn-primary-x">
+                    <i class="bi bi-check-lg"></i> Enregistrer la déclaration
+                </button>
+                <a href="{% url 'purchases:detail' purchase.pk %}" class="btn-ghost-x">Annuler</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Colonne latérale -->
+    <div>
+        <!-- Contexte de l'achat -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title"><i class="bi bi-truck" style="color:#ea580c;"></i> Contexte de l'achat</div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Fournisseur</span>
+                <span class="sidebar-row-value">{{ purchase.supplier.name }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Véhicules</span>
+                <span class="sidebar-row-value">{{ purchase.vehicle_count }} véhicule{{ purchase.vehicle_count|pluralize }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Total FOB (DA)</span>
+                <span class="sidebar-row-value">{{ purchase.total_fob_da|floatformat:0 }} DA</span>
+            </div>
+            {% with purchase.freight_cost as fc %}
+            {% if fc %}
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Fret</span>
+                <span class="sidebar-row-value">{{ fc.total_freight_cost_da|floatformat:0 }} DA</span>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Décomposition des droits en temps réel -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title"><i class="bi bi-calculator" style="color:#d97706;"></i> Décomposition des droits</div>
+            <div class="calc-breakdown">
+                <div class="calc-row">
+                    <span class="calc-row-label">Valeur CIF</span>
+                    <span class="calc-row-value" id="dispCif">—</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-row-label">Droits de douane</span>
+                    <span class="calc-row-value" id="dispDuty">—</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-row-label">TVA</span>
+                    <span class="calc-row-value" id="dispTva">—</span>
+                </div>
+                <div class="calc-row">
+                    <span class="calc-row-label">Autres frais</span>
+                    <span class="calc-row-value" id="dispOther">—</span>
+                </div>
+                <div class="calc-row" style="margin-top:2px;padding-top:10px;border-top:1px solid rgba(217,119,6,.20);">
+                    <span style="font-weight:700;color:var(--text-primary);font-size:12.5px;">Total douanes</span>
+                    <span class="calc-row-value highlight" id="dispTotal">0 DA</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Note douanes algériennes -->
+        <div class="sidebar-card" style="border-left:3px solid var(--accent);background:var(--accent-dim);">
+            <div class="sidebar-card-title" style="color:var(--accent);"><i class="bi bi-info-circle"></i> Douanes algériennes</div>
+            <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
+                Le taux tarifaire standard pour les véhicules de tourisme est généralement de
+                <strong style="color:var(--text-primary);">30 %</strong> et la TVA de
+                <strong style="color:var(--text-primary);">19 %</strong>.
+                Les droits sont calculés sur la <strong style="color:var(--text-primary);">valeur CIF</strong>
+                (Coût + Assurance + Fret).
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const autoToggle = document.getElementById('autoCalcToggle');
+const isAuto     = () => autoToggle && autoToggle.checked;
+
+function fmt(n) {
+    return n.toLocaleString('fr-DZ', { maximumFractionDigits: 0 }) + ' DA';
+}
+
+function recalculate() {
+    const cif    = parseFloat(document.getElementById('cifValue').value)  || 0;
+    const tariff = parseFloat(document.getElementById('tariffRate').value) || 0;
+    const tvaR   = parseFloat(document.getElementById('tvaRate').value)    || 0;
+    const other  = parseFloat(document.getElementById('otherFees').value)  || 0;
+
+    let duty, tva;
+
+    if (isAuto()) {
+        duty = cif * (tariff / 100);
+        tva  = (cif + duty) * (tvaR / 100);
+        const dutyEl = document.getElementById('importDuty');
+        const tvaEl  = document.getElementById('tvaAmount');
+        if (dutyEl) { dutyEl.value = duty.toFixed(2); }
+        if (tvaEl)  { tvaEl.value  = tva.toFixed(2); }
+    } else {
+        duty = parseFloat(document.getElementById('importDuty').value) || 0;
+        tva  = parseFloat(document.getElementById('tvaAmount').value)  || 0;
+    }
+
+    const total = duty + tva + other;
+
+    document.getElementById('totalDuty').textContent  = fmt(total);
+    document.getElementById('dispCif').textContent    = fmt(cif);
+    document.getElementById('dispDuty').textContent   = fmt(duty);
+    document.getElementById('dispTva').textContent    = fmt(tva);
+    document.getElementById('dispOther').textContent  = fmt(other);
+    document.getElementById('dispTotal').textContent  = fmt(total);
+}
+
+function toggleAutoCalc(on) {
+    const fields = ['importDuty', 'tvaAmount'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.readOnly = on;
+    });
+    recalculate();
+}
+
+function toggleClearance(on) {
+    const wrap = document.getElementById('clearanceDateWrap');
+    if (wrap) wrap.style.display = on ? 'block' : 'none';
+}
+
+// Normalize commas → dots on submit so Django accepts the values
+document.getElementById('customsForm').addEventListener('submit', function() {
+    ['cifValue','tariffRate','importDuty','tvaRate','tvaAmount','otherFees'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.value = el.value.replace(',', '.');
+    });
+});
+
+// Initialisation
+toggleAutoCalc(isAuto());
+recalculate();
+
+['tariffRate','tvaRate','otherFees','importDuty','tvaAmount'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', recalculate);
+});
+</script>
+{% endblock %}

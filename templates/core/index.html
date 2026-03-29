@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil{% endblock %}
+{% block nav_index %}active{% endblock %}
+
+{% block page_title %}Accueil{% endblock %}
+{% block page_sub_text %}Accès rapide à tous les modules{% endblock %}
+
+{% block extra_css %}
+/* ── Barre de salutation ── */
+.greeting-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.greeting-text h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(18px, 4vw, 22px);
+    font-weight: 800;
+    letter-spacing: -.025em;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+}
+
+.greeting-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.greeting-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    white-space: nowrap;
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Bannière de rôle ── */
+.role-banner {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+}
+
+.role-banner-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-dim);
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.role-banner-text { font-size: 13px; color: var(--text-secondary); }
+.role-banner-text strong { color: var(--text-primary); font-weight: 500; }
+
+/* ── En-tête de section ── */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.section-title {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* ── Grille de modules ── */
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.module-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 18px;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    opacity: 0;
+    animation: cardIn .35s ease forwards;
+    box-shadow: var(--shadow-sm);
+}
+
+.module-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+    opacity: 0;
+    transition: opacity .2s;
+}
+
+.module-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.module-card:hover::before { opacity: 1; }
+
+.module-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+    position: relative;
+}
+
+.module-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.module-card-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    position: relative;
+}
+
+.module-card-arrow {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: transform .2s, color .2s;
+}
+.module-card:hover .module-card-arrow {
+    transform: translate(2px, -2px);
+    color: var(--accent);
+}
+
+/* ── Variantes de couleur d'icône ── */
+.ic-amber  { background: rgba(217,119,6,.12);  color: #d97706; }
+.ic-blue   { background: rgba(2,132,199,.10);  color: #0284c7; }
+.ic-green  { background: rgba(22,163,74,.10);  color: #16a34a; }
+.ic-purple { background: rgba(124,58,237,.10); color: #7c3aed; }
+.ic-red    { background: rgba(220,38,38,.10);  color: #dc2626; }
+.ic-teal   { background: rgba(13,148,136,.10); color: #0d9488; }
+.ic-orange { background: rgba(234,88,12,.10);  color: #ea580c; }
+.ic-pink   { background: rgba(219,39,119,.10); color: #db2777; }
+.ic-indigo { background: rgba(79,70,229,.10);  color: #4f46e5; }
+
+/* ── Animations décalées ── */
+.module-card:nth-child(1)  { animation-delay: 0ms;   }
+.module-card:nth-child(2)  { animation-delay: 40ms;  }
+.module-card:nth-child(3)  { animation-delay: 80ms;  }
+.module-card:nth-child(4)  { animation-delay: 120ms; }
+.module-card:nth-child(5)  { animation-delay: 160ms; }
+.module-card:nth-child(6)  { animation-delay: 200ms; }
+.module-card:nth-child(7)  { animation-delay: 240ms; }
+.module-card:nth-child(8)  { animation-delay: 280ms; }
+.module-card:nth-child(9)  { animation-delay: 320ms; }
+.module-card:nth-child(10) { animation-delay: 360ms; }
+
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .module-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .greeting-bar { margin-bottom: 16px; }
+    .role-banner { padding: 12px 14px; margin-bottom: 20px; }
+}
+
+@media (max-width: 400px) {
+    .module-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Salutation -->
+<div class="greeting-bar">
+    <div class="greeting-text">
+        <h2 id="greetingHeading">Bienvenue, {{ request.user.first_name|default:request.user.username }}</h2>
+        <p>Voici un aperçu rapide de tous les modules disponibles.</p>
+    </div>
+    <div class="greeting-date">
+        <i class="bi bi-calendar3 me-1"></i>
+        {% now "l, N j, Y" %}
+    </div>
+</div>
+
+<!-- Bannière de rôle -->
+{% if request.user.userprofile %}
+<div class="role-banner">
+    <div class="role-banner-icon">
+        {% if request.user.userprofile.is_manager %}
+            <i class="bi bi-shield-check"></i>
+        {% elif request.user.userprofile.is_trader %}
+            <i class="bi bi-person-badge"></i>
+        {% elif request.user.userprofile.is_finance %}
+            <i class="bi bi-calculator"></i>
+        {% else %}
+            <i class="bi bi-eye"></i>
+        {% endif %}
+    </div>
+    <div class="role-banner-text">
+        Connecté en tant que <strong>{{ request.user.userprofile.get_role_display }}</strong>.&nbsp;
+        {% if request.user.userprofile.is_manager %}
+            Vous disposez d'un accès complet à tous les modules du système.
+        {% elif request.user.userprofile.is_trader %}
+            Vous pouvez gérer les ventes, les clients et consulter vos commissions.
+        {% elif request.user.userprofile.is_finance %}
+            Vous pouvez gérer les achats, les paiements et l'inventaire.
+        {% else %}
+            Vous disposez d'un accès en lecture seule à tous les rapports et données.
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Grille de modules -->
+<div class="section-header">
+    <span class="section-title">Tous les modules</span>
+</div>
+
+<div class="module-grid">
+
+    <a href="{% url 'core:dashboard' %}" class="module-card">
+        <div class="module-card-icon ic-amber"><i class="bi bi-speedometer2"></i></div>
+        <div class="module-card-title">Tableau de bord</div>
+        <div class="module-card-desc">KPI, graphiques et métriques en temps réel</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/inventory/" class="module-card">
+        <div class="module-card-icon ic-blue"><i class="bi bi-boxes"></i></div>
+        <div class="module-card-title">Inventaire</div>
+        <div class="module-card-desc">Gestion du stock et de la disponibilité des véhicules</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/purchases/" class="module-card">
+        <div class="module-card-icon ic-orange"><i class="bi bi-truck"></i></div>
+        <div class="module-card-title">Achats</div>
+        <div class="module-card-desc">Commandes d'import, fret et dédouanement</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/sales/" class="module-card">
+        <div class="module-card-icon ic-green"><i class="bi bi-receipt"></i></div>
+        <div class="module-card-title">Ventes</div>
+        <div class="module-card-desc">Transactions, factures et marges</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/customers/" class="module-card">
+        <div class="module-card-icon ic-teal"><i class="bi bi-people"></i></div>
+        <div class="module-card-title">Clients</div>
+        <div class="module-card-desc">Fiches clients et historique des achats</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/suppliers/" class="module-card">
+        <div class="module-card-icon ic-indigo"><i class="bi bi-building"></i></div>
+        <div class="module-card-title">Fournisseurs</div>
+        <div class="module-card-desc">Partenaires chinois et internationaux</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/payments/" class="module-card">
+        <div class="module-card-icon ic-purple"><i class="bi bi-credit-card"></i></div>
+        <div class="module-card-title">Paiements</div>
+        <div class="module-card-desc">Suivi des factures en attente et en retard</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/commissions/" class="module-card">
+        <div class="module-card-icon ic-pink"><i class="bi bi-percent"></i></div>
+        <div class="module-card-title">Commissions</div>
+        <div class="module-card-desc">Performance et rémunération des traders</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    <a href="/reports/" class="module-card">
+        <div class="module-card-icon ic-amber"><i class="bi bi-bar-chart-line"></i></div>
+        <div class="module-card-title">Rapports</div>
+        <div class="module-card-desc">Analyse de rentabilité et exports</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+
+    {% if request.user.userprofile.is_manager %}
+    <a href="/settings/" class="module-card">
+        <div class="module-card-icon ic-red"><i class="bi bi-sliders"></i></div>
+        <div class="module-card-title">Paramètres</div>
+        <div class="module-card-desc">Configuration, taux de change et utilisateurs</div>
+        <i class="bi bi-arrow-up-right module-card-arrow"></i>
+    </a>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* Salutation dynamique selon l'heure */
+    const hour = new Date().getHours();
+    const salutation = hour < 12 ? 'Bonjour' : hour < 17 ? 'Bon après-midi' : 'Bonsoir';
+    const el = document.getElementById('greetingHeading');
+    if (el) {
+        const name = el.textContent.replace('Bienvenue,', '').trim();
+        el.textContent = salutation + ', ' + name + ' \uD83D\uDC4B';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,293 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vente rapide</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        background: transparent;
+        color: #111827;
+    }
+
+    .field-group { margin-bottom: 14px; }
+
+    .field-label {
+        display: block;
+        font-size: 11px; font-weight: 600;
+        letter-spacing: .07em; text-transform: uppercase;
+        color: #9ca3af; margin-bottom: 5px;
+    }
+
+    .field-input {
+        width: 100%;
+        background: #f9fafb;
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 10px;
+        color: #111827;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        padding: 10px 13px;
+        min-height: 44px;
+        transition: border-color .18s, box-shadow .18s;
+        appearance: none;
+    }
+
+    .field-input:focus {
+        outline: none;
+        border-color: #d97706;
+        box-shadow: 0 0 0 3px rgba(217,119,6,.20);
+    }
+
+    .field-input::placeholder { color: #9ca3af; }
+
+    select.field-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+        cursor: pointer;
+    }
+
+    .field-error {
+        font-size: 11.5px; color: #dc2626;
+        margin-top: 4px;
+        display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Aperçu marge */
+    .margin-preview {
+        background: rgba(217,119,6,.08);
+        border: 1px solid rgba(217,119,6,.20);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-top: -4px;
+        margin-bottom: 14px;
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .margin-preview.show { display: flex; }
+    .mp-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: #d97706; opacity: .85; margin-bottom: 2px; }
+    .mp-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; }
+
+    /* Bouton de soumission */
+    .btn-submit {
+        width: 100%;
+        background: #d97706;
+        color: #ffffff;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 20px;
+        min-height: 44px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: opacity .18s;
+        margin-top: 4px;
+    }
+    .btn-submit:hover { opacity: .9; }
+    .btn-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+    .error-banner {
+        background: rgba(220,38,38,.07);
+        border: 1px solid rgba(220,38,38,.20);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #dc2626;
+        font-size: 12.5px;
+        margin-bottom: 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="quickSaleFormWrap">
+    <form method="post" id="quickSaleForm" action="{% url 'sales:quick_sale' %}">
+        {% csrf_token %}
+
+        <div class="field-group">
+            <label class="field-label">Véhicule</label>
+            {{ form.vehicle }}
+            {% if form.vehicle.errors %}
+            <div class="field-error">
+                <svg width="12" height="12" fill="#dc2626" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>
+                {{ form.vehicle.errors.0 }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Client</label>
+            {{ form.customer }}
+            {% if form.customer.errors %}
+            <div class="field-error">
+                <svg width="12" height="12" fill="#dc2626" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>
+                {{ form.customer.errors.0 }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Prix de vente (DA)</label>
+            {{ form.sale_price }}
+            {% if form.sale_price.errors %}
+            <div class="field-error">
+                <svg width="12" height="12" fill="#dc2626" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>
+                {{ form.sale_price.errors.0 }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Aperçu marge en temps réel -->
+        <div class="margin-preview" id="marginPreview">
+            <div>
+                <div class="mp-lbl">Marge</div>
+                <div class="mp-val" id="mpVal">—</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="mp-lbl">%</div>
+                <div class="mp-val" id="mpPct" style="font-size:13px;">—</div>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Mode de paiement</label>
+            {{ form.payment_method }}
+            {% if form.payment_method.errors %}
+            <div class="field-error">
+                <svg width="12" height="12" fill="#dc2626" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>
+                {{ form.payment_method.errors.0 }}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="error-banner">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <button type="submit" class="btn-submit" id="quickSubmitBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M11 5H5v6h6V5z"/>
+                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/>
+            </svg>
+            Créer la vente rapide
+        </button>
+    </form>
+</div>
+
+<script>
+(function() {
+    /* Appliquer le style aux widgets */
+    document.querySelectorAll('select, input[type="number"], input[type="text"]').forEach(el => {
+        el.classList.add('field-input');
+    });
+
+    const vehicleSel = document.getElementById('id_vehicle');
+    const priceInput = document.getElementById('id_sale_price');
+    let landedCost = null;
+
+    function formatDA(v) {
+        return new Intl.NumberFormat('fr-DZ').format(Math.round(v)) + ' DA';
+    }
+
+    function fetchAndUpdateMargin() {
+        const vid = vehicleSel ? vehicleSel.value : null;
+        if (!vid) { landedCost = null; updateMarginUI(); return; }
+        fetch(`/sales/ajax/vehicle-details/?vehicle_id=${vid}`)
+            .then(r => r.json())
+            .then(d => {
+                landedCost = d.success ? d.vehicle.landed_cost : null;
+                updateMarginUI();
+            })
+            .catch(() => { landedCost = null; });
+    }
+
+    function updateMarginUI() {
+        const preview = document.getElementById('marginPreview');
+        const valEl   = document.getElementById('mpVal');
+        const pctEl   = document.getElementById('mpPct');
+        const price   = parseFloat(priceInput ? priceInput.value : 0);
+
+        if (!landedCost || !price) {
+            preview.classList.remove('show');
+            return;
+        }
+
+        const margin = price - landedCost;
+        const mp     = landedCost > 0 ? (margin / landedCost * 100) : 0;
+        const pos    = '#16a34a';
+        const neg    = '#dc2626';
+
+        valEl.textContent = formatDA(margin);
+        valEl.style.color = margin >= 0 ? pos : neg;
+        pctEl.textContent = mp.toFixed(1) + '%';
+        pctEl.style.color = mp >= 0 ? pos : neg;
+        preview.classList.add('show');
+    }
+
+    if (vehicleSel) vehicleSel.addEventListener('change', fetchAndUpdateMargin);
+    if (priceInput) priceInput.addEventListener('input', updateMarginUI);
+
+    /* Soumission AJAX */
+    const form = document.getElementById('quickSaleForm');
+    const btn  = document.getElementById('quickSubmitBtn');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.innerHTML = `
+            <span style="display:inline-block;width:14px;height:14px;border:2px solid #ffffff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;"></span>
+            Création en cours…
+        `;
+
+        fetch(form.action, { method: 'POST', body: new FormData(form) })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.parent && window.parent.postMessage(
+                        { type: 'quickSaleSuccess', saleId: data.sale_id, saleNumber: data.sale_number }, '*'
+                    );
+                    window.location.href = `/sales/${data.sale_id}/`;
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Créer la vente rapide';
+
+                    // Afficher les erreurs de champ
+                    let errHtml = '';
+                    for (const [, msgs] of Object.entries(data.errors || {})) {
+                        errHtml += `<div style="margin-bottom:3px;">${Array.isArray(msgs) ? msgs.join(', ') : msgs}</div>`;
+                    }
+                    if (errHtml) {
+                        let errDiv = document.getElementById('formErrors');
+                        if (!errDiv) {
+                            errDiv = document.createElement('div');
+                            errDiv.id = 'formErrors';
+                            form.prepend(errDiv);
+                        }
+                        errDiv.innerHTML = `<div class="error-banner">${errHtml}</div>`;
+                    }
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = 'Créer la vente rapide';
+            });
+    });
+})();
+</script>
+</body>
+</html>

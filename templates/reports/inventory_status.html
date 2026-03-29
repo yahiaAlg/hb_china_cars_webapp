@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}État du stock{% endblock %}
+{% block nav_reports %}active{% endblock %}
+{% block page_title %}État du stock{% endblock %}
+{% block page_sub_text %}Valorisation du stock &amp; analyse de l'ancienneté{% endblock %}
+
+{% block extra_css %}
+.filter-bar{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;align-items:end;}
+.filter-group{display:flex;flex-direction:column;gap:5px;}
+.filter-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);}
+.filter-input{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;width:100%;min-height:44px;}
+.filter-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.filter-input option{background:var(--bg-raised);}
+.btn-primary-sm{background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 18px;border-radius:var(--radius-md);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px;}
+.btn-primary-sm:hover{opacity:.88;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;padding:8px 16px;border-radius:var(--radius-md);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;min-height:44px;}
+.btn-ghost-sm:hover{background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary);}
+.chart-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);}
+.cp-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;}
+.cp-sub{font-size:12px;color:var(--text-muted);margin-bottom:14px;}
+.section-head{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);}
+.section-sub{font-size:12px;color:var(--text-muted);}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+@media(max-width:768px){.filter-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.filter-grid{grid-template-columns:1fr;}}
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+  <a href="{% url 'reports:dashboard' %}" style="font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.color='var(--text-secondary)';" onmouseout="this.style.color='var(--text-muted)';">
+    <i class="bi bi-arrow-left"></i> Tableau des rapports
+  </a>
+  {% if request.user.userprofile %}{% if request.user.userprofile.is_manager %}
+  <a href="{% url 'reports:export_report' %}" class="btn-ghost-sm"><i class="bi bi-download"></i> Exporter</a>
+  {% endif %}{% endif %}
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-4">
+    <div class="metric-card">
+      <div class="metric-icon ic-blue"><i class="bi bi-boxes"></i></div>
+      <div class="metric-label">Total véhicules</div>
+      <div class="metric-value">{{ total_vehicles }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">correspondant aux filtres</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-4">
+    <div class="metric-card">
+      <div class="metric-icon ic-amber"><i class="bi bi-currency-dollar"></i></div>
+      <div class="metric-label">Valeur totale du stock</div>
+      <div class="metric-value sm">{{ total_value|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA coût de revient</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-4">
+    <div class="metric-card">
+      <div class="metric-icon ic-green"><i class="bi bi-car-front-fill"></i></div>
+      <div class="metric-label">Valeur moy. / véhicule</div>
+      <div class="metric-value sm">{{ avg_value|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="filter-bar">
+  <form method="get">
+    <div class="filter-grid">
+      <div class="filter-group"><label class="filter-label">Marque</label><input type="text" name="vehicle_make" class="filter-input" placeholder="ex. Toyota" value="{{ form.vehicle_make.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Année (de)</label><input type="number" name="year_from" class="filter-input" placeholder="2020" value="{{ form.year_from.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Année (à)</label><input type="number" name="year_to" class="filter-input" placeholder="2025" value="{{ form.year_to.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Jours en stock min.</label><input type="number" name="days_in_stock_min" class="filter-input" placeholder="0" value="{{ form.days_in_stock_min.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Coût min (DA)</label><input type="number" name="min_landed_cost" class="filter-input" placeholder="0" value="{{ form.min_landed_cost.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Coût max (DA)</label><input type="number" name="max_landed_cost" class="filter-input" placeholder="" value="{{ form.max_landed_cost.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn-primary-sm"><i class="bi bi-funnel"></i> Filtrer</button>
+          <a href="{% url 'reports:inventory_status' %}" class="btn-ghost-sm"><i class="bi bi-x"></i></a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ═══ GRAPHIQUES ═══ -->
+<!-- Ligne 1 : Donut statut + Ancienneté + Valeur par statut -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Répartition par statut</div>
+      <div class="cp-sub">Nombre de véhicules par état</div>
+      <div style="height:210px;"><canvas id="statusChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Ancienneté en stock</div>
+      <div class="cp-sub">Répartition par tranche d'âge{% if slow_moving %} · <span style="color:#dc2626;">{{ slow_moving|length }} invendu{{ slow_moving|length|pluralize }}</span>{% endif %}</div>
+      <div style="height:210px;"><canvas id="ageChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Valeur du stock par statut</div>
+      <div class="cp-sub">Coût de revient total par état (DA)</div>
+      <div style="height:210px;"><canvas id="statusValueChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Ligne 2 : Fournisseurs + Valeur immobilisée par âge -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-7">
+    <div class="chart-panel">
+      <div class="cp-title">Stock par fournisseur</div>
+      <div class="cp-sub">Nombre de véhicules et valeur cumulée par partenaire</div>
+      <div style="height:240px;"><canvas id="supplierChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="chart-panel">
+      <div class="cp-title">Valeur immobilisée par âge</div>
+      <div class="cp-sub">Capital en stock selon l'ancienneté (DA)</div>
+      <div style="height:240px;"><canvas id="ageValueChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TABLEAU : Répartition par statut ═══ -->
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Répartition par statut</div>
+    <div class="section-sub">Nombre de véhicules et valeur par état</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead><tr><th>Statut</th><th>Nb. véhicules</th><th>% du stock</th><th>Valeur totale</th><th>Valeur moy.</th></tr></thead>
+      <tbody>
+        {% for status, data in status_breakdown.items %}
+        <tr>
+          <td>
+            {% if 'Disponible' in status %}<span class="pill pill-success">{{ status }}</span>
+            {% elif 'Transit' in status %}<span class="pill pill-info">{{ status }}</span>
+            {% elif 'Douane' in status %}<span class="pill pill-warning">{{ status }}</span>
+            {% elif 'Réservé' in status %}<span class="pill pill-neutral">{{ status }}</span>
+            {% elif 'Vendu' in status %}<span class="pill pill-neutral">{{ status }}</span>
+            {% else %}<span class="pill pill-neutral">{{ status }}</span>{% endif %}
+          </td>
+          <td style="font-weight:600;color:var(--text-primary);">{{ data.count }}</td>
+          <td>
+            {% if total_vehicles > 0 %}
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:6px;background:var(--bg-raised);border-radius:3px;overflow:hidden;min-width:60px;">
+                <div style="height:100%;background:var(--accent);border-radius:3px;width:{% widthratio data.count total_vehicles 100 %}%;"></div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);">{% widthratio data.count total_vehicles 100 %}%</span>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          <td style="color:var(--accent);font-weight:500;">{{ data.value|floatformat:0 }} DA</td>
+          <td style="color:var(--text-secondary);">{% if data.count > 0 %}{% widthratio data.value data.count 1 %} DA{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Aucune donnée</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLEAU : Ancienneté en stock ═══ -->
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Analyse de l'ancienneté</div>
+    <div class="section-sub">Répartition des véhicules par tranche d'âge en stock</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead><tr><th>Tranche d'âge</th><th>Nb. véhicules</th><th>Valeur immobilisée</th><th>Alerte</th></tr></thead>
+      <tbody>
+        {% for tranche, data in age_breakdown.items %}
+        <tr>
+          <td style="font-weight:600;color:var(--text-primary);">{{ tranche }}</td>
+          <td>{{ data.count }}</td>
+          <td style="color:{% if '90' in tranche %}#dc2626{% elif '61' in tranche %}#d97706{% else %}var(--text-secondary){% endif %};font-weight:{% if '90' in tranche or '61' in tranche %}600{% else %}400{% endif %};">{{ data.value|floatformat:0 }} DA</td>
+          <td>
+            {% if '90' in tranche and data.count > 0 %}<span class="pill pill-danger"><i class="bi bi-exclamation-triangle"></i> Critique</span>
+            {% elif '61' in tranche and data.count > 0 %}<span class="pill pill-warning">Surveiller</span>
+            {% else %}<span class="pill pill-success">Normal</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLEAU : Répartition par fournisseur ═══ -->
+{% if supplier_breakdown %}
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Stock par fournisseur</div>
+    <div class="section-sub">Répartition de l'inventaire par partenaire fournisseur</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead><tr><th>Fournisseur</th><th>Nb. véhicules</th><th>Valeur totale</th><th>Valeur moy.</th></tr></thead>
+      <tbody>
+        {% for supp, data in supplier_breakdown.items %}
+        <tr>
+          <td style="font-weight:600;color:var(--text-primary);">{{ supp }}</td>
+          <td>{{ data.count }}</td>
+          <td style="color:var(--accent);font-weight:500;">{{ data.value|floatformat:0 }} DA</td>
+          <td style="color:var(--text-secondary);">{% if data.count > 0 %}{% widthratio data.value data.count 1 %} DA{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">Aucune donnée</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Alerte invendus -->
+{% if slow_moving %}
+<div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+  <i class="bi bi-exclamation-triangle" style="color:#dc2626;font-size:18px;flex-shrink:0;"></i>
+  <div>
+    <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:2px;">{{ slow_moving|length }} véhicule{{ slow_moving|length|pluralize }} invendu{{ slow_moving|length|pluralize }} (90+ jours)</div>
+    <div style="font-size:13px;color:var(--text-secondary);">Ces véhicules disponibles en stock depuis plus de 90 jours immobilisent du capital. Envisagez des ajustements de prix.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ TABLEAU DÉTAIL VÉHICULES ═══ -->
+<div class="card">
+  <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+    <div>
+      <div class="section-head">Détail des véhicules</div>
+      <div class="section-sub">50 premiers véhicules · triés par ancienneté décroissante</div>
+    </div>
+  </div>
+  <div class="table-scroll">
+    {% if vehicles_list %}
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Véhicule</th>
+          <th>Année</th>
+          <th>NIV / Châssis</th>
+          <th>Statut</th>
+          <th>Jours en stock</th>
+          <th>Coût de revient</th>
+          <th>Fournisseur</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vehicles_list %}
+        <tr>
+          <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">{{ v.make }} {{ v.model }}</td>
+          <td>{{ v.year }}</td>
+          <td style="font-family:monospace;font-size:11px;color:var(--text-muted);">{{ v.vin_chassis|truncatechars:16 }}</td>
+          <td>
+            {% if v.status == 'available' %}<span class="pill pill-success">Disponible</span>
+            {% elif v.status == 'in_transit' %}<span class="pill pill-info">En transit</span>
+            {% elif v.status == 'at_customs' %}<span class="pill pill-warning">En douane</span>
+            {% elif v.status == 'reserved' %}<span class="pill pill-neutral">Réservé</span>
+            {% elif v.status == 'sold' %}<span class="pill pill-neutral">Vendu</span>
+            {% else %}<span class="pill pill-neutral">{{ v.get_status_display }}</span>{% endif %}
+          </td>
+          <td>
+            <span style="color:{% if v.days_in_stock > 90 %}#dc2626{% elif v.days_in_stock > 60 %}#d97706{% else %}var(--text-secondary){% endif %};font-weight:{% if v.days_in_stock > 60 %}600{% else %}400{% endif %};">
+              {{ v.days_in_stock }} j.
+            </span>
+          </td>
+          <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);white-space:nowrap;">{{ v.landed_cost|floatformat:0 }} DA</td>
+          <td style="color:var(--text-muted);">{% if v.vehicle_purchase %}{{ v.vehicle_purchase.supplier.name }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+      <i class="bi bi-boxes" style="font-size:32px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucun véhicule trouvé</div>
+      <div style="font-size:13px;">Ajustez les filtres pour afficher les données de stock.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function p(s){return parseFloat(String(s).replace(/[\u00a0\u0020]/g,"").replace(",","."))||0;}
+const ttCfg={backgroundColor:'#ffffff',borderColor:'rgba(0,0,0,.10)',borderWidth:1,titleColor:'#111827',bodyColor:'#6b7280',padding:10,cornerRadius:8};
+const palette=['#16a34a','#0284c7','#d97706','#7c3aed','#ea580c','#dc2626'];
+
+const statusLabels=[{% for s,d in status_breakdown.items %}"{{ s }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const statusCounts=[{% for s,d in status_breakdown.items %}p("{{ d.count }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const statusValues=[{% for s,d in status_breakdown.items %}p("{{ d.value|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const ageLbls=[{% for k,v in age_breakdown.items %}"{{ k }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const ageCounts=[{% for k,v in age_breakdown.items %}p("{{ v.count }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const ageValues=[{% for k,v in age_breakdown.items %}p("{{ v.value|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const suppLbls=[{% for s,d in supplier_breakdown.items %}"{{ s }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const suppCounts=[{% for s,d in supplier_breakdown.items %}p("{{ d.count }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const suppValues=[{% for s,d in supplier_breakdown.items %}p("{{ d.value|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+
+new Chart(document.getElementById('statusChart').getContext('2d'),{type:'doughnut',data:{labels:statusLabels,datasets:[{data:statusCounts,backgroundColor:palette.map(c=>c+'22'),borderColor:palette,borderWidth:2,hoverOffset:4}]},options:{cutout:'68%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{size:10.5},padding:8,boxWidth:10,boxHeight:10}},tooltip:ttCfg}}});
+
+const ageColors=['rgba(22,163,74,.20)','rgba(217,119,6,.20)','rgba(234,88,12,.20)','rgba(220,38,38,.20)'];
+const ageBorders=['#16a34a','#d97706','#ea580c','#dc2626'];
+new Chart(document.getElementById('ageChart').getContext('2d'),{type:'bar',data:{labels:ageLbls,datasets:[{label:'Véhicules',data:ageCounts,backgroundColor:ageColors,borderColor:ageBorders,borderWidth:1.5,borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+c.parsed.y+' véhicule(s)'}}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5}}}}}});
+
+new Chart(document.getElementById('statusValueChart').getContext('2d'),{type:'bar',data:{labels:statusLabels,datasets:[{label:'Valeur (DA)',data:statusValues,backgroundColor:palette.map(c=>c+'22'),borderColor:palette,borderWidth:1.5,borderRadius:6,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.x).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}},y:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10.5}}}}}});
+
+new Chart(document.getElementById('supplierChart').getContext('2d'),{type:'bar',data:{labels:suppLbls,datasets:[{label:'Véhicules',data:suppCounts,backgroundColor:'rgba(2,132,199,.16)',borderColor:'#0284c7',borderWidth:1.5,borderRadius:5,borderSkipped:false,yAxisID:'y1',order:2},{label:'Valeur (DA)',data:suppValues,type:'line',borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.08)',borderWidth:2,tension:.35,fill:true,pointBackgroundColor:'#d97706',pointRadius:4,yAxisID:'y',order:1}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12}},tooltip:{...ttCfg,callbacks:{label:c=>c.datasetIndex===1?' '+Number(c.parsed.y).toLocaleString('fr-FR')+' DA':' '+c.parsed.y+' véh.'}}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{position:'left',grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}},y1:{position:'right',grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}}}}});
+
+const avCtx=document.getElementById('ageValueChart').getContext('2d');
+const avGrad=avCtx.createLinearGradient(0,0,0,240);
+avGrad.addColorStop(0,'rgba(220,38,38,.20)');avGrad.addColorStop(1,'rgba(220,38,38,0)');
+new Chart(avCtx,{type:'line',data:{labels:ageLbls,datasets:[{label:'Valeur immobilisée (DA)',data:ageValues,borderColor:'#dc2626',backgroundColor:avGrad,borderWidth:2.5,tension:.35,fill:true,pointBackgroundColor:'#dc2626',pointRadius:5,pointHoverRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.y).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}}}}});
+</script>
+{% endblock %}

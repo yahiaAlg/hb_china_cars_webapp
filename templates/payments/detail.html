@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Paiement {{ payment.payment_number }}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Détail du paiement{% endblock %}
+{% block page_sub_text %}{{ payment.payment_number }}{% endblock %}
+
+{% block extra_css %}
+/* ── Boutons ── */
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    white-space: nowrap; min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    white-space: nowrap; min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+}
+
+.detail-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.detail-card-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-raised);
+}
+
+.detail-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-card-body { padding: 20px; }
+
+.info-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding-top: 1px;
+    min-width: 140px;
+}
+
+.info-value {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+.info-value.primary {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.amount-display {
+    background: linear-gradient(135deg, rgba(217,119,6,.10) 0%, rgba(217,119,6,.03) 100%);
+    border: 1px solid rgba(217,119,6,.20);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.amount-label {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.amount-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -.03em;
+}
+
+.amount-currency {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.sidebar-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-card-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-raised);
+}
+
+.sidebar-card-body { padding: 16px 18px; }
+
+.mini-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.mini-row:last-child { border-bottom: none; }
+
+.mini-label { color: var(--text-muted); }
+.mini-value { color: var(--text-secondary); font-weight: 500; }
+.mini-value.accent { color: var(--accent); font-family: 'Syne',sans-serif; font-weight:700; }
+
+.actions-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.fade-in { animation: fadeIn .35s ease both; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .detail-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Retour + actions -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+    <a href="{% url 'payments:list' %}" class="section-link" style="font-size:13px;color:var(--text-secondary);">
+        <i class="bi bi-arrow-left me-1"></i> Retour aux paiements
+    </a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <a href="{% url 'payments:edit' payment.pk %}" class="btn-ghost" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- Gauche : informations principales -->
+    <div class="fade-in">
+
+        <!-- Montant principal -->
+        <div class="amount-display">
+            <div class="amount-label">Montant encaissé</div>
+            <div class="amount-value">
+                {{ payment.amount|floatformat:0 }}<span class="amount-currency">DA</span>
+            </div>
+            <div style="margin-top:12px;">
+                {% if payment.is_confirmed %}
+                <span class="pill pill-success"><i class="bi bi-check-circle me-1"></i>Confirmé</span>
+                {% else %}
+                <span class="pill pill-warning"><i class="bi bi-clock me-1"></i>En attente de confirmation</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informations du paiement -->
+        <div class="detail-card">
+            <div class="detail-card-head">
+                <div class="detail-card-title">
+                    <i class="bi bi-credit-card" style="color:var(--accent);"></i>
+                    Informations du paiement
+                </div>
+            </div>
+            <div class="detail-card-body">
+                <div class="info-row">
+                    <div class="info-label">N° paiement</div>
+                    <div class="info-value primary">{{ payment.payment_number }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Date du paiement</div>
+                    <div class="info-value">{{ payment.payment_date|date:"l, N j, Y" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Méthode</div>
+                    <div class="info-value">
+                        {% if payment.payment_method == 'cash' %}
+                        <span class="pill" style="background:rgba(22,163,74,.12);color:#16a34a;">
+                            <i class="bi bi-cash me-1"></i>Espèces
+                        </span>
+                        {% elif payment.payment_method == 'bank_transfer' %}
+                        <span class="pill" style="background:rgba(2,132,199,.10);color:#0284c7;">
+                            <i class="bi bi-bank me-1"></i>Virement bancaire
+                        </span>
+                        {% elif payment.payment_method == 'check' %}
+                        <span class="pill" style="background:rgba(124,58,237,.10);color:#7c3aed;">
+                            <i class="bi bi-file-earmark-text me-1"></i>Chèque
+                        </span>
+                        {% elif payment.payment_method == 'card' %}
+                        <span class="pill" style="background:rgba(217,119,6,.12);color:#d97706;">
+                            <i class="bi bi-credit-card me-1"></i>Carte
+                        </span>
+                        {% elif payment.payment_method == 'installment' %}
+                        <span class="pill" style="background:rgba(99,102,241,.10);color:#6366f1;">
+                            <i class="bi bi-calendar-check me-1"></i>Versement échelonné
+                        </span>
+                        {% else %}
+                        <span class="pill" style="background:var(--bg-hover);color:var(--text-secondary);">{{ payment.get_payment_method_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if payment.bank_reference %}
+                <div class="info-row">
+                    <div class="info-label">Référence bancaire</div>
+                    <div class="info-value" style="font-family:'Syne',sans-serif;font-weight:600;color:var(--text-primary);">
+                        {{ payment.bank_reference }}
+                    </div>
+                </div>
+                {% endif %}
+                {% if payment.notes %}
+                <div class="info-row">
+                    <div class="info-label">Notes</div>
+                    <div class="info-value" style="text-align:left;line-height:1.6;">{{ payment.notes }}</div>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <div class="info-label">Saisi par</div>
+                    <div class="info-value">{{ payment.created_by.get_full_name|default:payment.created_by.username|default:"—" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Saisi le</div>
+                    <div class="info-value">{{ payment.created_at|date:"j M Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Facture associée -->
+        <div class="detail-card" style="margin-top:16px;">
+            <div class="detail-card-head">
+                <div class="detail-card-title">
+                    <i class="bi bi-receipt" style="color:#0284c7;"></i>
+                    Facture &amp; Vente
+                </div>
+                <a href="{% url 'sales:invoice_detail' payment.invoice.pk %}"
+                    class="btn-ghost" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px;min-height:36px;">
+                    <i class="bi bi-arrow-up-right"></i> Voir la facture
+                </a>
+            </div>
+            <div class="detail-card-body">
+                <div class="info-row">
+                    <div class="info-label">N° Facture</div>
+                    <div class="info-value primary">{{ payment.invoice.invoice_number }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Client</div>
+                    <div class="info-value">{{ payment.invoice.customer.name|default:"—" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Véhicule{{ payment.invoice.sale.vehicle_count|pluralize }}</div>
+                    <div class="info-value" style="text-align:right;">
+                        {% for item in payment.invoice.sale.line_items.all %}
+                        <div style="{% if not forloop.first %}margin-top:6px;padding-top:6px;border-top:1px solid var(--border);{% endif %}">
+                            <span style="font-weight:600;color:var(--text-primary);">
+                                {{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}
+                            </span>
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">
+                                {{ item.vehicle.vin_chassis|default:"Aucun NIV" }}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Trader assigné</div>
+                    <div class="info-value">
+                        {{ payment.invoice.sale.assigned_trader.get_full_name|default:payment.invoice.sale.assigned_trader.username|default:"—" }}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Total facture</div>
+                    <div class="info-value primary">{{ payment.invoice.total_ttc|floatformat:0 }} DA</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Total payé</div>
+                    <div class="info-value" style="color:#16a34a;font-family:'Syne',sans-serif;font-weight:700;">
+                        {{ payment.invoice.amount_paid|floatformat:0 }} DA
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Solde restant</div>
+                    <div class="info-value" style="color:{% if payment.invoice.balance_due > 0 %}#dc2626{% else %}#16a34a{% endif %};font-family:'Syne',sans-serif;font-weight:700;">
+                        {{ payment.invoice.balance_due|floatformat:0 }} DA
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Droite : barre latérale -->
+    <div class="fade-in" style="animation-delay:60ms;">
+
+        <!-- Progression de la facture -->
+        <div class="sidebar-card" style="margin-bottom:16px;">
+            <div class="sidebar-card-head">
+                <i class="bi bi-pie-chart" style="color:var(--accent);"></i>
+                Avancement de la facture
+            </div>
+            <div class="sidebar-card-body">
+                {% if payment.invoice.total_ttc %}
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:11.5px;color:var(--text-muted);">Encaissé</span>
+                        <span style="font-size:11.5px;font-weight:600;color:#16a34a;">{{ payment.invoice.amount_paid|floatformat:0 }} DA</span>
+                    </div>
+                    <div style="height:8px;background:var(--bg-raised);border-radius:6px;overflow:hidden;border:1px solid var(--border);">
+                        <div style="height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:6px;width:{% widthratio payment.invoice.amount_paid payment.invoice.total_ttc 100 %}%;transition:width .5s ease;"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mini-row">
+                    <span class="mini-label">Total facture</span>
+                    <span class="mini-value">{{ payment.invoice.total_ttc|floatformat:0 }} DA</span>
+                </div>
+                <div class="mini-row">
+                    <span class="mini-label">Montant payé</span>
+                    <span class="mini-value" style="color:#16a34a;font-weight:600;">{{ payment.invoice.amount_paid|floatformat:0 }} DA</span>
+                </div>
+                <div class="mini-row">
+                    <span class="mini-label">Solde restant</span>
+                    <span class="mini-value" style="{% if payment.invoice.balance_due > 0 %}color:#dc2626;{% else %}color:#16a34a;{% endif %}font-weight:600;font-family:'Syne',sans-serif;">
+                        {{ payment.invoice.balance_due|floatformat:0 }} DA
+                    </span>
+                </div>
+                <div class="mini-row">
+                    <span class="mini-label">Statut</span>
+                    <span class="mini-value">
+                        {% if payment.invoice.status == 'paid' %}
+                        <span class="pill pill-success" style="font-size:10px;">Payé</span>
+                        {% elif payment.invoice.status == 'overdue' %}
+                        <span class="pill pill-danger" style="font-size:10px;">En retard</span>
+                        {% else %}
+                        <span class="pill pill-warning" style="font-size:10px;">Partiel</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <div class="actions-card">
+            <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">
+                Actions rapides
+            </div>
+            <a href="{% url 'payments:edit' payment.pk %}"
+                class="btn-ghost" style="width:100%;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:8px;justify-content:center;min-height:44px;">
+                <i class="bi bi-pencil"></i> Modifier le paiement
+            </a>
+            {% if payment.invoice.balance_due > 0 %}
+            <a href="{% url 'payments:create' %}?invoice={{ payment.invoice.pk }}"
+                class="btn-primary" style="width:100%;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:8px;justify-content:center;min-height:44px;">
+                <i class="bi bi-plus-lg"></i> Ajouter un paiement
+            </a>
+            {% endif %}
+            <a href="{% url 'sales:invoice_detail' payment.invoice.pk %}"
+                class="btn-ghost" style="width:100%;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:8px;justify-content:center;min-height:44px;">
+                <i class="bi bi-receipt"></i> Voir la facture complète
+            </a>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

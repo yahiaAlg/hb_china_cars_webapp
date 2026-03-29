@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}Récapitulatif des ventes{% endblock %}
+{% block nav_reports %}active{% endblock %}
+{% block page_title %}Récapitulatif des ventes{% endblock %}
+{% block page_sub_text %}Transactions, tendances &amp; classement clients{% endblock %}
+
+{% block extra_css %}
+.filter-bar{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px;align-items:end;}
+.filter-group{display:flex;flex-direction:column;gap:5px;}
+.filter-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);}
+.filter-input{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;width:100%;min-height:44px;}
+.filter-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.filter-input option{background:var(--bg-raised);}
+.btn-primary-sm{background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 18px;border-radius:var(--radius-md);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px;}
+.btn-primary-sm:hover{opacity:.88;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;padding:8px 16px;border-radius:var(--radius-md);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;min-height:44px;}
+.btn-ghost-sm:hover{background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary);}
+.chart-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);}
+.cp-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;}
+.cp-sub{font-size:12px;color:var(--text-muted);margin-bottom:14px;}
+.section-head{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);}
+.section-sub{font-size:12px;color:var(--text-muted);}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;flex-shrink:0;}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+@media(max-width:768px){.filter-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.filter-grid{grid-template-columns:1fr;}}
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+  <a href="{% url 'reports:dashboard' %}" style="font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.color='var(--text-secondary)';" onmouseout="this.style.color='var(--text-muted)';">
+    <i class="bi bi-arrow-left"></i> Tableau des rapports
+  </a>
+  {% if request.user.userprofile %}{% if request.user.userprofile.is_manager %}
+  <a href="{% url 'reports:export_report' %}" class="btn-ghost-sm"><i class="bi bi-download"></i> Exporter</a>
+  {% endif %}{% endif %}
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-green"><i class="bi bi-receipt"></i></div>
+      <div class="metric-label">Total des ventes</div>
+      <div class="metric-value">{{ total_sales }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">transactions</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-blue"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="metric-label">Chiffre d'affaires</div>
+      <div class="metric-value sm">{{ total_revenue|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-amber"><i class="bi bi-car-front-fill"></i></div>
+      <div class="metric-label">Prix de vente moy.</div>
+      <div class="metric-value sm">{{ avg_sale_price|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA / véhicule</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-pink"><i class="bi bi-percent"></i></div>
+      <div class="metric-label">Total commissions</div>
+      <div class="metric-value sm">{{ total_commission|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="filter-bar">
+  <form method="get">
+    <div class="filter-grid">
+      <div class="filter-group"><label class="filter-label">Du</label><input type="date" name="date_from" class="filter-input" value="{{ form.date_from.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Au</label><input type="date" name="date_to" class="filter-input" value="{{ form.date_to.value|default:'' }}"></div>
+      <div class="filter-group">
+        <label class="filter-label">Type de période</label>
+        <select name="period_type" class="filter-input">
+          <option value="monthly" {% if form.period_type.value == 'monthly' %}selected{% endif %}>Mensuel</option>
+          <option value="weekly" {% if form.period_type.value == 'weekly' %}selected{% endif %}>Hebdomadaire</option>
+          <option value="quarterly" {% if form.period_type.value == 'quarterly' %}selected{% endif %}>Trimestriel</option>
+          <option value="yearly" {% if form.period_type.value == 'yearly' %}selected{% endif %}>Annuel</option>
+        </select>
+      </div>
+      {% if request.user.userprofile %}{% if not request.user.userprofile.is_trader %}
+      <div class="filter-group">
+        <label class="filter-label">Trader</label>
+        <select name="trader" class="filter-input">
+          <option value="">Tous les traders</option>
+          {% for c in form.trader.field.queryset %}<option value="{{ c.pk }}" {% if form.trader.value == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.get_full_name|default:c.username }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}{% endif %}
+      <div class="filter-group">
+        <label class="filter-label">Mode de paiement</label>
+        <select name="payment_method" class="filter-input">
+          <option value="">Tous les modes</option>
+          <option value="cash" {% if form.payment_method.value == 'cash' %}selected{% endif %}>Espèces</option>
+          <option value="bank_transfer" {% if form.payment_method.value == 'bank_transfer' %}selected{% endif %}>Virement bancaire</option>
+          <option value="installment" {% if form.payment_method.value == 'installment' %}selected{% endif %}>Échelonné</option>
+          <option value="check" {% if form.payment_method.value == 'check' %}selected{% endif %}>Chèque</option>
+        </select>
+      </div>
+      <div class="filter-group"><label class="filter-label">&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn-primary-sm"><i class="bi bi-funnel"></i> Filtrer</button>
+          <a href="{% url 'reports:sales_summary' %}" class="btn-ghost-sm"><i class="bi bi-x"></i></a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ═══ SECTION TENDANCE — conditionnelle sur period_data ═══ -->
+{% if period_data %}
+<div class="chart-panel mb-4">
+  <div class="cp-title">Tendance CA &amp; Volume de ventes</div>
+  <div class="cp-sub">Ligne = chiffre d'affaires (axe gauche) · Barres = nombre de transactions (axe droit) · {{ period_data|length }} période{{ period_data|length|pluralize }}</div>
+  <div style="height:220px;"><canvas id="salesTrendChart"></canvas></div>
+</div>
+
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Détail par période</div>
+    <div class="section-sub">CA, volume et commissions ventilés par {{ form.period_type.value|default:"période" }}</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead>
+        <tr><th>Période</th><th>Nb. ventes</th><th>Chiffre d'affaires</th><th>Prix moy. / vente</th><th>Commission</th></tr>
+      </thead>
+      <tbody>
+        {% for row in period_data %}
+        <tr>
+          <td style="font-weight:600;color:var(--text-primary);">{{ row.period }}</td>
+          <td>{{ row.sales_count }}</td>
+          <td style="color:var(--accent);font-weight:500;">{{ row.revenue|floatformat:0 }} DA</td>
+          <td style="color:var(--text-secondary);">{{ row.avg_sale|floatformat:0 }} DA</td>
+          <td style="color:#7c3aed;">{{ row.commission|floatformat:0 }} DA</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--bg-raised);font-weight:700;">
+          <td style="color:var(--text-secondary);">TOTAL</td>
+          <td style="color:var(--text-primary);">{{ total_sales }}</td>
+          <td style="color:var(--accent);">{{ total_revenue|floatformat:0 }} DA</td>
+          <td style="color:var(--text-secondary);">{{ avg_sale_price|floatformat:0 }} DA</td>
+          <td style="color:#7c3aed;">{{ total_commission|floatformat:0 }} DA</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="chart-panel mb-4" style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:rgba(2,132,199,.05);border-color:rgba(2,132,199,.18);">
+  <i class="bi bi-info-circle" style="font-size:18px;color:#0284c7;flex-shrink:0;"></i>
+  <div>
+    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Tendance non encore générée</div>
+    <div style="font-size:12px;color:var(--text-muted);">Sélectionnez une plage de dates et cliquez sur « Filtrer » pour afficher la tendance CA par période.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ SECTION TOUJOURS VISIBLE : Modes paiement + Top clients + Top marques ═══ -->
+{% if payment_breakdown or top_customers or make_performance %}
+
+<!-- Graphiques : Modes paiement + Top clients + Top marques -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Modes de paiement</div>
+      <div class="cp-sub">Répartition des transactions par mode</div>
+      <div style="height:190px;"><canvas id="paymentChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Meilleurs clients</div>
+      <div class="cp-sub">CA cumulé — Top 8</div>
+      <div style="height:190px;"><canvas id="topCustomersChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="chart-panel">
+      <div class="cp-title">Meilleures marques</div>
+      <div class="cp-sub">CA et unités vendus — Top 8</div>
+      <div style="height:190px;"><canvas id="makeChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tableaux : Modes paiement + Top clients + Top marques -->
+<div class="row g-3 mb-4">
+
+  <!-- Modes de paiement -->
+  <div class="col-xl-4">
+    <div class="card" style="height:100%;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <div class="section-head">Modes de paiement</div>
+        <div class="section-sub">CA et volume par mode</div>
+      </div>
+      <div class="table-scroll">
+        <table class="table-custom">
+          <thead><tr><th>Mode</th><th>Transactions</th><th>CA (DA)</th><th>% CA</th></tr></thead>
+          <tbody>
+            {% for pm in payment_breakdown %}
+            <tr>
+              <td style="font-weight:500;color:var(--text-primary);">
+                {% if pm.payment_method == 'cash' %}<i class="bi bi-cash" style="color:#16a34a;margin-right:6px;"></i>Espèces
+                {% elif pm.payment_method == 'bank_transfer' %}<i class="bi bi-bank" style="color:#0284c7;margin-right:6px;"></i>Virement
+                {% elif pm.payment_method == 'installment' %}<i class="bi bi-calendar-check" style="color:#d97706;margin-right:6px;"></i>Échelonné
+                {% elif pm.payment_method == 'check' %}<i class="bi bi-file-earmark-text" style="color:#7c3aed;margin-right:6px;"></i>Chèque
+                {% else %}<i class="bi bi-credit-card" style="color:var(--text-muted);margin-right:6px;"></i>{{ pm.payment_method_display }}{% endif %}
+              </td>
+              <td>{{ pm.count }}</td>
+              <td style="color:var(--accent);font-weight:500;">{{ pm.revenue|floatformat:0 }}</td>
+              <td>
+                {% if total_revenue > 0 %}
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div style="flex:1;height:5px;background:var(--bg-raised);border-radius:3px;min-width:40px;overflow:hidden;">
+                    <div style="height:100%;background:var(--accent);border-radius:3px;width:{% widthratio pm.revenue total_revenue 100 %}%;"></div>
+                  </div>
+                  <span style="font-size:11px;color:var(--text-muted);">{% widthratio pm.revenue total_revenue 100 %}%</span>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">Aucune donnée</td></tr>
+            {% endfor %}
+          </tbody>
+          {% if payment_breakdown %}
+          <tfoot>
+            <tr style="background:var(--bg-raised);font-weight:700;">
+              <td style="color:var(--text-secondary);">TOTAL</td>
+              <td style="color:var(--text-primary);">{{ total_sales }}</td>
+              <td style="color:var(--accent);">{{ total_revenue|floatformat:0 }}</td>
+              <td style="color:var(--text-muted);">100%</td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top clients -->
+  <div class="col-xl-4">
+    <div class="card" style="height:100%;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <div class="section-head">Meilleurs clients</div>
+        <div class="section-sub">Classés par CA cumulé</div>
+      </div>
+      <div class="table-scroll">
+        <table class="table-custom">
+          <thead><tr><th>#</th><th>Client</th><th>Ventes</th><th>CA (DA)</th></tr></thead>
+          <tbody>
+            {% for c in top_customers %}
+            <tr>
+              <td>
+                <span class="rank-badge" style="background:{% if forloop.counter == 1 %}rgba(217,119,6,.15);color:#d97706;{% elif forloop.counter == 2 %}rgba(107,114,128,.12);color:#374151;{% elif forloop.counter == 3 %}rgba(180,120,60,.12);color:#92400e;{% else %}rgba(0,0,0,.05);color:var(--text-muted);{% endif %}">{{ forloop.counter }}</span>
+              </td>
+              <td style="font-weight:500;color:var(--text-primary);">{{ c.customer__name }}</td>
+              <td style="color:var(--text-secondary);">{{ c.sales_count }}</td>
+              <td style="color:var(--accent);font-weight:500;">{{ c.total_spent|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">Aucune donnée</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top marques -->
+  <div class="col-xl-4">
+    <div class="card" style="height:100%;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <div class="section-head">Meilleures marques</div>
+        <div class="section-sub">Classées par chiffre d'affaires</div>
+      </div>
+      <div class="table-scroll">
+        <table class="table-custom">
+          <thead><tr><th>#</th><th>Marque</th><th>Unités</th><th>CA (DA)</th></tr></thead>
+          <tbody>
+            {% for m in make_performance %}
+            <tr>
+              <td>
+                <span class="rank-badge" style="background:{% if forloop.counter == 1 %}rgba(217,119,6,.15);color:#d97706;{% elif forloop.counter == 2 %}rgba(107,114,128,.12);color:#374151;{% elif forloop.counter == 3 %}rgba(180,120,60,.12);color:#92400e;{% else %}rgba(0,0,0,.05);color:var(--text-muted);{% endif %}">{{ forloop.counter }}</span>
+              </td>
+              <td style="font-weight:500;color:var(--text-primary);">
+                <i class="bi bi-car-front" style="color:var(--text-muted);margin-right:5px;"></i>{{ m.vehicle__make|default:"Inconnu" }}
+              </td>
+              <td style="color:var(--text-secondary);">{{ m.count }}</td>
+              <td style="color:var(--accent);font-weight:500;">{{ m.revenue|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">Aucune donnée</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function p(s){return parseFloat(String(s).replace(/[\u00a0\u0020]/g,"").replace(",","."))||0;}
+const ttCfg={backgroundColor:'#ffffff',borderColor:'rgba(0,0,0,.10)',borderWidth:1,titleColor:'#111827',bodyColor:'#6b7280',padding:10,cornerRadius:8};
+const palette=['#d97706','#0284c7','#16a34a','#7c3aed','#ea580c','#0d9488','#db2777','#4f46e5'];
+
+{% if period_data %}
+const _pd={{ chart_period_data|safe }};
+const tCtx=document.getElementById('salesTrendChart').getContext('2d');
+const tGrad=tCtx.createLinearGradient(0,0,0,220);
+tGrad.addColorStop(0,'rgba(217,119,6,.22)');tGrad.addColorStop(1,'rgba(217,119,6,0)');
+new Chart(tCtx,{data:{labels:_pd.periods,datasets:[
+  {type:'line',label:'CA (DA)',data:_pd.revenues,borderColor:'#d97706',backgroundColor:tGrad,borderWidth:2.5,tension:.4,fill:true,pointBackgroundColor:'#d97706',pointRadius:4,pointHoverRadius:6,yAxisID:'y'},
+  {type:'bar',label:'Nb. ventes',data:_pd.saleCounts,backgroundColor:'rgba(2,132,199,.16)',borderColor:'#0284c7',borderWidth:1.5,borderRadius:6,borderSkipped:false,yAxisID:'y1'}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+  plugins:{legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12}},tooltip:ttCfg},
+  scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{position:'left',grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}},y1:{position:'right',grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}}}}});
+{% endif %}
+
+{% if payment_breakdown %}
+/* Donut modes paiement */
+const _pmData={{ chart_payment_data|safe }};
+new Chart(document.getElementById('paymentChart').getContext('2d'),{type:'doughnut',data:{labels:_pmData.labels,datasets:[{data:_pmData.counts,backgroundColor:palette.map(c=>c+'22'),borderColor:palette,borderWidth:2}]},options:{cutout:'68%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{size:10.5},padding:8,boxWidth:10,boxHeight:10}},tooltip:ttCfg}}});
+
+/* Top clients */
+const custLbls=[{% for c in top_customers %}"{{ c.customer__name }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const custVals=[{% for c in top_customers %}p("{{ c.total_spent|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+new Chart(document.getElementById('topCustomersChart').getContext('2d'),{type:'bar',data:{labels:custLbls,datasets:[{label:'CA (DA)',data:custVals,backgroundColor:palette.map(c=>c+'22'),borderColor:palette,borderWidth:1.5,borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.x).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10},callback:v=>(v/1000000).toFixed(1)+'M'}},y:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}}}}});
+
+/* Top marques */
+const makeLbls=[{% for m in make_performance %}"{{ m.vehicle__make|default:'—' }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const makeRevs=[{% for m in make_performance %}p("{{ m.revenue|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+new Chart(document.getElementById('makeChart').getContext('2d'),{type:'bar',data:{labels:makeLbls,datasets:[{label:'CA (DA)',data:makeRevs,backgroundColor:'rgba(217,119,6,.18)',borderColor:'#d97706',borderWidth:1.5,borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.x).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10},callback:v=>(v/1000000).toFixed(1)+'M'}},y:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}}}}});
+{% endif %}
+</script>
+{% endblock %}

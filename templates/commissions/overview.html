@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Aperçu des Commissions{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Commissions{% endblock %}
+{% block page_sub_text %}Aperçu &amp; Gestion des Périodes{% endblock %}
+
+{% block extra_css %}
+.filter-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.filter-input {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 12px;
+    min-width: 160px;
+    min-height: 44px;
+    transition: border-color var(--transition);
+}
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.filter-input option { background: var(--bg-surface); }
+.btn-primary-sm {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 18px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition), transform .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-primary-sm:hover { opacity: .88; }
+.btn-ghost-sm {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.btn-ghost-sm:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+.period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(240,165,0,.25);
+}
+.period-closed {
+    background: rgba(22,163,74,.1);
+    color: #16a34a;
+    border-color: rgba(22,163,74,.25);
+}
+.table-scroll { overflow-x: auto; }
+{% endblock %}
+
+{% block content %}
+
+<!-- Métriques -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-pink"><i class="bi bi-percent"></i></div>
+            <div class="metric-label">Commissions Totales</div>
+            <div class="metric-value">{{ total_commission|floatformat:0|default:"0" }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">DA – période en cours</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-amber"><i class="bi bi-hourglass-split"></i></div>
+            <div class="metric-label">Paiements en Attente</div>
+            <div class="metric-value sm">{{ pending_amount|floatformat:0|default:"0" }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">DA</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-green"><i class="bi bi-person-badge"></i></div>
+            <div class="metric-label">Traders Actifs</div>
+            <div class="metric-value sm">{{ active_traders_count|default:"0" }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">avec récapitulatifs</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card">
+            <div class="metric-icon ic-blue"><i class="bi bi-receipt"></i></div>
+            <div class="metric-label">Ventes Totales</div>
+            <div class="metric-value sm">{{ total_sales_count|default:"0" }}</div>
+            <span style="font-size:12px;color:var(--text-muted);">cette période</span>
+        </div>
+    </div>
+</div>
+
+<!-- Barre de filtres -->
+<div class="filter-bar">
+    <form method="get" style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;width:100%;">
+        {% if filter_form %}
+            <div class="filter-group">
+                <label class="filter-label">Année</label>
+                {{ filter_form.year }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Mois</label>
+                {{ filter_form.month }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Trader</label>
+                {{ filter_form.trader }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Statut de paiement</label>
+                {{ filter_form.payout_status }}
+            </div>
+        {% else %}
+            <div class="filter-group">
+                <label class="filter-label">Année</label>
+                <input type="number" name="year" class="filter-input" placeholder="Année" value="{{ request.GET.year }}">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Mois</label>
+                <select name="month" class="filter-input">
+                    <option value="">Tous les mois</option>
+                    {% for i, name in months %}
+                    <option value="{{ i }}" {% if request.GET.month == i|stringformat:"s" %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        <button type="submit" class="btn-primary-sm"><i class="bi bi-funnel"></i> Filtrer</button>
+        <a href="{% url 'commissions:overview' %}" class="btn-ghost-sm"><i class="bi bi-x"></i> Effacer</a>
+
+        {% if request.user.userprofile.is_manager %}
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{% url 'commissions:tiers' %}" class="btn-ghost-sm"><i class="bi bi-layers"></i> Gérer les paliers</a>
+            <a href="{% url 'commissions:trader_performance' %}" class="btn-ghost-sm"><i class="bi bi-bar-chart-line"></i> Performance</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tableau principal -->
+<div class="card">
+    <div style="padding:18px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;">
+        <div>
+            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-primary);">Récapitulatifs des Commissions</div>
+            {% if current_period %}
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                {{ current_period }}
+                {% if current_period.is_closed %}
+                    <span class="period-badge period-closed" style="margin-left:8px;"><i class="bi bi-lock"></i> Clôturée</span>
+                {% else %}
+                    <span class="period-badge" style="margin-left:8px;"><i class="bi bi-circle-fill" style="font-size:7px;"></i> Ouverte</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% if current_period and not current_period.is_closed and request.user.userprofile.is_manager %}
+        <a href="{% url 'commissions:close_period' current_period.year current_period.month %}"
+           onclick="return confirm('Clôturer cette période de commissions ? Cette action finalisera tous les calculs et ne peut pas être annulée.');"
+           class="btn-ghost-sm" style="border-color:rgba(240,165,0,.35);color:var(--accent);">
+            <i class="bi bi-lock"></i> Clôturer la période
+        </a>
+        {% endif %}
+    </div>
+
+    {% if summaries %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Trader</th>
+                    <th>Période</th>
+                    <th>Ventes</th>
+                    <th>Marge Totale</th>
+                    <th>Comm. de Base</th>
+                    <th>Bonus Palier</th>
+                    <th>Commission Nette</th>
+                    <th>Statut</th>
+                    {% if request.user.userprofile.is_manager %}<th>Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in summaries %}
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="width:30px;height:30px;border-radius:50%;background:var(--accent-dim);border:1.5px solid var(--accent);display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:var(--accent);flex-shrink:0;">
+                                {{ s.trader.get_full_name|slice:":1"|default:s.trader.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <div style="color:var(--text-primary);font-weight:500;">{{ s.trader.get_full_name|default:s.trader.username }}</div>
+                                {% if s.trader.userprofile %}
+                                <div style="font-size:11px;color:var(--text-muted);">{{ s.trader.userprofile.get_role_display }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="color:var(--text-muted);">{{ s.period }}</td>
+                    <td style="font-weight:500;color:var(--text-primary);">{{ s.sales_count }}</td>
+                    <td>{{ s.total_margin|floatformat:0 }} DA</td>
+                    <td>{{ s.base_commission|floatformat:0 }} DA</td>
+                    <td>
+                        {% if s.tier_bonus %}
+                            <span style="color:#ca8a04;">+ {{ s.tier_bonus|floatformat:0 }} DA</span>
+                        {% else %}
+                            <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">{{ s.total_commission|floatformat:0 }} DA</span>
+                    </td>
+                    <td>
+                        {% if s.payout_status == 'paid' %}
+                            <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payé</span>
+                        {% elif s.payout_status == 'approved' %}
+                            <span class="pill pill-info"><i class="bi bi-clock"></i> Approuvé</span>
+                        {% elif s.payout_status == 'pending' %}
+                            <span class="pill pill-warning"><i class="bi bi-hourglass-split"></i> En attente</span>
+                        {% elif s.payout_status == 'cancelled' %}
+                            <span class="pill pill-danger"><i class="bi bi-x-circle"></i> Annulé</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.userprofile.is_manager %}
+                    <td>
+                        <div style="display:flex;gap:6px;">
+                            {% if s.payout_status == 'pending' %}
+                            <a href="{% url 'commissions:approve_commission' s.pk %}"
+                               title="Approuver"
+                               style="width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;display:grid;place-items:center;color:var(--text-secondary);transition:all var(--transition);text-decoration:none;"
+                               onmouseover="this.style.borderColor='rgba(22,163,74,.4)';this.style.color='#16a34a';"
+                               onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)';">
+                                <i class="bi bi-check-lg"></i>
+                            </a>
+                            {% endif %}
+                            {% if s.payout_status != 'paid' %}
+                            <a href="{% url 'commissions:create_adjustment' s.pk %}"
+                               title="Ajustement"
+                               style="width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;display:grid;place-items:center;color:var(--text-secondary);transition:all var(--transition);text-decoration:none;"
+                               onmouseover="this.style.borderColor='rgba(2,132,199,.4)';this.style.color='#0284c7';"
+                               onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)';">
+                                <i class="bi bi-sliders"></i>
+                            </a>
+                            {% endif %}
+                            {% if s.payout_status == 'approved' %}
+                            <a href="{% url 'commissions:create_payment' s.pk %}"
+                               title="Enregistrer le paiement"
+                               style="width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;display:grid;place-items:center;color:var(--text-secondary);transition:all var(--transition);text-decoration:none;"
+                               onmouseover="this.style.borderColor='rgba(240,165,0,.4)';this.style.color='var(--accent)';"
+                               onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)';">
+                                <i class="bi bi-credit-card"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:56px 20px;color:var(--text-muted);">
+        <i class="bi bi-percent" style="font-size:36px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucun récapitulatif de commission</div>
+        <div style="font-size:13px;">Aucun résultat trouvé pour les filtres sélectionnés.</div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}Achat — {{ purchase.supplier.name }}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+
+{% block page_title %}Détail de l'achat{% endblock %}
+{% block page_sub_text %}{{ purchase.purchase_date|date:"j M Y" }} · {{ purchase.supplier.name }}{% endblock %}
+
+{% block extra_css %}
+/* ── Lien retour ── */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    transition: color var(--transition);
+    text-decoration: none;
+    min-height: 44px;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── En-tête de détail ── */
+.detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+/* ── Carte générique ── */
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-subtitle { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+.card-body { padding: 20px; }
+
+/* ── Grille de détail ── */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.detail-field label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.detail-field .value {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.detail-field .value.lg {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+}
+
+/* ── Décomposition des coûts ── */
+.cost-breakdown { display: flex; flex-direction: column; gap: 0; }
+
+.cost-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.cost-row:last-child { border-bottom: none; }
+
+.cost-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.cost-label .cost-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.cost-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.cost-value small {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 3px;
+}
+
+.cost-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--accent-dim);
+    border-top: 1px solid rgba(217,119,6,.20);
+}
+
+.cost-total-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.cost-total-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+/* ── Badges ── */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.pill-success { background: rgba(22,163,74,.10);  color: #16a34a; }
+.pill-warning { background: rgba(217,119,6,.12);  color: #d97706; }
+.pill-info    { background: rgba(2,132,199,.10);  color: #0284c7; }
+.pill-neutral { background: var(--bg-hover);      color: var(--text-secondary); }
+.pill-danger  { background: rgba(220,38,38,.10);  color: #dc2626; }
+
+/* ── Boutons d'action ── */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: var(--radius-sm);
+    padding: 9px 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    transition: all var(--transition);
+    cursor: pointer;
+    border: none;
+    min-height: 44px;
+}
+
+.action-btn-primary { background: var(--accent); color: #fff; }
+.action-btn-primary:hover { opacity: .88; }
+
+.action-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+.action-btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+.action-btn-danger {
+    background: rgba(220,38,38,.08);
+    color: #dc2626;
+    border: 1px solid rgba(220,38,38,.20);
+}
+.action-btn-danger:hover { background: rgba(220,38,38,.14); }
+
+/* ── Pipeline d'import ── */
+.pipeline-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.step-done    { background: #16a34a; }
+.step-active  { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.step-pending { background: var(--bg-raised); border: 2px solid var(--border-strong); }
+
+.step-label { flex: 1; color: var(--text-secondary); }
+.step-label.done { color: var(--text-primary); font-weight: 500; }
+.step-label.active { color: var(--accent); font-weight: 600; }
+
+/* ── Véhicules liés ── */
+.vehicle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition);
+}
+.vehicle-row:last-child { border-bottom: none; }
+.vehicle-row:hover { background: var(--bg-hover); }
+
+/* ── Animation ── */
+.fade-in { animation: fadeIn .35s ease both; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .detail-grid { grid-template-columns: 1fr 1fr; }
+    .cost-row { flex-wrap: wrap; gap: 6px; }
+}
+@media (max-width: 480px) {
+    .detail-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Lien retour -->
+<a href="{% url 'purchases:list' %}" class="back-link fade-in">
+    <i class="bi bi-arrow-left"></i> Retour aux achats
+</a>
+
+<!-- En-tête de détail -->
+<div class="detail-header fade-in">
+    <div>
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Achats / Détail</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,24px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">
+            {{ purchase.supplier.name }}
+        </h1>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+            <i class="bi bi-calendar3 me-1"></i>{{ purchase.purchase_date|date:"j M Y" }}
+            &nbsp;·&nbsp;
+            {% with purchase.customs_declaration as cd %}
+            {% if cd and cd.is_cleared %}
+                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Dédouané</span>
+            {% elif cd %}
+                <span class="pill pill-warning"><i class="bi bi-hourglass-split"></i> En douane</span>
+            {% else %}
+                <span class="pill pill-info"><i class="bi bi-truck"></i> En transit</span>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+    <!-- Actions -->
+    {% if request.user.userprofile %}
+    {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+        <a href="{% url 'purchases:edit' purchase.pk %}" class="action-btn action-btn-ghost">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        {% if not purchase.freight_cost %}
+        <a href="{% url 'purchases:add_freight' purchase.pk %}" class="action-btn action-btn-primary">
+            <i class="bi bi-ship"></i> Ajouter le fret
+        </a>
+        {% elif not purchase.customs_declaration %}
+        <a href="{% url 'purchases:add_customs' purchase.pk %}" class="action-btn action-btn-primary">
+            <i class="bi bi-file-earmark-text"></i> Déclarer en douane
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Grille deux colonnes -->
+<div class="row g-4">
+
+    <!-- GAUCHE : col-xl-8 -->
+    <div class="col-xl-8">
+
+        <!-- Informations principales -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div>
+                    <div class="card-title"><i class="bi bi-truck me-2" style="color:#ea580c;"></i>Détails de la commande</div>
+                    <div class="card-subtitle">Prix FOB et devise de la commande</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <label>Date d'achat</label>
+                        <div class="value">{{ purchase.purchase_date|date:"j M Y" }}</div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Fournisseur</label>
+                        <div class="value">
+                            <a href="{% url 'suppliers:detail' purchase.supplier.pk %}" style="color:var(--accent);text-decoration:none;">{{ purchase.supplier.name }}</a>
+                        </div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Nombre de véhicules</label>
+                        <div class="value">
+                            <span style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;">{{ purchase.vehicle_count }}</span>
+                            <span style="font-size:12px;color:var(--text-muted);margin-left:4px;">véhicule{{ purchase.vehicle_count|pluralize }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Taux de change</label>
+                        <div class="value">1 {{ purchase.currency.code }} = {{ purchase.exchange_rate_to_da|floatformat:4 }} DA</div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Total FOB (DA)</label>
+                        <div class="value lg" style="color:var(--accent);">{{ purchase.total_fob_da|floatformat:0 }} <small style="font-size:13px;font-weight:400;color:var(--text-muted);">DA</small></div>
+                    </div>
+                    {% if purchase.notes %}
+                    <div class="detail-field" style="grid-column:1/-1;">
+                        <label>Notes</label>
+                        <div class="value" style="font-size:13px;color:var(--text-secondary);line-height:1.6;">{{ purchase.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Fret & Logistique -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div>
+                    <div class="card-title"><i class="bi bi-ship me-2" style="color:#0284c7;"></i>Fret &amp; Logistique</div>
+                    <div class="card-subtitle">Coûts de transport et assurance</div>
+                </div>
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                {% if purchase.freight_cost %}
+                <a href="{% url 'purchases:edit_freight' purchase.pk %}" class="action-btn action-btn-ghost" style="font-size:12px;padding:6px 12px;min-height:36px;">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                {% else %}
+                <a href="{% url 'purchases:add_freight' purchase.pk %}" class="action-btn action-btn-primary" style="font-size:12px;padding:6px 12px;min-height:36px;">
+                    <i class="bi bi-plus-lg"></i> Ajouter
+                </a>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+            </div>
+            {% if freight_cost %}
+            <div class="card-body">
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <label>Mode de transport</label>
+                        <div class="value">
+                            {% if freight_cost.freight_method == 'sea' %}
+                            <i class="bi bi-water me-1" style="color:#0284c7;"></i> Maritime
+                            {% else %}
+                            <i class="bi bi-airplane me-1" style="color:#7c3aed;"></i> Aérien
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Coût de fret</label>
+                        <div class="value">
+                            <span style="font-family:'Syne',sans-serif;font-weight:700;">{{ freight_cost.freight_cost|floatformat:2 }}</span>
+                            <span style="font-size:12px;color:var(--text-muted);margin-left:3px;">{{ freight_cost.freight_currency.code }}</span>
+                        </div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Assurance (DA)</label>
+                        <div class="value">{{ freight_cost.insurance_cost_da|floatformat:0 }} <small style="color:var(--text-muted);">DA</small></div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Autres frais (DA)</label>
+                        <div class="value">{{ freight_cost.other_logistics_costs_da|floatformat:0 }} <small style="color:var(--text-muted);">DA</small></div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Coût total de fret (DA)</label>
+                        <div class="value" style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:#0284c7;">
+                            {{ landed_cost_components.freight_cost|floatformat:0 }} <small style="font-size:12px;font-weight:400;color:var(--text-muted);">DA</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:32px 20px;color:var(--text-muted);">
+                <i class="bi bi-ship" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                <div style="font-size:13px;">Aucun coût de fret enregistré.</div>
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                <a href="{% url 'purchases:add_freight' purchase.pk %}" class="action-btn action-btn-primary" style="margin-top:14px;font-size:12.5px;padding:8px 16px;">
+                    <i class="bi bi-plus-lg"></i> Ajouter les coûts de fret
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Déclaration en douane -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div>
+                    <div class="card-title"><i class="bi bi-file-earmark-text me-2" style="color:#d97706;"></i>Déclaration en douane</div>
+                    <div class="card-subtitle">Droits de douane et TVA à l'import</div>
+                </div>
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                {% if customs %}
+                <a href="{% url 'purchases:edit_customs' purchase.pk %}" class="action-btn action-btn-ghost" style="font-size:12px;padding:6px 12px;min-height:36px;">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                {% elif freight_cost %}
+                <a href="{% url 'purchases:add_customs' purchase.pk %}" class="action-btn action-btn-primary" style="font-size:12px;padding:6px 12px;min-height:36px;">
+                    <i class="bi bi-plus-lg"></i> Déclarer
+                </a>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+            </div>
+            {% if customs %}
+            <div class="card-body">
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <label>N° de déclaration</label>
+                        <div class="value" style="font-family:'Syne',sans-serif;font-weight:700;">{{ customs.declaration_number }}</div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Date de déclaration</label>
+                        <div class="value">{{ customs.declaration_date|date:"j M Y" }}</div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Valeur CIF (DA)</label>
+                        <div class="value">{{ customs.cif_value_da|floatformat:0 }} <small style="color:var(--text-muted);">DA</small></div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Droits de douane</label>
+                        <div class="value">{{ customs.import_duty_da|floatformat:0 }} <small style="color:var(--text-muted);">DA</small></div>
+                    </div>
+                    <div class="detail-field">
+                        <label>TVA import</label>
+                        <div class="value">{{ customs.tva_amount_da|floatformat:0 }} <small style="color:var(--text-muted);">DA</small></div>
+                    </div>
+                    <div class="detail-field">
+                        <label>Statut</label>
+                        <div class="value">
+                            {% if customs.is_cleared %}
+                            <span class="pill pill-success"><i class="bi bi-check-circle"></i> Dédouané</span>
+                            {% if customs.clearance_date %}
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">{{ customs.clearance_date|date:"j M Y" }}</div>
+                            {% endif %}
+                            {% else %}
+                            <span class="pill pill-warning"><i class="bi bi-hourglass-split"></i> En attente de dédouanement</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if not customs.is_cleared %}
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_manager %}
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+                    <button id="clearBtn" onclick="markCleared({{ customs.pk }})" class="action-btn action-btn-primary">
+                        <i class="bi bi-check-lg"></i> Marquer comme dédouané
+                    </button>
+                </div>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:32px 20px;color:var(--text-muted);">
+                <i class="bi bi-file-earmark-text" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                <div style="font-size:13px;">
+                    {% if not freight_cost %}
+                    Enregistrez d'abord les coûts de fret avant de déclarer en douane.
+                    {% else %}
+                    Aucune déclaration en douane enregistrée.
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Véhicules liés -->
+        {% if purchase.line_items.exists %}
+        <div class="card fade-in">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-car-front me-2" style="color:#7c3aed;"></i>Véhicules liés</div>
+            </div>
+            <div>
+                {% for item in purchase.line_items.all %}{% if item.vehicle %}{% with v=item.vehicle %}
+                <div class="vehicle-row">
+                    <div style="width:38px;height:38px;border-radius:var(--radius-sm);background:rgba(124,58,237,.10);color:#7c3aed;display:grid;place-items:center;font-size:17px;flex-shrink:0;">
+                        <i class="bi bi-car-front"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:500;color:var(--text-primary);font-size:13.5px;">{{ v.make }} {{ v.model }} {{ v.year }}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">
+                            {% if v.vin_chassis %}NIV : {{ v.vin_chassis }}{% else %}Aucun NIV{% endif %}
+                        </div>
+                    </div>
+                    <span class="pill {% if v.status == 'available' %}pill-success{% elif v.status == 'sold' %}pill-neutral{% elif v.status == 'reserved' %}pill-info{% else %}pill-warning{% endif %}">
+                        {{ v.get_status_display }}
+                    </span>
+                    <a href="{% url 'inventory:detail' v.pk %}" style="color:var(--text-muted);font-size:15px;min-height:44px;display:flex;align-items:center;padding:0 4px;"><i class="bi bi-chevron-right"></i></a>
+                </div>
+                {% endwith %}{% endif %}{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- /col-xl-8 -->
+
+    <!-- DROITE : col-xl-4 -->
+    <div class="col-xl-4">
+
+        <!-- Coût de revient -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div>
+                    <div class="card-title"><i class="bi bi-calculator me-2" style="color:var(--accent);"></i>Coût de revient</div>
+                    <div class="card-subtitle">Décomposition du coût total d'acquisition</div>
+                </div>
+            </div>
+            <div class="cost-breakdown">
+                <div class="cost-row">
+                    <div class="cost-label">
+                        <div class="cost-icon" style="background:rgba(234,88,12,.12);color:#ea580c;"><i class="bi bi-truck"></i></div>
+                        <div>
+                            <div>Achat (FOB)</div>
+                            <div style="font-size:11px;color:var(--text-muted);">{{ purchase.vehicle_count }} véhicule{{ purchase.vehicle_count|pluralize }}</div>
+                        </div>
+                    </div>
+                    <div class="cost-value">{{ landed_cost_components.total_fob|floatformat:0 }}<small>DA</small></div>
+                </div>
+                <div class="cost-row">
+                    <div class="cost-label">
+                        <div class="cost-icon" style="background:rgba(2,132,199,.10);color:#0284c7;"><i class="bi bi-ship"></i></div>
+                        <div>
+                            <div>Fret &amp; Logistique</div>
+                            {% if freight_cost %}
+                            <div style="font-size:11px;color:var(--text-muted);">{{ freight_cost.get_freight_method_display }}</div>
+                            {% else %}
+                            <div style="font-size:11px;color:var(--text-muted);">Non enregistré</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="cost-value" {% if not freight_cost %}style="color:var(--text-muted);"{% endif %}>
+                        {{ landed_cost_components.freight_cost|floatformat:0 }}<small>DA</small>
+                    </div>
+                </div>
+                <div class="cost-row">
+                    <div class="cost-label">
+                        <div class="cost-icon" style="background:rgba(217,119,6,.12);color:#d97706;"><i class="bi bi-file-earmark-text"></i></div>
+                        <div>
+                            <div>Douanes &amp; Taxes</div>
+                            {% if customs %}
+                            <div style="font-size:11px;color:var(--text-muted);">Décl. {{ customs.declaration_number }}</div>
+                            {% else %}
+                            <div style="font-size:11px;color:var(--text-muted);">Non enregistré</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="cost-value" {% if not customs %}style="color:var(--text-muted);"{% endif %}>
+                        {{ landed_cost_components.customs_cost|floatformat:0 }}<small>DA</small>
+                    </div>
+                </div>
+            </div>
+            <div class="cost-total-row">
+                <div class="cost-total-label"><i class="bi bi-piggy-bank me-2"></i>Coût de revient total</div>
+                <div class="cost-total-value">{{ total_landed_cost|floatformat:0 }} <span style="font-size:14px;font-weight:400;color:var(--accent);">DA</span></div>
+            </div>
+        </div>
+
+        <!-- Pipeline d'import -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-diagram-3 me-2" style="color:#7c3aed;"></i>Pipeline d'import</div>
+            </div>
+            <div style="padding:8px 20px 16px;">
+                <div class="pipeline-step">
+                    <div class="step-dot step-done"></div>
+                    <div class="step-label done">Achat enregistré</div>
+                    <span style="font-size:11px;color:var(--text-muted);">{{ purchase.purchase_date|date:"j M" }}</span>
+                </div>
+                <div class="pipeline-step">
+                    {% if freight_cost %}
+                    <div class="step-dot step-done"></div>
+                    <div class="step-label done">Coûts de fret ajoutés</div>
+                    <i class="bi bi-check" style="color:#16a34a;font-size:14px;"></i>
+                    {% else %}
+                    <div class="step-dot step-active"></div>
+                    <div class="step-label active">Fret en attente</div>
+                    <i class="bi bi-clock" style="color:var(--accent);font-size:13px;"></i>
+                    {% endif %}
+                </div>
+                <div class="pipeline-step">
+                    {% if customs %}
+                    <div class="step-dot step-done"></div>
+                    <div class="step-label done">Déclaration déposée</div>
+                    <i class="bi bi-check" style="color:#16a34a;font-size:14px;"></i>
+                    {% else %}
+                    <div class="step-dot step-pending"></div>
+                    <div class="step-label" style="color:var(--text-muted);">Déclaration en douane</div>
+                    {% endif %}
+                </div>
+                <div class="pipeline-step" style="border-bottom:none;">
+                    {% if customs and customs.is_cleared %}
+                    <div class="step-dot step-done"></div>
+                    <div class="step-label done">Dédouané &amp; en stock</div>
+                    {% if customs.clearance_date %}<span style="font-size:11px;color:var(--text-muted);">{{ customs.clearance_date|date:"j M" }}</span>{% endif %}
+                    {% else %}
+                    <div class="step-dot step-pending"></div>
+                    <div class="step-label" style="color:var(--text-muted);">Dédouanement</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Fournisseur -->
+        <div class="card fade-in">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-building me-2" style="color:#4f46e5;"></i>Fournisseur</div>
+            </div>
+            <div style="padding:16px 20px;">
+                <div style="font-weight:600;color:var(--text-primary);font-size:14px;margin-bottom:10px;">{{ purchase.supplier.name }}</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="font-size:12.5px;color:var(--text-secondary);">
+                        <i class="bi bi-globe me-2" style="color:var(--text-muted);"></i>{{ purchase.supplier.country }}
+                    </div>
+                    {% if purchase.supplier.contact_person %}
+                    <div style="font-size:12.5px;color:var(--text-secondary);">
+                        <i class="bi bi-person me-2" style="color:var(--text-muted);"></i>{{ purchase.supplier.contact_person }}
+                    </div>
+                    {% endif %}
+                    {% if purchase.supplier.phone %}
+                    <div style="font-size:12.5px;color:var(--text-secondary);">
+                        <i class="bi bi-telephone me-2" style="color:var(--text-muted);"></i>{{ purchase.supplier.phone }}
+                    </div>
+                    {% endif %}
+                    {% if purchase.supplier.email %}
+                    <div style="font-size:12.5px;color:var(--text-secondary);">
+                        <i class="bi bi-envelope me-2" style="color:var(--text-muted);"></i>{{ purchase.supplier.email }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+                    <a href="{% url 'suppliers:detail' purchase.supplier.pk %}" class="section-link">
+                        Voir le profil fournisseur <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Méta-données -->
+        <div class="card fade-in">
+            <div style="padding:16px 20px;">
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    {% if purchase.created_by %}
+                    <div style="display:flex;justify-content:space-between;font-size:12px;">
+                        <span style="color:var(--text-muted);">Créé par</span>
+                        <span style="color:var(--text-secondary);">{{ purchase.created_by.get_full_name|default:purchase.created_by.username }}</span>
+                    </div>
+                    {% endif %}
+                    {% if purchase.created_at %}
+                    <div style="display:flex;justify-content:space-between;font-size:12px;">
+                        <span style="color:var(--text-muted);">Créé le</span>
+                        <span style="color:var(--text-secondary);">{{ purchase.created_at|date:"j M Y" }}</span>
+                    </div>
+                    {% endif %}
+                    {% if purchase.updated_by %}
+                    <div style="display:flex;justify-content:space-between;font-size:12px;">
+                        <span style="color:var(--text-muted);">Modifié par</span>
+                        <span style="color:var(--text-secondary);">{{ purchase.updated_by.get_full_name|default:purchase.updated_by.username }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone dangereuse -->
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_manager %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:16px 18px;">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:4px;">
+                <i class="bi bi-exclamation-triangle me-1"></i> Zone dangereuse
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px;line-height:1.6;">
+                La suppression d'un achat est irréversible et retirera tous les coûts associés.
+            </p>
+            <a href="{% url 'purchases:delete' purchase.pk %}" class="action-btn action-btn-danger" style="font-size:12.5px;padding:8px 14px;min-height:38px;">
+                <i class="bi bi-trash"></i> Supprimer l'achat
+            </a>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div><!-- /col-xl-4 -->
+</div><!-- /row -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markCleared(customsId) {
+    if (!confirm('Marquer cet envoi comme dédouané ? Les véhicules liés passeront au statut Disponible.')) return;
+    const btn = document.getElementById('clearBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Traitement…'; }
+
+    fetch(`{% url 'purchases:mark_cleared' 0 %}`.replace('/0/', `/${customsId}/`), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Une erreur est survenue.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg"></i> Marquer comme dédouané'; }
+        }
+    })
+    .catch(() => {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg"></i> Marquer comme dédouané'; }
+    });
+}
+</script>
+
+<style>
+.section-link {
+    font-size: 12px;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    transition: gap .18s, opacity .18s;
+    text-decoration: none;
+}
+.section-link:hover { gap: 7px; opacity: .8; }
+</style>
+{% endblock %}

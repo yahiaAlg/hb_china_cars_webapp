@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Imprimer — {{ invoice.invoice_number }}{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}Impression de facture{% endblock %}
+{% block page_sub_text %}{{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+.print-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+/* ── Document facture ── */
+.invoice-doc {
+    max-width: 860px;
+    margin: 0 auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.invoice-doc-head {
+    padding: 32px 40px 28px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+}
+
+.brand-block-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -.03em;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.brand-block-sub {
+    font-size: 11px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .08em;
+}
+.brand-block-address {
+    font-size: 12.5px; color: var(--text-secondary);
+    margin-top: 12px; line-height: 1.6;
+}
+
+.invoice-badge { text-align: right; }
+.invoice-badge-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px; font-weight: 800;
+    color: var(--accent); letter-spacing: -.02em;
+}
+.invoice-badge-label {
+    font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--text-muted);
+    margin-bottom: 4px;
+}
+.invoice-badge-status { margin-top: 8px; display: inline-flex; }
+
+.invoice-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+}
+.party-block {
+    padding: 20px 30px;
+    border-right: 1px solid var(--border);
+}
+.party-block:last-child { border-right: none; }
+.party-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent); font-weight: 600; margin-bottom: 8px;
+}
+.party-name {
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 4px;
+}
+.party-detail { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Tableau de lignes */
+.invoice-items { padding: 28px 40px; }
+.items-table { width: 100%; border-collapse: collapse; }
+.items-table thead th {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--text-muted);
+    padding: 0 0 12px; border-bottom: 1px solid var(--border);
+    background: transparent;
+}
+.items-table thead th:last-child { text-align: right; }
+.items-table tbody td {
+    padding: 16px 0;
+    font-size: 13px; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+.items-table tbody tr:last-child td { border-bottom: none; }
+.item-name { font-weight: 500; color: var(--text-primary); font-size: 14px; margin-bottom: 3px; }
+.item-detail { font-size: 11.5px; color: var(--text-muted); }
+.item-amount { text-align: right; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 14px; }
+
+/* Totaux */
+.invoice-totals {
+    padding: 0 40px 28px;
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+    align-items: start;
+}
+.totals-notes {
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.7;
+    padding: 14px 16px;
+    background: var(--bg-raised);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+.totals-block {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+.total-row {
+    display: flex; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.total-row:last-child { border-bottom: none; }
+.total-row .tl { color: var(--text-muted); }
+.total-row .tr { color: var(--text-primary); font-weight: 500; }
+.total-final {
+    display: flex; justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--accent-dim);
+    border-top: 1px solid rgba(217,119,6,.20);
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+    color: var(--text-primary);
+}
+.total-final .tr { color: var(--accent); }
+
+.invoice-footer {
+    padding: 18px 40px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px; color: var(--text-muted);
+    flex-wrap: wrap; gap: 8px;
+}
+
+/* Impression */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 8mm 10mm;
+    }
+
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+
+    body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
+    .main-content { margin-left: 0 !important; }
+    .topbar, .sidebar, .sidebar-backdrop, .print-actions { display: none !important; }
+    .page-body { padding: 0 !important; margin: 0 !important; }
+
+    .invoice-doc {
+        background: #fff !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Header */
+    .invoice-doc-head {
+        padding: 12px 18px 10px !important;
+        gap: 10px !important;
+    }
+    .brand-block-name { font-size: 15px !important; }
+    .brand-block-sub  { font-size: 9px !important; }
+    .brand-block-address { font-size: 10px !important; margin-top: 6px !important; line-height: 1.4 !important; }
+    .invoice-badge-number { font-size: 18px !important; }
+    .invoice-badge-label  { font-size: 8.5px !important; }
+    .invoice-badge-status { margin-top: 4px !important; }
+    .pill { font-size: 9px !important; padding: 2px 7px !important; }
+
+    /* Parties */
+    .invoice-parties { border-bottom: 1px solid #e5e7eb !important; }
+    .party-block { padding: 10px 14px !important; }
+    .party-eyebrow { font-size: 8px !important; margin-bottom: 4px !important; }
+    .party-name   { font-size: 11px !important; margin-bottom: 2px !important; }
+    .party-detail { font-size: 10px !important; line-height: 1.4 !important; }
+
+    /* Items table */
+    .invoice-items { padding: 12px 18px !important; }
+    .items-table thead th {
+        font-size: 8.5px !important;
+        padding: 0 0 8px !important;
+    }
+    .items-table tbody td { padding: 10px 0 !important; font-size: 10.5px !important; }
+    .item-name   { font-size: 11px !important; margin-bottom: 2px !important; }
+    .item-detail { font-size: 9.5px !important; }
+    .item-amount { font-size: 11px !important; }
+
+    /* Totals */
+    .invoice-totals {
+        padding: 0 18px 14px !important;
+        gap: 14px !important;
+    }
+    .totals-notes { font-size: 10px !important; padding: 10px 12px !important; line-height: 1.5 !important; }
+    .total-row { padding: 6px 12px !important; font-size: 10.5px !important; }
+    .total-final { padding: 9px 12px !important; font-size: 12px !important; }
+
+    /* Footer */
+    .invoice-footer { padding: 10px 18px !important; font-size: 9.5px !important; }
+}
+
+@media (max-width: 768px) {
+    .invoice-doc-head { grid-template-columns: 1fr; }
+    .invoice-badge { text-align: left; }
+    .invoice-parties { grid-template-columns: 1fr; }
+    .party-block { border-right: none; border-bottom: 1px solid var(--border); }
+    .party-block:last-child { border-bottom: none; }
+    .invoice-items, .invoice-totals { padding: 20px; }
+    .invoice-totals { grid-template-columns: 1fr; }
+    .invoice-doc-head { padding: 20px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<div class="print-actions">
+    <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn-ghost" style="min-height:44px;">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+    <button onclick="window.print()" class="btn-primary" style="min-height:44px;">
+        <i class="bi bi-printer"></i> Imprimer
+    </button>
+</div>
+
+<div class="invoice-doc" id="invoiceDoc">
+
+    <!-- En-tête : Marque + Numéro -->
+    <div class="invoice-doc-head">
+        <div>
+            <!-- After (dynamic) -->
+            <div class="brand-block-name">{{ config.company_name }}</div>
+            <div class="brand-block-sub">Bureau de Commerce Automobile</div>
+            <div class="brand-block-address">
+                {{ config.company_address }}<br>
+                {% if config.company_phone %}{{ config.company_phone }}<br>{% endif %}
+                {{ config.company_email }}
+            </div>
+        </div>
+        <div class="invoice-badge">
+            <div class="invoice-badge-label">Facture</div>
+            <div class="invoice-badge-number">{{ invoice.invoice_number }}</div>
+            <div class="invoice-badge-status">
+                {% if invoice.status == 'paid' %}
+                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payée</span>
+                {% elif invoice.is_overdue %}
+                <span class="pill pill-danger"><i class="bi bi-exclamation-circle"></i> En retard</span>
+                {% else %}
+                <span class="pill pill-warning">{{ invoice.get_status_display }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Parties : Destinataire / Vente / Dates -->
+    <div class="invoice-parties">
+        <div class="party-block">
+            <div class="party-eyebrow">Facturé à</div>
+            <div class="party-name">{{ invoice.customer.name }}</div>
+            <div class="party-detail">
+                {% if invoice.customer.customer_type == 'company' %}
+                    Société<br>
+                    {% if invoice.customer.nif %}NIF : {{ invoice.customer.nif }}<br>{% endif %}
+                {% endif %}
+                {% if invoice.customer.phone %}{{ invoice.customer.phone }}<br>{% endif %}
+                {% if invoice.customer.wilaya %}{{ invoice.customer.get_wilaya_display }}, Algérie{% endif %}
+            </div>
+        </div>
+        <div class="party-block">
+            <div class="party-eyebrow">Référence vente</div>
+            <div class="party-name">{{ invoice.sale.sale_number }}</div>
+            <div class="party-detail">
+                {% for item in invoice.sale.line_items.all %}
+                {{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}{% if item.vehicle.vin_chassis %} ({{ item.vehicle.vin_chassis }}){% endif %}<br>
+                {% endfor %}
+                Trader : {{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}
+            </div>
+        </div>
+        <div class="party-block">
+            <div class="party-eyebrow">Dates</div>
+            <div class="party-detail">
+                <strong style="color:var(--text-secondary);">Date d'émission</strong><br>
+                {{ invoice.invoice_date|date:"j M Y" }}<br><br>
+                <strong style="color:var(--text-secondary);">Date d'échéance</strong><br>
+                <span style="{% if invoice.is_overdue %}color:#dc2626;{% endif %}">
+                    {{ invoice.due_date|date:"j M Y" }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lignes de la facture -->
+    <div class="invoice-items">
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width:55%;">Description</th>
+                    <th style="text-align:center;">Qté</th>
+                    <th style="text-align:right;">Prix unitaire HT</th>
+                    <th style="text-align:center;">TVA</th>
+                    <th style="text-align:right;">Total TTC</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.sale.line_items.all %}
+                <tr>
+                    <td>
+                        <div class="item-name">{{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}</div>
+                        <div class="item-detail">
+                            {% if item.vehicle.color %}Couleur : {{ item.vehicle.color }} · {% endif %}
+                            Paiement : {{ invoice.sale.get_payment_method_display }}
+                            {% if item.vehicle.vin_chassis %} · NIV : {{ item.vehicle.vin_chassis }}{% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align:center;color:var(--text-secondary);">1</td>
+                    <td style="text-align:right;color:var(--text-secondary);">{% widthratio item.sale_price invoice.tva_rate 100 %} DA</td>
+                    <td style="text-align:center;color:var(--text-secondary);">{{ invoice.tva_rate|floatformat:2 }}%</td>
+                    <td class="item-amount">{{ item.sale_price|floatformat:0 }} DA</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Totaux + Notes -->
+    <div class="invoice-totals">
+        <div>
+            {% if invoice.notes %}
+            <div class="totals-notes">
+                <strong style="color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:.07em;">Notes</strong><br>
+                {{ invoice.notes }}
+            </div>
+            {% else %}
+            <div class="totals-notes" style="color:var(--text-muted);font-style:italic;">
+                Aucune note complémentaire.
+            </div>
+            {% endif %}
+        </div>
+        <div>
+            <div class="totals-block">
+                <div class="total-row">
+                    <span class="tl">Sous-total HT</span>
+                    <span class="tr">{{ invoice.subtotal_ht|floatformat:2 }} DA</span>
+                </div>
+                <div class="total-row">
+                    <span class="tl">TVA ({{ invoice.tva_rate|floatformat:2 }}%)</span>
+                    <span class="tr">{{ invoice.tva_amount|floatformat:2 }} DA</span>
+                </div>
+                <div class="total-row">
+                    <span class="tl">Montant payé</span>
+                    <span class="tr" style="color:#16a34a;">{{ invoice.amount_paid|floatformat:0 }} DA</span>
+                </div>
+                <div class="total-final">
+                    <span>Solde dû</span>
+                    <span class="tr">{{ invoice.balance_due|floatformat:0 }} DA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="invoice-footer">
+        <span>Générée le {{ invoice.created_at|date:"j M Y" }} · HB China Cars</span>
+        <span>{{ invoice.invoice_number }}</span>
+    </div>
+
+</div>
+{% endblock %}

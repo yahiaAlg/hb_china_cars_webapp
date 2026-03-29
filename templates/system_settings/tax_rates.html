@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Tax Rates{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block page_title %}Tax Rates{% endblock %}
+{% block page_sub_text %}{{ total_count }} historical rate record{{ total_count|pluralize }}{% endblock %}
+
+{% block extra_css %}
+.page-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
+.section-eyebrow { font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:12px;margin-top:4px; }
+
+.current-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px; }
+
+.rate-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;position:relative;overflow:hidden; }
+.rate-card-top { position:absolute;top:0;left:0;right:0;height:2px; }
+.rate-card-label { font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px; }
+.rate-card-value { font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.02em; }
+.rate-card-date { font-size:11px;color:var(--text-muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border); }
+
+.table-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden; }
+.table-card-head { padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+
+.pagination-bar { display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-muted);flex-wrap:wrap;gap:8px; }
+.page-btns { display:flex;gap:4px; }
+.page-btn { width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text-secondary);font-size:12.5px;text-decoration:none;transition:all var(--transition); }
+.page-btn:hover { background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary); }
+.page-btn.active { background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600; }
+.page-btn.disabled { opacity:.35;pointer-events:none; }
+
+.pill { display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500; }
+.pill-amber  { background:rgba(240,165,0,.15); color:#fbbf24; }
+.pill-blue   { background:rgba(56,189,248,.12);color:#7dd3fc; }
+.pill-violet { background:rgba(167,139,250,.12);color:#c4b5fd; }
+
+.fade-in { animation:fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-in">
+    <div>
+        <div class="section-eyebrow">Settings / Tax Rates</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin-top:2px;">Tax Rates</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'system_settings:system_status' %}" style="display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:9px 14px;text-decoration:none;transition:all var(--transition);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <i class="bi bi-arrow-left"></i> Settings
+        </a>
+        <a href="{% url 'system_settings:tax_rate_create' %}" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:9px 18px;text-decoration:none;transition:opacity .18s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+            <i class="bi bi-plus-lg"></i> Add Rate
+        </a>
+    </div>
+</div>
+
+<!-- Current rates -->
+{% if current_rates %}
+<div class="section-eyebrow fade-in">Current Effective Rates</div>
+<div class="current-grid fade-in">
+    {% for rate in current_rates %}
+    <div class="rate-card">
+        {% if rate.tax_type == 'tva' %}
+        <div class="rate-card-top" style="background:var(--accent);"></div>
+        {% elif rate.tax_type == 'tariff' %}
+        <div class="rate-card-top" style="background:#7dd3fc;"></div>
+        {% else %}
+        <div class="rate-card-top" style="background:#c4b5fd;"></div>
+        {% endif %}
+        <div class="rate-card-label">{{ rate.get_tax_type_display }}</div>
+        <div class="rate-card-value"
+             style="color:{% if rate.tax_type == 'tva' %}var(--accent){% elif rate.tax_type == 'tariff' %}#7dd3fc{% else %}#c4b5fd{% endif %};">
+            {{ rate.rate|floatformat:1 }}%
+        </div>
+        {% if rate.description %}
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;">{{ rate.description|truncatechars:40 }}</div>
+        {% endif %}
+        <div class="rate-card-date">
+            <i class="bi bi-calendar3 me-1"></i>Effective {{ rate.effective_date|date:"M j, Y" }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- History table -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Rate History</div>
+        <span style="font-size:11.5px;color:var(--text-muted);">{{ total_count }} record{{ total_count|pluralize }}</span>
+    </div>
+    {% if page_obj %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Type</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:right;">Rate</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Effective Date</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Description</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in page_obj %}
+                <tr style="transition:background .15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:13px 14px;border-bottom:1px solid var(--border);">
+                        {% if rate.tax_type == 'tva' %}
+                        <span class="pill pill-amber"><i class="bi bi-percent"></i> TVA</span>
+                        {% elif rate.tax_type == 'tariff' %}
+                        <span class="pill pill-blue"><i class="bi bi-file-earmark-text"></i> Tarif Douanier</span>
+                        {% else %}
+                        <span class="pill pill-violet"><i class="bi bi-tag"></i> {{ rate.get_tax_type_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:13px 14px;border-bottom:1px solid var(--border);text-align:right;">
+                        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--accent);">{{ rate.rate|floatformat:2 }}%</span>
+                    </td>
+                    <td style="padding:13px 14px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);">{{ rate.effective_date|date:"M j, Y" }}</td>
+                    <td style="padding:13px 14px;font-size:13px;color:var(--text-muted);border-bottom:1px solid var(--border);">{{ rate.description|default:"—"|truncatechars:50 }}</td>
+                    <td style="padding:13px 14px;border-bottom:1px solid var(--border);text-align:right;">
+                        <a href="{% url 'system_settings:tax_rate_edit' rate.pk %}" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:all var(--transition);" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ total_count }} total</span>
+        <div class="page-btns">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>{% else %}<span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>{% endif %}
+            {% for num in page_obj.paginator.page_range %}{% if page_obj.number == num %}<span class="page-btn active">{{ num }}</span>{% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}<a href="?page={{ num }}" class="page-btn">{{ num }}</a>{% endif %}{% endfor %}
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>{% else %}<span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>{% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+        <i class="bi bi-percent" style="font-size:32px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">No tax rates found</div>
+        <a href="{% url 'system_settings:tax_rate_create' %}" style="margin-top:4px;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;border-radius:var(--radius-md);padding:10px 18px;text-decoration:none;">
+            <i class="bi bi-plus-lg"></i> Add First Rate
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

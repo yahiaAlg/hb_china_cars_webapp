@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}Inventaire{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block page_title %}Inventaire{% endblock %}
+{% block page_sub_text %}{{ total_count }} véhicule{{ total_count|pluralize }} dans le système{% endblock %}
+
+{% block extra_css %}
+/* ── Boutons ── */
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    white-space: nowrap; min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    white-space: nowrap; min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Grille pipeline ── */
+.pipeline-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+@media (max-width: 1200px) { .pipeline-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px)  { .pipeline-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.pipeline-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+}
+.pipeline-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+.pipeline-card.active-filter {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.pipeline-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block; margin-bottom: 8px;
+}
+
+.pipeline-count {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--text-primary); line-height: 1;
+}
+
+.pipeline-label {
+    font-size: 10px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .07em; margin-top: 3px;
+}
+
+/* ── Barre de filtres ── */
+.filters-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-input-wrap { position: relative; flex: 1; min-width: 180px; }
+.filter-input-wrap i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 14px; pointer-events: none;
+}
+
+.filter-input, .filter-select, .filter-number {
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 9px 13px; transition: border-color var(--transition), box-shadow var(--transition);
+    min-height: 44px;
+}
+.filter-input { width: 100%; padding-left: 36px; }
+.filter-select { cursor: pointer; min-width: 140px; }
+.filter-number { width: 100px; }
+
+.filter-input:focus, .filter-select:focus, .filter-number:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.filter-input::placeholder, .filter-number::placeholder { color: var(--text-muted); }
+
+/* ── Carte tableau ── */
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.table-card-head {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    background: var(--bg-surface);
+}
+.table-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.table-card-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.table-scroll     { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Badges de statut (thème clair) ── */
+.status-in_transit { background: rgba(2,132,199,.10);  color: #0284c7; }
+.status-at_customs { background: rgba(234,88,12,.10);  color: #ea580c; }
+.status-available  { background: rgba(22,163,74,.10);  color: #16a34a; }
+.status-reserved   { background: rgba(217,119,6,.12);  color: #d97706; }
+.status-sold       { background: rgba(124,58,237,.10); color: #7c3aed; }
+
+/* ── Actions de ligne ── */
+.row-actions {
+    display: flex; align-items: center; gap: 4px;
+    opacity: 0; transition: opacity var(--transition);
+}
+tr:hover .row-actions { opacity: 1; }
+
+.row-btn {
+    width: 32px; height: 32px;
+    border: 1px solid var(--border); background: var(--bg-raised);
+    border-radius: var(--radius-sm); display: grid; place-items: center;
+    font-size: 12px; color: var(--text-muted); cursor: pointer;
+    text-decoration: none; transition: all var(--transition);
+}
+.row-btn:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-hover); }
+.row-btn.accent:hover { border-color: rgba(217,119,6,.4); color: var(--accent); background: var(--accent-dim); }
+
+/* ── Vignette véhicule ── */
+.vehicle-thumb {
+    width: 48px; height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    font-size: 16px; color: var(--text-muted);
+    overflow: hidden;
+}
+.vehicle-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Pagination ── */
+.pagination-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+}
+.pagination-info { font-size: 12px; color: var(--text-muted); }
+.pagination-links { display: flex; gap: 4px; }
+.page-btn {
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg-surface); color: var(--text-secondary);
+    font-size: 12px; cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+}
+.page-btn:hover    { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.page-btn.active   { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.page-btn.disabled { opacity: .35; pointer-events: none; }
+
+/* ── État vide ── */
+.empty-state { text-align: center; padding: 56px 20px; color: var(--text-muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 14px; color: var(--border-strong); }
+.empty-state-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .filters-bar { padding: 12px 14px; gap: 8px; }
+    .filter-input-wrap { min-width: 100%; }
+    .table-card-head { padding: 12px 16px; }
+    .pagination-bar { padding: 12px 16px; }
+    .row-actions { opacity: 1; } /* Toujours visible sur tactile */
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de page -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:3px;">Gestion des véhicules</div>
+        <div style="font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,22px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">Stock Inventaire</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{% url 'inventory:alerts' %}" class="btn-ghost">
+            <i class="bi bi-bell"></i> Alertes
+        </a>
+        {% if request.user.userprofile.is_manager or request.user.userprofile.is_finance %}
+        <a href="{% url 'inventory:create' %}" class="btn-primary">
+            <i class="bi bi-plus-lg"></i> Nouveau véhicule
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Statistiques pipeline -->
+<div class="pipeline-grid fade-in">
+    <a href="?status=" class="pipeline-card {% if not request.GET.status %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:var(--text-muted);"></div>
+        <div class="pipeline-count">{{ stats.total }}</div>
+        <div class="pipeline-label">Tous</div>
+    </a>
+    <a href="?status=in_transit" class="pipeline-card {% if request.GET.status == 'in_transit' %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:#0284c7;"></div>
+        <div class="pipeline-count">{{ stats.in_transit }}</div>
+        <div class="pipeline-label">En transit</div>
+    </a>
+    <a href="?status=at_customs" class="pipeline-card {% if request.GET.status == 'at_customs' %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:#ea580c;"></div>
+        <div class="pipeline-count">{{ stats.at_customs }}</div>
+        <div class="pipeline-label">En douane</div>
+    </a>
+    <a href="?status=available" class="pipeline-card {% if request.GET.status == 'available' %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:#16a34a;box-shadow:0 0 6px rgba(22,163,74,.4);"></div>
+        <div class="pipeline-count">{{ stats.available }}</div>
+        <div class="pipeline-label">Disponibles</div>
+    </a>
+    <a href="?status=reserved" class="pipeline-card {% if request.GET.status == 'reserved' %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:#d97706;"></div>
+        <div class="pipeline-count">{{ stats.reserved }}</div>
+        <div class="pipeline-label">Réservés</div>
+    </a>
+    <a href="?status=sold" class="pipeline-card {% if request.GET.status == 'sold' %}active-filter{% endif %}">
+        <div class="pipeline-dot" style="background:#7c3aed;"></div>
+        <div class="pipeline-count">{{ stats.sold }}</div>
+        <div class="pipeline-label">Vendus</div>
+    </a>
+</div>
+
+<!-- Filtres -->
+<form method="get" id="filterForm">
+    {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+    <div class="filters-bar fade-in">
+        <div class="filter-input-wrap">
+            <i class="bi bi-search"></i>
+            {{ search_form.search }}
+        </div>
+        {{ search_form.status }}
+        {{ search_form.make }}
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            {{ search_form.year_from }}
+            <span style="color:var(--text-muted);font-size:12px;">–</span>
+            {{ search_form.year_to }}
+        </div>
+        {% if request.user.userprofile.is_manager or request.user.userprofile.is_finance %}
+        {{ search_form.trader }}
+        {% endif %}
+        <button type="submit" class="btn-primary" style="padding:9px 16px;">
+            <i class="bi bi-funnel"></i> Filtrer
+        </button>
+        {% if request.GET %}
+        <a href="{% url 'inventory:list' %}" class="btn-ghost"><i class="bi bi-x-lg"></i> Effacer</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tableau -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Stock de véhicules</div>
+            <div class="table-card-sub">{{ total_count }} enregistrement{{ total_count|pluralize }} — Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</div>
+        </div>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>NIV / Châssis</th>
+                    <th>Véhicule</th>
+                    <th>Année</th>
+                    <th>Couleur</th>
+                    <th>Fournisseur</th>
+                    <th>Statut</th>
+                    <th>Réservé par</th>
+                    <th style="text-align:right;">Coût total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in page_obj %}
+                <tr onclick="location.href='{% url 'inventory:detail' vehicle.pk %}'" style="cursor:pointer;">
+                    <td style="width:60px;">
+                        <div class="vehicle-thumb">
+                            {% with vehicle.photos.all as photos %}
+                            {% for photo in photos %}
+                            {% if photo.is_primary %}
+                            <img src="{{ photo.photo.url }}" alt="">
+                            {% endif %}
+                            {% endfor %}
+                            {% if not photos %}
+                            <i class="bi bi-car-front-fill"></i>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-family:'DM Sans',monospace;font-size:12px;color:var(--text-primary);letter-spacing:.04em;">
+                            {{ vehicle.vin_chassis }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-weight:500;color:var(--text-primary);">{{ vehicle.make }} {{ vehicle.model }}</div>
+                        {% if vehicle.engine_type %}
+                        <div style="font-size:11px;color:var(--text-muted);">{{ vehicle.engine_type }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:500;color:var(--text-primary);">{{ vehicle.year }}</td>
+                    <td>{{ vehicle.color }}</td>
+                    <td>{{ vehicle.vehicle_purchase.supplier.name|default:"—"|truncatechars:20 }}</td>
+                    <td>
+                        <span class="pill status-{{ vehicle.status }}">
+                            {% if vehicle.status == 'in_transit' %}<i class="bi bi-arrow-right-circle"></i>
+                            {% elif vehicle.status == 'at_customs' %}<i class="bi bi-truck"></i>
+                            {% elif vehicle.status == 'available' %}<i class="bi bi-check-circle"></i>
+                            {% elif vehicle.status == 'reserved' %}<i class="bi bi-clock"></i>
+                            {% elif vehicle.status == 'sold' %}<i class="bi bi-bag-check"></i>
+                            {% endif %}
+                            {{ vehicle.get_status_display }}
+                        </span>
+                        {% if vehicle.reservation_expired %}
+                        <span class="pill pill-danger" style="margin-left:4px;font-size:10px;">Expiré</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if vehicle.reserved_by %}
+                        <span style="font-size:12.5px;color:var(--text-secondary);">
+                            {{ vehicle.reserved_by.get_full_name|default:vehicle.reserved_by.username }}
+                        </span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;font-weight:500;color:var(--text-primary);">
+                        {{ vehicle.landed_cost|floatformat:0 }} <span style="font-size:11px;color:var(--text-muted);">DA</span>
+                    </td>
+                    <td onclick="event.stopPropagation();">
+                        <div class="row-actions">
+                            <a href="{% url 'inventory:detail' vehicle.pk %}" class="row-btn" title="Voir"><i class="bi bi-eye"></i></a>
+                            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                            {% if vehicle.status != 'sold' %}
+                            <a href="{% url 'inventory:edit' vehicle.pk %}" class="row-btn" title="Modifier"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                            {% endif %}
+                            {% if vehicle.status == 'available' and request.user.userprofile.is_trader or vehicle.status == 'available' and request.user.userprofile.is_manager %}
+                            <button class="row-btn accent reserve-btn" title="Réserver"
+                                data-pk="{{ vehicle.pk }}" onclick="openReserveModal({{ vehicle.pk }}, '{{ vehicle.make }} {{ vehicle.model }}')">
+                                <i class="bi bi-bookmark-plus"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+        <div class="pagination-info">Affichage {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ total_count }}</div>
+        <div class="pagination-links">
+            {% if page_obj.has_previous %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}" class="page-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-boxes"></i>
+        <div class="empty-state-title">Aucun véhicule trouvé</div>
+        <div style="font-size:13px;margin-bottom:18px;">
+            {% if request.GET %}Essayez d'ajuster ou d'effacer les filtres.{% else %}Aucun véhicule n'a encore été ajouté.{% endif %}
+        </div>
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <a href="{% url 'inventory:create' %}" class="btn-primary"><i class="bi bi-plus-lg"></i> Ajouter un véhicule</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modale de réservation -->
+<div id="reserveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;place-items:center;" onclick="if(event.target===this)closeReserveModal()">
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;width:100%;max-width:420px;margin:20px;box-shadow:var(--shadow-lg);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text-primary);">Réserver le véhicule</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="reserveModalSub"></div>
+            </div>
+            <button onclick="closeReserveModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:32px;height:32px;display:grid;place-items:center;"><i class="bi bi-x"></i></button>
+        </div>
+        <form id="reserveForm">
+            {% csrf_token %}
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Durée de réservation</label>
+                <select name="duration_days" style="width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13.5px;padding:10px 13px;cursor:pointer;min-height:44px;">
+                    <option value="3">3 jours</option>
+                    <option value="7" selected>7 jours</option>
+                    <option value="14">14 jours</option>
+                </select>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Notes (facultatif)</label>
+                <textarea name="notes" rows="3" style="width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13.5px;padding:10px 13px;resize:none;" placeholder="Notes de réservation…"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn-primary" style="flex:1;justify-content:center;">
+                    <i class="bi bi-bookmark-check"></i> Confirmer la réservation
+                </button>
+                <button type="button" onclick="closeReserveModal()" class="btn-ghost">Annuler</button>
+            </div>
+            <div id="reserveError" style="display:none;margin-top:12px;font-size:12.5px;color:var(--danger);background:rgba(220,38,38,.08);border-radius:var(--radius-sm);padding:8px 12px;"></div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentReservePk = null;
+
+    function openReserveModal(pk, name) {
+        currentReservePk = pk;
+        document.getElementById('reserveModalSub').textContent = name;
+        document.getElementById('reserveModal').style.display = 'grid';
+        document.getElementById('reserveError').style.display = 'none';
+    }
+
+    function closeReserveModal() {
+        document.getElementById('reserveModal').style.display = 'none';
+        currentReservePk = null;
+    }
+
+    document.getElementById('reserveForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentReservePk) return;
+        const formData = new FormData(this);
+
+        fetch(`/inventory/${currentReservePk}/reserve/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                closeReserveModal();
+                location.reload();
+            } else {
+                const errEl = document.getElementById('reserveError');
+                errEl.textContent = data.message;
+                errEl.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            const errEl = document.getElementById('reserveError');
+            errEl.textContent = 'La demande a échoué. Veuillez réessayer.';
+            errEl.style.display = 'block';
+        });
+    });
+
+    // Soumission automatique au changement des filtres
+    document.querySelectorAll('.filters-bar select').forEach(sel => {
+        sel.addEventListener('change', () => document.getElementById('filterForm').submit());
+    });
+</script>
+{% endblock %}

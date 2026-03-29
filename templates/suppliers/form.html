@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{% if supplier %}Modification de {{ supplier.name }}{% else %}Nouveau fournisseur{% endif %}{% endblock %}
+
+{% block extra_css %}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* ── Panel ── */
+.panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.panel-head {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+}
+.panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--text-primary);
+}
+.panel-body { padding: 20px; }
+
+/* ── Form fields ── */
+.field-group { margin-bottom: 18px; }
+.field-group:last-child { margin-bottom: 0; }
+
+.field-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+    display: block;
+}
+.field-label .required { color: var(--accent); margin-left: 2px; }
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 10px 13px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    min-height: 44px;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
+.form-select { cursor: pointer; }
+.form-textarea { min-height: 90px; resize: vertical; padding-top: 11px; }
+
+.field-error {
+    font-size: 11.5px; color: #dc2626;
+    margin-top: 5px; display: flex; align-items: center; gap: 4px;
+}
+
+.field-help {
+    font-size: 11.5px; color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+}
+
+/* ── Toggle switch for is_active ── */
+.toggle-wrap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0;
+}
+.toggle-switch {
+    position: relative; width: 42px; height: 24px; flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--border-strong);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.toggle-slider::before {
+    content: ''; position: absolute;
+    width: 18px; height: 18px;
+    left: 3px; top: 3px;
+    background: #fff; border-radius: 50%;
+    transition: transform var(--transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+.toggle-label {
+    font-size: 13.5px; color: var(--text-primary); cursor: pointer; user-select: none;
+}
+.toggle-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* ── Back link ── */
+.back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-secondary);
+    text-decoration: none; transition: color var(--transition);
+    margin-bottom: 20px;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── Action bar ── */
+.action-bar {
+    position: sticky; bottom: 0;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,.06);
+    z-index: 10;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+@media (max-width: 1024px) { .form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+    .row-2, .row-3 { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<a href="{% if supplier %}{% url 'suppliers:detail' supplier.pk %}{% else %}{% url 'suppliers:list' %}{% endif %}" class="back-link">
+    <i class="bi bi-arrow-left"></i>
+    {% if supplier %}Retour à {{ supplier.name }}{% else %}Retour aux fournisseurs{% endif %}
+</a>
+
+<form method="post" novalidate>
+{% csrf_token %}
+
+<div class="form-grid">
+
+    <!-- Left: Main form fields -->
+    <div>
+
+        <!-- Identification -->
+        <div class="panel">
+            <div class="panel-head">
+                <i class="bi bi-building" style="color:var(--accent);font-size:15px;"></i>
+                <span class="panel-title">Identification du fournisseur</span>
+            </div>
+            <div class="panel-body">
+
+                <div class="row-2">
+                    <!-- Name -->
+                    <div class="field-group" style="grid-column:1/-1;">
+                        <label class="field-label" for="{{ form.name.id_for_label }}">
+                            Nom du fournisseur <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="{{ form.name.id_for_label }}"
+                            name="{{ form.name.html_name }}"
+                            value="{{ form.name.value|default:'' }}"
+                            class="form-input {% if form.name.errors %}border-danger{% endif %}"
+                            placeholder="ex: Shanghai Auto Export Co."
+                            autocomplete="organization"
+                        >
+                        {% for error in form.name.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Country -->
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.country.id_for_label }}">
+                            Pays <span class="required">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="{{ form.country.id_for_label }}"
+                            name="{{ form.country.html_name }}"
+                            value="{{ form.country.value|default:'Chine' }}"
+                            class="form-input {% if form.country.errors %}border-danger{% endif %}"
+                            placeholder="ex: Chine"
+                        >
+                        {% for error in form.country.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Currency -->
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.currency.id_for_label }}">
+                            Devise par défaut <span class="required">*</span>
+                        </label>
+                        <select
+                            id="{{ form.currency.id_for_label }}"
+                            name="{{ form.currency.html_name }}"
+                            class="form-select {% if form.currency.errors %}border-danger{% endif %}"
+                        >
+                            {% for choice in form.currency %}
+                            {{ choice }}
+                            {% endfor %}
+                        </select>
+                        {% for error in form.currency.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="panel">
+            <div class="panel-head">
+                <i class="bi bi-person-lines-fill" style="color:var(--accent);font-size:15px;"></i>
+                <span class="panel-title">Contact</span>
+            </div>
+            <div class="panel-body">
+
+                <!-- Contact person -->
+                <div class="field-group">
+                    <label class="field-label" for="{{ form.contact_person.id_for_label }}">
+                        Personne de contact
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.contact_person.id_for_label }}"
+                        name="{{ form.contact_person.html_name }}"
+                        value="{{ form.contact_person.value|default:'' }}"
+                        class="form-input {% if form.contact_person.errors %}border-danger{% endif %}"
+                        placeholder="ex: Li Wei"
+                        autocomplete="name"
+                    >
+                    {% for error in form.contact_person.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row-2">
+                    <!-- Phone -->
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.phone.id_for_label }}">
+                            Téléphone / WhatsApp
+                        </label>
+                        <input
+                            type="text"
+                            id="{{ form.phone.id_for_label }}"
+                            name="{{ form.phone.html_name }}"
+                            value="{{ form.phone.value|default:'' }}"
+                            class="form-input {% if form.phone.errors %}border-danger{% endif %}"
+                            placeholder="+86 XXX XXX XXXX"
+                            autocomplete="tel"
+                        >
+                        {% for error in form.phone.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                        {% endfor %}
+                        <div class="field-help">Au moins téléphone ou email requis</div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.email.id_for_label }}">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            id="{{ form.email.id_for_label }}"
+                            name="{{ form.email.html_name }}"
+                            value="{{ form.email.value|default:'' }}"
+                            class="form-input {% if form.email.errors %}border-danger{% endif %}"
+                            placeholder="contact@supplier.com"
+                            autocomplete="email"
+                        >
+                        {% for error in form.email.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Address -->
+                <div class="field-group">
+                    <label class="field-label" for="{{ form.address.id_for_label }}">
+                        Adresse
+                    </label>
+                    <textarea
+                        id="{{ form.address.id_for_label }}"
+                        name="{{ form.address.html_name }}"
+                        class="form-textarea {% if form.address.errors %}border-danger{% endif %}"
+                        placeholder="Adresse complète du fournisseur…"
+                        rows="3"
+                    >{{ form.address.value|default:'' }}</textarea>
+                    {% for error in form.address.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Commercial -->
+        <div class="panel">
+            <div class="panel-head">
+                <i class="bi bi-file-text" style="color:var(--accent);font-size:15px;"></i>
+                <span class="panel-title">Conditions commerciales</span>
+            </div>
+            <div class="panel-body">
+
+                <!-- Payment terms -->
+                <div class="field-group">
+                    <label class="field-label" for="{{ form.payment_terms.id_for_label }}">
+                        Conditions de paiement
+                    </label>
+                    <input
+                        type="text"
+                        id="{{ form.payment_terms.id_for_label }}"
+                        name="{{ form.payment_terms.html_name }}"
+                        value="{{ form.payment_terms.value|default:'' }}"
+                        class="form-input {% if form.payment_terms.errors %}border-danger{% endif %}"
+                        placeholder="ex: 30% avance, 70% à la livraison"
+                    >
+                    {% for error in form.payment_terms.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Notes -->
+                <div class="field-group">
+                    <label class="field-label" for="{{ form.notes.id_for_label }}">
+                        Notes internes
+                    </label>
+                    <textarea
+                        id="{{ form.notes.id_for_label }}"
+                        name="{{ form.notes.html_name }}"
+                        class="form-textarea {% if form.notes.errors %}border-danger{% endif %}"
+                        placeholder="Informations complémentaires sur ce fournisseur…"
+                        rows="3"
+                    >{{ form.notes.value|default:'' }}</textarea>
+                    {% for error in form.notes.errors %}
+                    <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="action-bar">
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-check-lg"></i>
+                {% if supplier %}Enregistrer les modifications{% else %}Créer le fournisseur{% endif %}
+            </button>
+            <a href="{% if supplier %}{% url 'suppliers:detail' supplier.pk %}{% else %}{% url 'suppliers:list' %}{% endif %}" class="btn-ghost">
+                Annuler
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Right: Status + Help -->
+    <div>
+
+        <!-- Status -->
+        <div class="panel">
+            <div class="panel-head">
+                <i class="bi bi-toggles" style="color:var(--accent);font-size:15px;"></i>
+                <span class="panel-title">Statut</span>
+            </div>
+            <div class="panel-body">
+                <label class="toggle-wrap">
+                    <span class="toggle-switch">
+                        <input
+                            type="checkbox"
+                            id="{{ form.is_active.id_for_label }}"
+                            name="{{ form.is_active.html_name }}"
+                            {% if form.is_active.value %}checked{% endif %}
+                        >
+                        <span class="toggle-slider"></span>
+                    </span>
+                    <div>
+                        <div class="toggle-label">Fournisseur actif</div>
+                        <div class="toggle-sub">Autorise de nouveaux achats</div>
+                    </div>
+                </label>
+                {% for error in form.is_active.errors %}
+                <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Help -->
+        <div class="panel">
+            <div class="panel-head">
+                <i class="bi bi-info-circle" style="color:var(--accent);font-size:15px;"></i>
+                <span class="panel-title">Aide</span>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="display:flex;align-items:flex-start;gap:10px;">
+                        <i class="bi bi-telephone" style="color:var(--accent);margin-top:2px;flex-shrink:0;"></i>
+                        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                            Au moins un moyen de contact (téléphone ou email) est obligatoire.
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:10px;">
+                        <i class="bi bi-currency-exchange" style="color:var(--accent);margin-top:2px;flex-shrink:0;"></i>
+                        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                            La devise sélectionnée sera utilisée par défaut lors de la création d'achats.
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:flex-start;gap:10px;">
+                        <i class="bi bi-lock" style="color:#dc2626;margin-top:2px;flex-shrink:0;"></i>
+                        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+                            Un fournisseur avec des achats existants ne peut pas être désactivé.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Non-field errors -->
+        {% if form.non_field_errors %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.25);border-radius:var(--radius-md);padding:14px 16px;">
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#dc2626;margin-bottom:8px;">
+                <i class="bi bi-exclamation-triangle me-1"></i> Erreur de validation
+            </div>
+            {% for error in form.non_field_errors %}
+            <div style="font-size:13px;color:var(--text-secondary);">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+</form>
+
+{% endblock %}

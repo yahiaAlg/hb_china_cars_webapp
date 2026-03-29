@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Alertes de stock{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block page_title %}Alertes de stock{% endblock %}
+{% block page_sub_text %}{{ alert_count }} alerte{{ alert_count|pluralize }} non résolue{{ alert_count|pluralize }}{% endblock %}
+
+{% block extra_css %}
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Grille de statistiques ── */
+.alert-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+}
+
+/* ── Panneau d'alertes ── */
+.alert-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.alert-panel-head {
+    padding: 15px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-surface);
+}
+.alert-panel-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+/* ── Carte d'alerte ── */
+.alert-card {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    transition: background var(--transition);
+}
+.alert-card:last-child { border-bottom: none; }
+.alert-card:hover { background: var(--bg-hover); }
+
+.alert-type-icon {
+    width: 38px; height: 38px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 16px; flex-shrink: 0;
+}
+
+.alert-body { flex: 1; min-width: 0; }
+
+.alert-type-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 3px;
+}
+.alert-message {
+    font-size: 13.5px; color: var(--text-primary); font-weight: 500;
+    margin-bottom: 5px; line-height: 1.4;
+}
+.alert-meta {
+    font-size: 11.5px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+
+.alert-actions {
+    display: flex; gap: 6px; align-items: flex-start; flex-shrink: 0;
+}
+
+/* ── Boutons d'action (thème clair) ── */
+.resolve-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(22,163,74,.10); color: #16a34a;
+    border: 1px solid rgba(22,163,74,.25); border-radius: var(--radius-sm);
+    font-size: 12px; font-weight: 500; padding: 6px 12px; min-height: 36px;
+    cursor: pointer; transition: all var(--transition); white-space: nowrap;
+}
+.resolve-btn:hover { background: rgba(22,163,74,.20); border-color: rgba(22,163,74,.4); }
+
+.view-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 12px; padding: 6px 10px; min-height: 36px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+}
+.view-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Codage couleur par type d'alerte (thème clair) ── */
+.alert-slow_moving          { background: rgba(220,38,38,.10);  color: #dc2626; }
+.alert-reservation_expired  { background: rgba(217,119,6,.12);  color: #d97706; }
+.alert-customs_delayed      { background: rgba(234,88,12,.10);  color: #ea580c; }
+.alert-low_stock            { background: rgba(2,132,199,.10);  color: #0284c7; }
+
+/* ── État vide ── */
+.empty-state { text-align: center; padding: 64px 20px; color: var(--text-muted); }
+.empty-state i { font-size: 40px; display: block; margin-bottom: 14px; color: var(--border-strong); }
+.empty-state-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* Animation de résolution */
+.alert-card.resolving {
+    opacity: 0; transform: translateX(12px);
+    transition: opacity .3s ease, transform .3s ease;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .alert-card { padding: 14px 16px; gap: 10px; }
+    .alert-actions { flex-direction: column; }
+    .alert-panel-head { padding: 12px 16px; }
+    .alert-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+    .alert-stats { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de page -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <a href="{% url 'inventory:list' %}" class="btn-ghost" style="padding:7px 12px;min-height:40px;">
+            <i class="bi bi-arrow-left"></i> Inventaire
+        </a>
+        <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:clamp(16px,4vw,20px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">
+            Alertes de stock
+        </div>
+    </div>
+    {% if alert_count > 0 %}
+    <button class="btn-primary" id="resolveAllBtn">
+        <i class="bi bi-check-all"></i> Tout résoudre
+    </button>
+    {% endif %}
+</div>
+
+<!-- Statistiques récapitulatives -->
+{% if alerts %}
+{% regroup alerts by alert_type as alerts_by_type %}
+{% with slow_count=0 expired_count=0 customs_count=0 %}
+{% for group in alerts_by_type %}
+  {% if group.grouper == 'slow_moving' %}{% with slow_count=group.list|length %}{% endwith %}{% endif %}
+  {% if group.grouper == 'reservation_expired' %}{% with expired_count=group.list|length %}{% endwith %}{% endif %}
+  {% if group.grouper == 'customs_delayed' %}{% with customs_count=group.list|length %}{% endwith %}{% endif %}
+{% endfor %}
+{% endwith %}
+<div class="alert-stats fade-in">
+    <!-- Total -->
+    <div class="metric-card">
+        <div class="metric-icon" style="background:rgba(220,38,38,.10);color:#dc2626;"><i class="bi bi-bell"></i></div>
+        <div class="metric-label">Total des alertes</div>
+        <div class="metric-value sm">{{ alert_count }}</div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Non résolues</span>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon" style="background:rgba(220,38,38,.10);color:#dc2626;"><i class="bi bi-hourglass-split"></i></div>
+        <div class="metric-label">Rotation lente</div>
+        <div class="metric-value sm">
+            {% for group in alerts_by_type %}{% if group.grouper == 'slow_moving' %}{{ group.list|length }}{% endif %}{% endfor %}
+        </div>
+        <span class="metric-delta down"><i class="bi bi-exclamation-triangle"></i> 90+ jours</span>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon" style="background:rgba(217,119,6,.12);color:#d97706;"><i class="bi bi-bookmark-x"></i></div>
+        <div class="metric-label">Réservations exp.</div>
+        <div class="metric-value sm">
+            {% for group in alerts_by_type %}{% if group.grouper == 'reservation_expired' %}{{ group.list|length }}{% else %}{% if forloop.last %}0{% endif %}{% endif %}{% endfor %}
+        </div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Libération requise</span>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon" style="background:rgba(234,88,12,.10);color:#ea580c;"><i class="bi bi-truck"></i></div>
+        <div class="metric-label">Retards douaniers</div>
+        <div class="metric-value sm">
+            {% for group in alerts_by_type %}{% if group.grouper == 'customs_delayed' %}{{ group.list|length }}{% else %}{% if forloop.last %}0{% endif %}{% endif %}{% endfor %}
+        </div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> 30+ jours</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- Liste des alertes -->
+<div class="alert-panel fade-in">
+    <div class="alert-panel-head">
+        <div class="alert-panel-title">
+            <i class="bi bi-bell me-2" style="color:var(--accent);"></i>Alertes actives
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);">{{ alert_count }} non résolue{{ alert_count|pluralize }}</span>
+    </div>
+
+    {% if alerts %}
+    <div id="alertsList">
+        {% for alert in alerts %}
+        <div class="alert-card" id="alert-{{ alert.pk }}">
+
+            <!-- Icône -->
+            <div class="alert-type-icon alert-{{ alert.alert_type }}">
+                {% if alert.alert_type == 'slow_moving' %}
+                <i class="bi bi-hourglass-split"></i>
+                {% elif alert.alert_type == 'reservation_expired' %}
+                <i class="bi bi-bookmark-x"></i>
+                {% elif alert.alert_type == 'customs_delayed' %}
+                <i class="bi bi-truck"></i>
+                {% elif alert.alert_type == 'low_stock' %}
+                <i class="bi bi-exclamation-triangle"></i>
+                {% else %}
+                <i class="bi bi-bell"></i>
+                {% endif %}
+            </div>
+
+            <!-- Corps -->
+            <div class="alert-body">
+                <div class="alert-type-label">{{ alert.get_alert_type_display }}</div>
+                <div class="alert-message">{{ alert.message }}</div>
+                <div class="alert-meta">
+                    {% if alert.vehicle %}
+                    <span>
+                        <i class="bi bi-car-front-fill" style="margin-right:3px;"></i>
+                        {{ alert.vehicle.make }} {{ alert.vehicle.model }} {{ alert.vehicle.year }}
+                    </span>
+                    <span style="font-family:monospace;font-size:10.5px;">{{ alert.vehicle.vin_chassis }}</span>
+                    {% endif %}
+                    <span>
+                        <i class="bi bi-calendar3" style="margin-right:3px;"></i>
+                        {{ alert.created_at|date:"j M Y" }}
+                    </span>
+                    {% if alert.created_by %}
+                    <span>
+                        <i class="bi bi-person" style="margin-right:3px;"></i>
+                        {{ alert.created_by.get_full_name|default:alert.created_by.username }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="alert-actions">
+                {% if alert.vehicle %}
+                <a href="{% url 'inventory:detail' alert.vehicle.pk %}" class="view-btn" title="Voir le véhicule">
+                    <i class="bi bi-eye"></i>
+                </a>
+                {% endif %}
+                <button class="resolve-btn" data-pk="{{ alert.pk }}"
+                    data-url="{% url 'inventory:resolve_alert' alert.pk %}">
+                    <i class="bi bi-check-lg"></i> Résoudre
+                </button>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-bell-slash"></i>
+        <div class="empty-state-title">Tout est clair</div>
+        <div style="font-size:13px;margin-bottom:18px;">Aucune alerte de stock active pour l'instant. Le système génère automatiquement des alertes pour les véhicules à rotation lente et les retards douaniers.</div>
+        <a href="{% url 'inventory:list' %}" class="btn-primary"><i class="bi bi-boxes"></i> Voir l'inventaire</a>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Explication des alertes automatiques -->
+<div style="margin-top:24px;">
+    <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:14px;">
+        À propos des alertes automatiques
+    </div>
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:16px 20px;box-shadow:var(--shadow-sm);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:4px;">
+                    <i class="bi bi-hourglass-split me-1" style="color:#dc2626;"></i> Rotation lente
+                </div>
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">Déclenchée lorsqu'un véhicule disponible est en stock depuis plus de 90 jours sans être vendu.</div>
+            </div>
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:4px;">
+                    <i class="bi bi-bookmark-x me-1" style="color:#d97706;"></i> Réservation expirée
+                </div>
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">Générée lorsque la réservation d'un trader dépasse sa date d'expiration sans être convertie en vente.</div>
+            </div>
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:4px;">
+                    <i class="bi bi-truck me-1" style="color:#ea580c;"></i> Retard douanier
+                </div>
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">Déclenchée lorsqu'un véhicule est en douane depuis plus de 30 jours sans déclaration de mise en libre pratique.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function resolveAlert(pk, url, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const card = document.getElementById('alert-' + pk);
+                card.classList.add('resolving');
+                setTimeout(() => {
+                    card.remove();
+                    updateCount();
+                }, 320);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-lg"></i> Résoudre';
+                alert(data.message || 'Impossible de résoudre l\'alerte.');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Résoudre';
+        });
+    }
+
+    function updateCount() {
+        const remaining = document.querySelectorAll('.alert-card').length;
+        if (remaining === 0) {
+            const list = document.getElementById('alertsList');
+            if (list) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-bell-slash"></i>
+                        <div class="empty-state-title">Tout est clair</div>
+                        <div style="font-size:13px;">Toutes les alertes ont été résolues.</div>
+                    </div>`;
+            }
+            const resolveAllBtn = document.getElementById('resolveAllBtn');
+            if (resolveAllBtn) resolveAllBtn.style.display = 'none';
+        }
+    }
+
+    // Boutons de résolution individuels
+    document.querySelectorAll('.resolve-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            resolveAlert(this.dataset.pk, this.dataset.url, this);
+        });
+    });
+
+    // Tout résoudre
+    const resolveAllBtn = document.getElementById('resolveAllBtn');
+    if (resolveAllBtn) {
+        resolveAllBtn.addEventListener('click', function() {
+            if (!confirm('Résoudre toutes les alertes ? Cette action est irréversible.')) return;
+            document.querySelectorAll('.resolve-btn').forEach(btn => btn.click());
+        });
+    }
+</script>
+{% endblock %}

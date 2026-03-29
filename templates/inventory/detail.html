@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block page_title %}{{ vehicle.make }} {{ vehicle.model }}{% endblock %}
+{% block page_sub_text %}{{ vehicle.vin_chassis }}{% endblock %}
+
+{% block extra_css %}
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    white-space: nowrap; min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+.btn-danger {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(220,38,38,.10); color: #dc2626;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid rgba(220,38,38,.25); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-danger:hover { background: rgba(220,38,38,.18); border-color: rgba(220,38,38,.4); color: #dc2626; }
+
+/* ── Badges de statut (thème clair) ── */
+.status-in_transit { background: rgba(2,132,199,.10);  color: #0284c7; }
+.status-at_customs { background: rgba(234,88,12,.10);  color: #ea580c; }
+.status-available  { background: rgba(22,163,74,.10);  color: #16a34a; }
+.status-reserved   { background: rgba(217,119,6,.12);  color: #d97706; }
+.status-sold       { background: rgba(124,58,237,.10); color: #7c3aed; }
+
+/* ── Panneau ── */
+.panel {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.panel-head {
+    padding: 15px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-surface);
+}
+.panel-title { font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 700; color: var(--text-primary); }
+.panel-body  { padding: 18px 20px; }
+
+/* ── Grille d'informations ── */
+.info-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;
+}
+.info-label {
+    font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 4px;
+}
+.info-value { font-size: 13.5px; color: var(--text-primary); }
+.info-value.mono { font-family: monospace; letter-spacing: .05em; font-size: 13px; }
+
+/* ── Détail des coûts ── */
+.cost-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.cost-row:last-child { border-bottom: none; }
+.cost-label { color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+.cost-value { font-weight: 500; color: var(--text-primary); font-family: 'Syne', sans-serif; }
+
+.cost-total {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 14px; margin-top: 10px;
+    background: var(--accent-dim); border: 1px solid rgba(217,119,6,.25);
+    border-radius: var(--radius-md);
+}
+.cost-total-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); }
+.cost-total-value { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); }
+
+/* ── Galerie de photos ── */
+.photo-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;
+}
+.photo-thumb {
+    aspect-ratio: 4/3; border-radius: var(--radius-sm);
+    overflow: hidden; border: 1px solid var(--border); position: relative;
+    cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition);
+}
+.photo-thumb:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb.primary::after {
+    content: 'Principal';
+    position: absolute; bottom: 4px; left: 4px;
+    background: var(--accent); color: #ffffff;
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+}
+
+/* ── Carte de réservation active ── */
+.reservation-card {
+    background: rgba(217,119,6,.06);
+    border: 1px solid rgba(217,119,6,.22);
+    border-radius: var(--radius-md);
+    padding: 14px 18px; margin-bottom: 16px;
+}
+
+/* ── Entrée de chronologie ── */
+.timeline-item {
+    display: flex; gap: 12px; padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+}
+.timeline-item:last-child { border-bottom: none; }
+.timeline-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 60ms; }
+.fade-in:nth-child(3) { animation-delay: 120ms; }
+.fade-in:nth-child(4) { animation-delay: 180ms; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .photo-grid { grid-template-columns: repeat(3, 1fr); }
+    .info-grid { grid-template-columns: repeat(2, 1fr); }
+    .panel-body { padding: 14px 16px; }
+    .panel-head { padding: 12px 16px; }
+}
+@media (max-width: 480px) {
+    .photo-grid { grid-template-columns: repeat(2, 1fr); }
+    .info-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Fil d'Ariane -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="{% url 'inventory:list' %}" class="btn-ghost" style="padding:7px 12px;">
+        <i class="bi bi-arrow-left"></i> Inventaire
+    </a>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+    <span style="font-size:13px;color:var(--text-secondary);">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}</span>
+</div>
+
+<!-- En-tête du véhicule -->
+<div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm);" class="fade-in">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+            <div style="width:56px;height:56px;border-radius:var(--radius-md);background:rgba(2,132,199,.10);color:#0284c7;display:grid;place-items:center;font-size:24px;flex-shrink:0;">
+                <i class="bi bi-car-front-fill"></i>
+            </div>
+            <div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                    <div style="font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,22px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">
+                        {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}
+                    </div>
+                    <span class="pill status-{{ vehicle.status }}">
+                        {% if vehicle.status == 'in_transit' %}<i class="bi bi-arrow-right-circle"></i>
+                        {% elif vehicle.status == 'at_customs' %}<i class="bi bi-truck"></i>
+                        {% elif vehicle.status == 'available' %}<i class="bi bi-check-circle"></i>
+                        {% elif vehicle.status == 'reserved' %}<i class="bi bi-clock"></i>
+                        {% elif vehicle.status == 'sold' %}<i class="bi bi-bag-check"></i>
+                        {% endif %}
+                        {{ vehicle.get_status_display }}
+                    </span>
+                    {% if vehicle.reservation_expired %}
+                    <span class="pill pill-danger"><i class="bi bi-exclamation-circle"></i> Réservation expirée</span>
+                    {% endif %}
+                </div>
+                <div style="font-family:monospace;font-size:13px;color:var(--text-muted);letter-spacing:.07em;">
+                    <i class="bi bi-upc-scan me-1"></i>{{ vehicle.vin_chassis }}
+                </div>
+                <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
+                    <div style="font-size:13px;color:var(--text-secondary);">
+                        <i class="bi bi-palette me-1" style="color:var(--text-muted);"></i>{{ vehicle.color }}
+                    </div>
+                    {% if vehicle.engine_type %}
+                    <div style="font-size:13px;color:var(--text-secondary);">
+                        <i class="bi bi-gear me-1" style="color:var(--text-muted);"></i>{{ vehicle.engine_type }}
+                    </div>
+                    {% endif %}
+                    <div style="font-size:13px;color:var(--text-secondary);">
+                        <i class="bi bi-calendar3 me-1" style="color:var(--text-muted);"></i>{{ vehicle.days_in_stock }} jour{{ vehicle.days_in_stock|pluralize }} en stock
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+            {% if vehicle.status != 'sold' %}
+            <a href="{% url 'inventory:edit' vehicle.pk %}" class="btn-ghost">
+                <i class="bi bi-pencil"></i> Modifier
+            </a>
+            {% endif %}
+            <a href="{% url 'inventory:add_photo' vehicle.pk %}" class="btn-ghost">
+                <i class="bi bi-camera"></i> Ajouter une photo
+            </a>
+            {% endif %}
+            {% if can_reserve %}
+            <button class="btn-primary" id="reserveBtn">
+                <i class="bi bi-bookmark-plus"></i> Réserver
+            </button>
+            {% endif %}
+            {% if can_release %}
+            <button class="btn-danger" id="releaseBtn" data-url="{% url 'inventory:release_reservation' vehicle.pk %}">
+                <i class="bi bi-bookmark-x"></i> Libérer
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bannière de réservation active -->
+{% if vehicle.status == 'reserved' and vehicle.reserved_by %}
+<div class="reservation-card fade-in">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <i class="bi bi-clock" style="color:var(--accent);font-size:18px;flex-shrink:0;"></i>
+        <div style="flex:1;">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--accent);margin-bottom:2px;">
+                Réservé par {{ vehicle.reserved_by.get_full_name|default:vehicle.reserved_by.username }}
+            </div>
+            <div style="font-size:12.5px;color:var(--text-secondary);">
+                Depuis le {{ vehicle.reservation_date|date:"j M Y H:i" }}
+                {% if vehicle.reservation_expires %}
+                — Expire le {{ vehicle.reservation_expires|date:"j M Y H:i" }}
+                {% endif %}
+            </div>
+        </div>
+        {% if vehicle.reservation_expired %}
+        <span class="pill pill-danger">Expiré</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Disposition en deux colonnes -->
+<div class="row g-4">
+
+    <!-- GAUCHE : Détails + Achat + Photos -->
+    <div class="col-xl-8">
+
+        <!-- Spécifications du véhicule -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-car-front-fill me-2" style="color:var(--accent);"></i>Détails du véhicule</div>
+            </div>
+            <div class="panel-body">
+                <div class="info-grid">
+                    <div>
+                        <div class="info-label">NIV / Châssis</div>
+                        <div class="info-value mono">{{ vehicle.vin_chassis }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Marque</div>
+                        <div class="info-value">{{ vehicle.make }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Modèle</div>
+                        <div class="info-value">{{ vehicle.model }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Année</div>
+                        <div class="info-value">{{ vehicle.year }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Couleur</div>
+                        <div class="info-value">{{ vehicle.color }}</div>
+                    </div>
+                    {% if vehicle.engine_type %}
+                    <div>
+                        <div class="info-label">Type de moteur</div>
+                        <div class="info-value">{{ vehicle.engine_type }}</div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="info-label">Statut</div>
+                        <div class="info-value">{{ vehicle.get_status_display }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Jours en stock</div>
+                        <div class="info-value">
+                            {{ vehicle.days_in_stock }}
+                            {% if vehicle.is_slow_moving %}<span class="pill pill-warning" style="margin-left:6px;font-size:10px;">Rotation lente</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if vehicle.specifications %}
+                <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+                    <div class="info-label">Spécifications</div>
+                    <div style="font-size:13px;color:var(--text-secondary);margin-top:6px;line-height:1.7;white-space:pre-line;">{{ vehicle.specifications }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informations d'achat -->
+        {% if vehicle.purchase_line_item %}
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-truck me-2" style="color:var(--accent);"></i>Informations d'achat</div>
+                {% if vehicle.vehicle_purchase %}
+                <a href="/purchases/{{ vehicle.vehicle_purchase.pk }}/" class="section-link">
+                    Voir l'achat <i class="bi bi-arrow-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                <div class="info-grid" style="margin-bottom:18px;">
+                    <div>
+                        <div class="info-label">Fournisseur</div>
+                        <div class="info-value">{{ vehicle.vehicle_purchase.supplier.name|default:"—" }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Date d'achat</div>
+                        <div class="info-value">{{ vehicle.vehicle_purchase.purchase_date|date:"j M Y"|default:"—" }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Prix FOB (devise)</div>
+                        <div class="info-value">{{ vehicle.purchase_line_item.fob_price|floatformat:2|default:"—" }} {{ vehicle.vehicle_purchase.currency.code }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Prix FOB (DA)</div>
+                        <div class="info-value">{{ vehicle.fob_price_da|floatformat:0|default:"—" }} DA</div>
+                    </div>
+                </div>
+
+                <!-- Détail des coûts (quote-part par véhicule) -->
+                <div style="font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Détail des coûts (quote-part véhicule)</div>
+                <div>
+                    <div class="cost-row">
+                        <div class="cost-label"><i class="bi bi-currency-dollar" style="color:#0284c7;"></i> Prix FOB (DA)</div>
+                        <div class="cost-value">{{ vehicle.fob_price_da|floatformat:0|default:"0" }} DA</div>
+                    </div>
+                    <div class="cost-row">
+                        <div class="cost-label"><i class="bi bi-ship" style="color:#ea580c;"></i> Quote-part transport</div>
+                        <div class="cost-value">{{ vehicle.freight_share_da|floatformat:0 }} DA</div>
+                    </div>
+                    <div class="cost-row">
+                        <div class="cost-label"><i class="bi bi-building" style="color:#d97706;"></i> Quote-part douanes</div>
+                        <div class="cost-value">{{ vehicle.customs_share_da|floatformat:0 }} DA</div>
+                    </div>
+                </div>
+                <div class="cost-total">
+                    <div class="cost-total-label"><i class="bi bi-calculator me-2"></i>Coût total rendu</div>
+                    <div class="cost-total-value">{{ vehicle.landed_cost|floatformat:0 }} <span style="font-size:13px;">DA</span></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Photos -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-images me-2" style="color:var(--accent);"></i>Photos</div>
+                <a href="{% url 'inventory:add_photo' vehicle.pk %}" class="btn-ghost" style="padding:6px 12px;font-size:12px;min-height:36px;">
+                    <i class="bi bi-plus-lg"></i> Ajouter
+                </a>
+            </div>
+            <div class="panel-body">
+                {% with vehicle.photos.all as photos %}
+                {% if photos %}
+                <div class="photo-grid">
+                    {% for photo in photos %}
+                    <div class="photo-thumb {% if photo.is_primary %}primary{% endif %}">
+                        <img src="{{ photo.photo.url }}" alt="{{ photo.caption }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if photos.0.caption %}
+                <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">{{ photos.0.caption }}</div>
+                {% endif %}
+                {% else %}
+                <div style="text-align:center;padding:28px 0;color:var(--text-muted);">
+                    <i class="bi bi-image" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                    <div style="font-size:13px;">Aucune photo ajoutée pour l'instant.</div>
+                    <a href="{% url 'inventory:add_photo' vehicle.pk %}" class="btn-ghost" style="margin-top:12px;font-size:12px;padding:6px 12px;min-height:36px;">
+                        <i class="bi bi-camera"></i> Ajouter la première photo
+                    </a>
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DROITE : Barre latérale -->
+    <div class="col-xl-4">
+
+        <!-- Carte coût total -->
+        <div class="metric-card fade-in" style="margin-bottom:16px;">
+            <div class="metric-icon" style="background:var(--accent-dim);color:var(--accent);">
+                <i class="bi bi-calculator"></i>
+            </div>
+            <div class="metric-label">Coût total rendu</div>
+            <div class="metric-value sm">{{ vehicle.landed_cost|floatformat:0 }} <span style="font-size:13px;color:var(--text-muted);">DA</span></div>
+            <span class="metric-delta neutral"><i class="bi bi-dash"></i> Coût tout compris</span>
+        </div>
+
+        <!-- Panneau de réservation (si disponible) -->
+        {% if can_reserve %}
+        <div class="panel fade-in" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-bookmark-plus me-2" style="color:var(--accent);"></i>Réserver le véhicule</div>
+            </div>
+            <div class="panel-body">
+                <form method="post" action="{% url 'inventory:reserve' vehicle.pk %}" id="reserveForm">
+                    {% csrf_token %}
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Durée</label>
+                        <select name="duration_days" style="width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;cursor:pointer;min-height:44px;">
+                            <option value="3">3 jours</option>
+                            <option value="7" selected>7 jours</option>
+                            <option value="14">14 jours</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:11.5px;font-weight:500;color:var(--text-secondary);display:block;margin-bottom:6px;">Notes</label>
+                        <textarea name="notes" rows="2" style="width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;resize:none;" placeholder="Notes facultatives…"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width:100%;justify-content:center;" id="reserveSubmitBtn">
+                        <i class="bi bi-bookmark-check"></i> Confirmer la réservation
+                    </button>
+                    <div id="reserveMsg" style="display:none;margin-top:10px;font-size:12.5px;border-radius:var(--radius-sm);padding:8px 12px;"></div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Libérer la réservation -->
+        {% if can_release %}
+        <div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.18);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:16px;" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:6px;font-size:13px;">
+                <i class="bi bi-bookmark-x me-1"></i> Votre réservation
+            </div>
+            <p style="font-size:12.5px;color:var(--text-secondary);margin:0 0 12px;">
+                Vous avez réservé ce véhicule le {{ vehicle.reservation_date|date:"j M Y" }}. Libérez-le pour le rendre disponible.
+            </p>
+            <button class="btn-danger" id="releaseBtn" data-url="{% url 'inventory:release_reservation' vehicle.pk %}" style="font-size:12px;padding:7px 14px;min-height:40px;">
+                <i class="bi bi-bookmark-x"></i> Libérer la réservation
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Informations de suivi -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-info-circle me-2" style="color:var(--text-muted);"></i>Informations de suivi</div>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;flex-direction:column;gap:11px;">
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Créé le</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ vehicle.created_at|date:"j M Y" }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Dernière modification</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ vehicle.updated_at|date:"j M Y" }}</div>
+                    </div>
+                    {% if vehicle.created_by %}
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Ajouté par</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ vehicle.created_by.get_full_name|default:vehicle.created_by.username }}</div>
+                    </div>
+                    {% endif %}
+                    {% if vehicle.vehicle_purchase.supplier %}
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Fournisseur</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ vehicle.vehicle_purchase.supplier.name }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations de vente (si vendu) -->
+        {% if vehicle.status == 'sold' %}
+        {% with vehicle.sale as sale %}
+        {% if sale %}
+        <div class="panel fade-in" style="margin-top:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-bag-check me-2" style="color:#7c3aed;"></i>Informations de vente</div>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;flex-direction:column;gap:11px;">
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Client</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ sale.customer.name|default:"—" }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Prix de vente</div>
+                        <div style="font-size:14px;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">{{ sale.sale_price|floatformat:0 }} DA</div>
+                    </div>
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Date de vente</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ sale.sale_date|date:"j M Y" }}</div>
+                    </div>
+                </div>
+                <a href="/sales/{{ sale.pk }}/" class="btn-ghost" style="margin-top:14px;width:100%;justify-content:center;font-size:12px;padding:7px;min-height:40px;">
+                    <i class="bi bi-arrow-up-right"></i> Voir la vente
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Formulaire de réservation via AJAX
+    const reserveForm = document.getElementById('reserveForm');
+    if (reserveForm) {
+        reserveForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('reserveSubmitBtn');
+            const msg = document.getElementById('reserveMsg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Traitement…';
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: new FormData(this)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    msg.textContent = data.message;
+                    msg.style.display = 'block';
+                    msg.style.background = 'rgba(220,38,38,.08)';
+                    msg.style.color = '#dc2626';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-bookmark-check"></i> Confirmer la réservation';
+                }
+            });
+        });
+    }
+
+    // Bouton de libération
+    const releaseBtn = document.getElementById('releaseBtn');
+    if (releaseBtn) {
+        releaseBtn.addEventListener('click', function() {
+            if (!confirm('Libérer cette réservation et rendre le véhicule disponible ?')) return;
+            fetch(this.dataset.url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert(data.message);
+            });
+        });
+    }
+</script>
+{% endblock %}

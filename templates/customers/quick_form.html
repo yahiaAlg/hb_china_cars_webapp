@@ -1,0 +1,224 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+{# Partiel rendu dans une modale — pas de shell complet #}
+{# Utilisé par la vue customer_quick_create pour injection AJAX #}
+<body style="margin:0;padding:0;background:transparent;">
+
+<style>
+/* ── Styles limités au contenu du formulaire modal ── */
+.qf-wrap {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary, #111827);
+}
+
+.qf-field { margin-bottom: 14px; }
+
+.qf-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #4b5563;
+    letter-spacing: .02em;
+    margin-bottom: 5px;
+}
+.qf-label .req { color: #d97706; margin-left: 2px; }
+
+.qf-input,
+.qf-select,
+.qf-textarea {
+    width: 100%;
+    background: #f9fafb;
+    border: 1px solid rgba(0,0,0,.10);
+    border-radius: 10px;
+    color: #111827;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 10px 13px;
+    min-height: 44px;
+    transition: border-color .18s, box-shadow .18s;
+    box-sizing: border-box;
+}
+.qf-input:focus,
+.qf-select:focus,
+.qf-textarea:focus {
+    outline: none;
+    border-color: #d97706;
+    box-shadow: 0 0 0 3px rgba(217,119,6,.18);
+}
+.qf-input::placeholder,
+.qf-textarea::placeholder { color: #9ca3af; }
+
+.qf-select { cursor: pointer; appearance: auto; }
+.qf-select option { background: #f9fafb; color: #111827; }
+
+.qf-textarea { resize: vertical; min-height: 72px; }
+
+.qf-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.qf-error {
+    font-size: 11.5px;
+    color: #dc2626;
+    margin-top: 4px;
+}
+
+.qf-nif-notice {
+    font-size: 11.5px;
+    color: #d97706;
+    background: rgba(217,119,6,.10);
+    border: 1px solid rgba(217,119,6,.22);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 6px;
+    display: none;
+    align-items: center;
+    gap: 5px;
+}
+.qf-nif-notice.show { display: flex; }
+
+/* Responsive : empiler les colonnes sur mobile */
+@media (max-width: 480px) {
+    .qf-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<form id="quickCustomerForm" method="post">
+    {% csrf_token %}
+    <div class="qf-wrap">
+
+        <!-- Nom + Type -->
+        <div class="qf-row" style="margin-bottom:14px;">
+            <div class="qf-field" style="margin-bottom:0;">
+                <label class="qf-label" for="{{ form.name.id_for_label }}">
+                    Nom <span class="req">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="{{ form.name.id_for_label }}"
+                    name="name"
+                    class="qf-input{% if form.name.errors %} error{% endif %}"
+                    placeholder="Nom complet ou entreprise"
+                    value="{{ form.name.value|default:'' }}"
+                    required>
+                {% if form.name.errors %}
+                <div class="qf-error">{{ form.name.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+            <div class="qf-field" style="margin-bottom:0;">
+                <label class="qf-label" for="{{ form.customer_type.id_for_label }}">
+                    Type <span class="req">*</span>
+                </label>
+                <select id="{{ form.customer_type.id_for_label }}" name="customer_type" class="qf-select">
+                    {% for val, label in form.fields.customer_type.choices %}
+                    <option value="{{ val }}" {% if form.customer_type.value == val %}selected{% endif %}>
+                        {% if val == 'individual' %}Particulier{% elif val == 'company' %}Entreprise{% else %}{{ label }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Téléphone -->
+        <div class="qf-field">
+            <label class="qf-label" for="{{ form.phone.id_for_label }}">
+                Téléphone <span class="req">*</span>
+            </label>
+            <input
+                type="text"
+                id="{{ form.phone.id_for_label }}"
+                name="phone"
+                class="qf-input{% if form.phone.errors %} error{% endif %}"
+                placeholder="+213 XXX XXX XXX"
+                value="{{ form.phone.value|default:'' }}"
+                required>
+            {% if form.phone.errors %}
+            <div class="qf-error">{{ form.phone.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
+        <!-- NIF (conditionnel) -->
+        <div class="qf-field">
+            <label class="qf-label" for="{{ form.nif_tax_id.id_for_label }}">
+                NIF / Identifiant fiscal
+            </label>
+            <input
+                type="text"
+                id="{{ form.nif_tax_id.id_for_label }}"
+                name="nif_tax_id"
+                class="qf-input"
+                placeholder="NIF (si applicable)"
+                value="{{ form.nif_tax_id.value|default:'' }}">
+            <div class="qf-nif-notice" id="qfNifNotice">
+                <i class="bi bi-exclamation-triangle"></i>
+                Requis pour les clients de type Entreprise
+            </div>
+            {% if form.nif_tax_id.errors %}
+            <div class="qf-error">{{ form.nif_tax_id.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Adresse -->
+        <div class="qf-field">
+            <label class="qf-label" for="{{ form.address.id_for_label }}">
+                Adresse <span class="req">*</span>
+            </label>
+            <textarea
+                id="{{ form.address.id_for_label }}"
+                name="address"
+                class="qf-textarea{% if form.address.errors %} error{% endif %}"
+                rows="2"
+                placeholder="Rue, quartier, commune…"
+                required>{{ form.address.value|default:'' }}</textarea>
+            {% if form.address.errors %}
+            <div class="qf-error">{{ form.address.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Wilaya -->
+        <div class="qf-field">
+            <label class="qf-label" for="{{ form.wilaya.id_for_label }}">
+                Wilaya <span class="req">*</span>
+            </label>
+            <select id="{{ form.wilaya.id_for_label }}" name="wilaya" class="qf-select" required>
+                <option value="">— Sélectionner une wilaya —</option>
+                {% for val, label in form.fields.wilaya.choices %}
+                {% if val %}
+                <option value="{{ val }}" {% if form.wilaya.value == val %}selected{% endif %}>{{ label }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            {% if form.wilaya.errors %}
+            <div class="qf-error">{{ form.wilaya.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
+    </div>
+</form>
+
+<script>
+(function() {
+    const typeSelect = document.querySelector('[name="customer_type"]');
+    const nifNotice  = document.getElementById('qfNifNotice');
+    const nifInput   = document.querySelector('[name="nif_tax_id"]');
+
+    function toggleNif() {
+        if (!typeSelect) return;
+        const isCompany = typeSelect.value === 'company';
+        if (nifNotice) nifNotice.classList.toggle('show', isCompany);
+        if (nifInput)  nifInput.style.borderColor = isCompany ? 'rgba(217,119,6,.45)' : '';
+    }
+
+    if (typeSelect) {
+        typeSelect.addEventListener('change', toggleNif);
+        toggleNif();
+    }
+})();
+</script>
+
+</body>
+</html>

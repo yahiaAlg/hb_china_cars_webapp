@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}Vente {{ sale.sale_number }}{% endblock %}
+
+{% block extra_css %}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+}
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+}
+.card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-body { padding: 20px; }
+.field-group { margin-bottom: 18px; }
+.field-label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+}
+.field-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 13px;
+    min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+textarea.field-input { resize: vertical; min-height: 90px; }
+input[type="date"].field-input,
+input[type="number"].field-input {
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+}
+input[type="date"].field-input::-webkit-calendar-picker-indicator {
+    filter: invert(60%) sepia(0%) saturate(0%);
+    cursor: pointer;
+    opacity: 0.6;
+}
+input[type="date"].field-input::-webkit-inner-spin-button,
+input[type="number"].field-input::-webkit-inner-spin-button,
+input[type="number"].field-input::-webkit-outer-spin-button {
+    opacity: 0.4;
+}
+select.field-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+.field-error { font-size: 12px; color: #dc2626; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.info-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; gap: 12px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+.invoice-preview {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 4px;
+}
+.preview-row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; color: var(--text-secondary);
+    padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.preview-row:last-child { border-bottom: none; }
+.preview-total {
+    display: flex; justify-content: space-between;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+    color: var(--text-primary); margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+@media (max-width: 1024px) { .form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .row-2 { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px;">
+    <a href="{% url 'sales:detail' sale.pk %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);transition:color var(--transition);"
+       onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour à {{ sale.sale_number }}
+    </a>
+</div>
+
+<form method="post" id="invoiceForm">
+{% csrf_token %}
+
+<div class="form-grid">
+
+    <!-- GAUCHE : Champs de la facture -->
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-file-earmark-text me-2" style="color:#0284c7;"></i>Détails de la facture</div>
+            </div>
+            <div class="card-body">
+                <div class="row-2">
+                    <div class="field-group">
+                        <label class="field-label">Date d'émission</label>
+                        {{ form.invoice_date }}
+                        {% if form.invoice_date.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.invoice_date.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Date d'échéance</label>
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.due_date.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Taux de TVA (%)</label>
+                    {{ form.tva_rate }}
+                    {% if form.tva_rate.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.tva_rate.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.notes.errors.0 }}</div>{% endif %}
+                </div>
+
+                <!-- Aperçu TVA dynamique -->
+                <div class="invoice-preview">
+                    <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);font-weight:600;margin-bottom:10px;">
+                        <i class="bi bi-receipt me-1" style="color:var(--accent);"></i> Aperçu de la facture
+                    </div>
+                    <div class="preview-row">
+                        <span>Prix de vente (TTC)</span>
+                        <span style="color:var(--text-primary);font-weight:500;">{{ sale.sale_price|floatformat:0 }} DA</span>
+                    </div>
+                    <div class="preview-row">
+                        <span>Sous-total HT</span>
+                        <span id="previewHT" style="color:var(--text-primary);font-weight:500;">—</span>
+                    </div>
+                    <div class="preview-row">
+                        <span id="previewTvaLabel">TVA (19,00%)</span>
+                        <span id="previewTva" style="color:var(--text-primary);font-weight:500;">—</span>
+                    </div>
+                    <div class="preview-total">
+                        <span>Total TTC</span>
+                        <span style="color:var(--accent);">{{ sale.sale_price|floatformat:0 }} DA</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:18px;color:#dc2626;font-size:13px;">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn-primary" style="min-height:44px;">
+                <i class="bi bi-file-earmark-check"></i> Générer la facture
+            </button>
+            <a href="{% url 'sales:detail' sale.pk %}" class="btn-ghost" style="min-height:44px;">Annuler</a>
+        </div>
+    </div>
+
+    <!-- DROITE : Récapitulatif vente -->
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-receipt me-2" style="color:#d97706;"></i>Récapitulatif de la vente</div>
+                {% if sale.is_finalized %}
+                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Finalisée</span>
+                {% else %}
+                <span class="pill pill-warning">Brouillon</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">N° vente</span>
+                    <span class="info-value" style="font-family:'Syne',sans-serif;font-weight:700;">{{ sale.sale_number }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date</span>
+                    <span class="info-value">{{ sale.sale_date|date:"j M Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Véhicule{{ sale.line_items.count|pluralize }}</span>
+                    <span class="info-value">
+                        {% for item in sale.line_items.all %}
+                        <div>{{ item.vehicle.make }} {{ item.vehicle.model }}</div>
+                        {% empty %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endfor %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Client</span>
+                    <span class="info-value">{{ sale.customer.name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Mode de paiement</span>
+                    <span class="info-value">{{ sale.get_payment_method_display }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Prix de vente</span>
+                    <span class="info-value" style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--accent);">{{ sale.sale_price|floatformat:0 }} DA</span>
+                </div>
+                {% if sale.down_payment > 0 %}
+                <div class="info-row">
+                    <span class="info-label">Acompte versé</span>
+                    <span class="info-value" style="color:#16a34a;">{{ sale.down_payment|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Solde restant</span>
+                    <span class="info-value" style="color:#dc2626;">{{ sale.remaining_balance|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.75;">
+                    <p style="margin-bottom:8px;">
+                        <i class="bi bi-info-circle me-1" style="color:var(--accent);"></i>
+                        La facture sera numérotée automatiquement et générée en brouillon.
+                    </p>
+                    <p style="margin:0;">
+                        <i class="bi bi-calculator me-1" style="color:#7c3aed;"></i>
+                        La TVA est calculée en retro-déduction à partir du prix TTC.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), select, textarea').forEach(el => {
+    el.classList.add('field-input');
+});
+
+const tvaInput = document.getElementById('id_tva_rate');
+const salePrice = {{ sale.sale_price }};
+
+function updateTaxPreview() {
+    const rate = parseFloat(tvaInput.value) || 0;
+    const ht = salePrice / (1 + rate / 100);
+    const tva = salePrice - ht;
+    const fmt = v => new Intl.NumberFormat('fr-DZ').format(Math.round(v)) + ' DA';
+    document.getElementById('previewHT').textContent = fmt(ht);
+    document.getElementById('previewTva').textContent = fmt(tva);
+    document.getElementById('previewTvaLabel').textContent = `TVA (${rate.toFixed(2).replace('.', ',')}%)`;
+}
+
+if (tvaInput) {
+    tvaInput.addEventListener('input', updateTaxPreview);
+    updateTaxPreview();
+}
+</script>
+{% endblock %}

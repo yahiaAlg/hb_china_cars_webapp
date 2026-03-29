@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Fournisseurs{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block page_title %}Fournisseurs{% endblock %}
+{% block page_sub_text %}{{ total_count }} fournisseur{{ total_count|pluralize }} au total{% endblock %}
+
+{% block extra_css %}
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    white-space: nowrap; min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    white-space: nowrap; min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Barre de filtres ── */
+.filters-bar {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 18px;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+.filter-input-wrap { position: relative; flex: 1; min-width: 200px; }
+.filter-input-wrap i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 14px; pointer-events: none;
+}
+.filter-input, .filter-select {
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 10px 13px; transition: border-color var(--transition), box-shadow var(--transition);
+    min-height: 44px;
+}
+.filter-input { width: 100%; padding-left: 36px; }
+.filter-select { cursor: pointer; min-width: 140px; }
+.filter-input:focus, .filter-select:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.filter-input::placeholder { color: var(--text-muted); }
+
+/* ── Tableau ── */
+.table-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.table-card-head {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.table-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.table-card-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.table-scroll     { overflow-x: auto; }
+
+table.table-custom { width: 100%; border-collapse: collapse; }
+table.table-custom thead tr {
+    background: var(--bg-raised);
+}
+table.table-custom thead th {
+    padding: 10px 14px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+    border-bottom: 1px solid var(--border); background: var(--bg-raised);
+}
+table.table-custom tbody td {
+    padding: 13px 14px; font-size: 13.5px; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border); vertical-align: middle;
+}
+table.table-custom tbody tr:last-child td { border-bottom: none; }
+table.table-custom tbody tr:hover { background: var(--bg-hover); }
+
+/* ── Avatar fournisseur ── */
+.supplier-avatar {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800;
+    background: rgba(2,132,199,.10); color: #0284c7; flex-shrink: 0;
+}
+
+/* ── Badges devise ── */
+.pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px; font-size: 11px;
+    font-weight: 500; letter-spacing: .02em; white-space: nowrap;
+}
+.pill-success { background: rgba(22,163,74,.10);  color: #16a34a; }
+.pill-danger  { background: rgba(220,38,38,.10);  color: #dc2626; }
+.pill-warning { background: rgba(217,119,6,.12);  color: #d97706; }
+.pill-info    { background: rgba(2,132,199,.10);  color: #0284c7; }
+
+.currency-usd { background: rgba(22,163,74,.10);  color: #16a34a; }
+.currency-cny { background: rgba(220,38,38,.10);  color: #dc2626; }
+
+/* ── Actions de ligne ── */
+.row-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity var(--transition); }
+tr:hover .row-actions { opacity: 1; }
+.row-btn {
+    width: 30px; height: 30px; border: 1px solid var(--border);
+    background: var(--bg-raised); border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 12px; color: var(--text-muted);
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+}
+.row-btn:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-hover); }
+
+/* ── Pagination ── */
+.pagination-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-top: 1px solid var(--border); gap: 12px; flex-wrap: wrap;
+}
+.pagination-info { font-size: 12px; color: var(--text-muted); }
+.pagination-links { display: flex; gap: 4px; }
+.page-btn {
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-secondary); font-size: 12px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 32px;
+}
+.page-btn:hover    { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.page-btn.active   { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.page-btn.disabled { opacity: .35; pointer-events: none; }
+
+/* ── Point de statut ── */
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+.status-dot.actif   { background: #16a34a; box-shadow: 0 0 6px rgba(22,163,74,.4); }
+.status-dot.inactif { background: var(--text-muted); }
+
+/* ── État vide ── */
+.empty-state { text-align: center; padding: 56px 20px; color: var(--text-muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 14px; color: var(--border-strong); }
+.empty-state-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .filters-bar { padding: 12px 14px; }
+    .filter-input-wrap { min-width: 100%; }
+    .filter-select { min-width: 100%; }
+    .table-card-head { padding: 14px 16px; }
+    .pagination-bar { padding: 12px 16px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de page -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:3px;">Approvisionnement</div>
+        <div style="font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,24px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">Fournisseurs</div>
+    </div>
+    {% if request.user.userprofile %}
+    {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+    <a href="{% url 'suppliers:create' %}" class="btn-primary">
+        <i class="bi bi-plus-lg"></i> Nouveau fournisseur
+    </a>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Filtres -->
+<form method="get" id="filterForm">
+    <div class="filters-bar fade-in">
+        <div class="filter-input-wrap">
+            <i class="bi bi-search"></i>
+            {{ search_form.search }}
+        </div>
+        {{ search_form.country }}
+        {{ search_form.currency }}
+        {{ search_form.is_active }}
+        <button type="submit" class="btn-primary" style="padding:9px 16px;">
+            <i class="bi bi-funnel"></i> Filtrer
+        </button>
+        {% if request.GET %}
+        <a href="{% url 'suppliers:list' %}" class="btn-ghost"><i class="bi bi-x-lg"></i> Effacer</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tableau des fournisseurs -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Répertoire des fournisseurs</div>
+            <div class="table-card-sub">{{ total_count }} enregistrement{{ total_count|pluralize }}</div>
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </span>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th style="width:52px;"></th>
+                    <th>Fournisseur</th>
+                    <th>Pays</th>
+                    <th>Contact</th>
+                    <th>Devise</th>
+                    <th style="text-align:right;">Achats</th>
+                    <th style="text-align:right;">Valeur totale (DA)</th>
+                    <th>Statut</th>
+                    <th style="width:70px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in page_obj %}
+                <tr onclick="location.href='{% url 'suppliers:detail' supplier.pk %}'" style="cursor:pointer;">
+                    <td>
+                        <div class="supplier-avatar">{{ supplier.name|slice:":1"|upper }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:500;color:var(--text-primary);font-size:13.5px;">{{ supplier.name }}</div>
+                        {% if supplier.payment_terms %}
+                        <div style="font-size:11px;color:var(--text-muted);">{{ supplier.payment_terms|truncatechars:40 }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="bi bi-geo-alt" style="color:var(--text-muted);margin-right:4px;"></i>{{ supplier.country }}
+                    </td>
+                    <td>
+                        {% if supplier.contact_person %}
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ supplier.contact_person }}</div>
+                        {% endif %}
+                        {% if supplier.phone %}
+                        <div style="font-size:11px;color:var(--text-muted);"><i class="bi bi-telephone me-1"></i>{{ supplier.phone }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="pill {% if supplier.currency.code == 'USD' %}currency-usd{% else %}currency-cny{% endif %}">
+                            {{ supplier.currency.code }}
+                        </span>
+                    </td>
+                    <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">
+                        {{ supplier.purchase_count|default:"0" }}
+                    </td>
+                    <td style="text-align:right;">
+                        {% if supplier.total_purchase_value %}
+                        <span style="font-weight:500;color:var(--text-primary);">
+                            {{ supplier.total_purchase_value|floatformat:0 }} <span style="font-size:11px;color:var(--text-muted);">DA</span>
+                        </span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if supplier.is_active %}
+                        <span style="display:inline-flex;align-items:center;font-size:12px;color:#16a34a;">
+                            <span class="status-dot actif"></span>Actif
+                        </span>
+                        {% else %}
+                        <span style="display:inline-flex;align-items:center;font-size:12px;color:var(--text-muted);">
+                            <span class="status-dot inactif"></span>Inactif
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td onclick="event.stopPropagation();">
+                        <div class="row-actions">
+                            <a href="{% url 'suppliers:detail' supplier.pk %}" class="row-btn" title="Voir"><i class="bi bi-eye"></i></a>
+                            {% if request.user.userprofile %}
+                            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                            <a href="{% url 'suppliers:edit' supplier.pk %}" class="row-btn" title="Modifier"><i class="bi bi-pencil"></i></a>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+        <div class="pagination-info">
+            Affichage {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ total_count }}
+        </div>
+        <div class="pagination-links">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- État vide -->
+    <div class="empty-state">
+        <i class="bi bi-building"></i>
+        <div class="empty-state-title">Aucun fournisseur trouvé</div>
+        <div style="font-size:13px;margin-bottom:18px;">
+            {% if request.GET %}Aucun résultat ne correspond à vos filtres.{% else %}Aucun fournisseur n'a encore été ajouté.{% endif %}
+        </div>
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <a href="{% url 'suppliers:create' %}" class="btn-primary" style="display:inline-flex;">
+            <i class="bi bi-plus-lg"></i> Ajouter un fournisseur
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* Soumettre le formulaire automatiquement lors d'un changement de sélecteur */
+    document.querySelectorAll('.filters-bar select').forEach(sel => {
+        sel.addEventListener('change', () => document.getElementById('filterForm').submit());
+    });
+</script>
+{% endblock %}

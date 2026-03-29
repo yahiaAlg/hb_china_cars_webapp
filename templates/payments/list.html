@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Paiements{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Paiements{% endblock %}
+{% block page_sub_text %}{{ total_count }} paiement{{ total_count|pluralize }} enregistré{{ total_count|pluralize }}{% endblock %}
+
+{% block extra_css %}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.filter-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg-raised);
+}
+
+.filter-head-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-body { padding: 18px 20px; }
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.filter-field label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.filter-field input,
+.filter-field select {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    min-height: 44px;
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.filter-field select option { background: var(--bg-raised); }
+
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-raised);
+}
+
+.table-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.table-card-subtitle { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+.table-scroll { overflow-x: auto; }
+
+.pagination-row {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-raised);
+}
+
+.pagination-info { font-size: 12.5px; color: var(--text-muted); }
+.pagination-btns { display: flex; gap: 6px; }
+
+.pg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    text-decoration: none;
+    transition: all .18s;
+}
+
+.pg-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.pg-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.pg-btn.disabled { opacity: .35; pointer-events: none; }
+
+/* Badges méthode v2 */
+.method-cash     { background: rgba(22,163,74,.12);  color: #16a34a; }
+.method-transfer { background: rgba(2,132,199,.10);  color: #0284c7; }
+.method-check    { background: rgba(124,58,237,.10); color: #7c3aed; }
+.method-card     { background: rgba(217,119,6,.12);  color: #d97706; }
+.method-other    { background: var(--bg-hover);       color: var(--text-secondary); }
+
+.fade-in { animation: fadeIn .35s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 50ms; }
+.fade-in:nth-child(3) { animation-delay: 100ms; }
+.fade-in:nth-child(4) { animation-delay: 150ms; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1100px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .filter-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════
+     CARTES MÉTRIQUES
+══════════════════════════════════ -->
+<div class="stats-row">
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-blue">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        <div class="metric-label">Total Paiements</div>
+        <div class="metric-value sm">{{ stats.total_count|default:"0" }}</div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Tous les enregistrements</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-amber">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="metric-label">Montant Total</div>
+        <div class="metric-value sm">{{ stats.total_amount|floatformat:0|default:"0" }} <span style="font-size:12px;color:var(--text-muted)">DA</span></div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Encaissements filtrés</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-green">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="metric-label">Confirmés</div>
+        <div class="metric-value sm">{{ stats.confirmed_count|default:"0" }}</div>
+        <span class="metric-delta up"><i class="bi bi-arrow-up-right"></i> Paiements validés</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-orange">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="metric-label">En attente</div>
+        <div class="metric-value sm">{{ stats.pending_count|default:"0" }}</div>
+        <span class="metric-delta {% if stats.pending_count > 0 %}down{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if stats.pending_count > 0 %}exclamation-circle{% else %}check{% endif %}"></i>
+            {% if stats.pending_count > 0 %}À confirmer{% else %}Aucun en attente{% endif %}
+        </span>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     PANNEAU DE FILTRES
+══════════════════════════════════ -->
+<div class="filter-panel fade-in">
+    <div class="filter-head" id="filterToggle">
+        <div class="filter-head-title">
+            <i class="bi bi-funnel" style="color:var(--accent);"></i>
+            Recherche &amp; Filtres
+            {% if request.GET.search or request.GET.customer or request.GET.payment_method %}
+            <span class="pill pill-warning" style="font-size:10px;">Actif</span>
+            {% endif %}
+        </div>
+        <i class="bi bi-chevron-up" id="filterChevron" style="color:var(--text-muted);font-size:12px;transition:.18s;"></i>
+    </div>
+    <div class="filter-body" id="filterBody">
+        <form method="get" action="">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>Rechercher</label>
+                    <input type="text" name="search" value="{{ request.GET.search }}"
+                        placeholder="N° paiement, facture, client, référence…">
+                </div>
+                <div class="filter-field">
+                    <label>Client</label>
+                    <input type="text" name="customer" value="{{ request.GET.customer }}"
+                        placeholder="Nom du client…">
+                </div>
+                <div class="filter-field">
+                    <label>Méthode</label>
+                    <select name="payment_method">
+                        <option value="">Toutes les méthodes</option>
+                        <option value="cash" {% if request.GET.payment_method == "cash" %}selected{% endif %}>Espèces</option>
+                        <option value="bank_transfer" {% if request.GET.payment_method == "bank_transfer" %}selected{% endif %}>Virement bancaire</option>
+                        <option value="check" {% if request.GET.payment_method == "check" %}selected{% endif %}>Chèque</option>
+                        <option value="card" {% if request.GET.payment_method == "card" %}selected{% endif %}>Carte</option>
+                        <option value="installment" {% if request.GET.payment_method == "installment" %}selected{% endif %}>Versement échelonné</option>
+                        <option value="other" {% if request.GET.payment_method == "other" %}selected{% endif %}>Autre</option>
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Date début</label>
+                    <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+                </div>
+                <div class="filter-field">
+                    <label>Date fin</label>
+                    <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap;">
+                <button type="submit" class="btn-primary" style="padding:9px 20px;font-size:13px;min-height:44px;">
+                    <i class="bi bi-search me-1"></i> Appliquer
+                </button>
+                <a href="{% url 'payments:list' %}" class="btn-ghost" style="padding:9px 16px;font-size:13px;min-height:44px;">
+                    <i class="bi bi-x-lg me-1"></i> Effacer
+                </a>
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                <a href="{% url 'payments:create' %}" class="btn-primary" style="padding:9px 20px;font-size:13px;margin-left:auto;min-height:44px;">
+                    <i class="bi bi-plus-lg me-1"></i> Nouveau paiement
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════
+     TABLEAU DES PAIEMENTS
+══════════════════════════════════ -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Historique des paiements</div>
+            <div class="table-card-subtitle">
+                {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}
+                {% if request.GET.search %} pour « {{ request.GET.search }} »{% endif %}
+            </div>
+        </div>
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <a href="{% url 'payments:outstanding' %}" class="btn-ghost" style="padding:8px 14px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+            <i class="bi bi-hourglass-split"></i> Factures impayées
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>N° Paiement</th>
+                    <th>Date</th>
+                    <th>Facture</th>
+                    <th>Client</th>
+                    <th>Méthode</th>
+                    <th>Référence</th>
+                    <th style="text-align:right;">Montant</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in page_obj.object_list %}
+                <tr onclick="location.href='{% url 'payments:detail' payment.pk %}'" style="cursor:pointer;">
+                    <td>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);font-size:13px;">
+                            {{ payment.payment_number }}
+                        </span>
+                    </td>
+                    <td>{{ payment.payment_date|date:"j M Y" }}</td>
+                    <td>
+                        <a href="{% url 'sales:invoice_detail' payment.invoice.pk %}"
+                            onclick="event.stopPropagation();"
+                            style="color:var(--accent);font-size:12.5px;font-weight:600;">
+                            {{ payment.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td style="color:var(--text-primary);font-weight:500;">{{ payment.invoice.customer.name|default:"—" }}</td>
+                    <td>
+                        {% if payment.payment_method == 'cash' %}
+                        <span class="pill method-cash"><i class="bi bi-cash me-1"></i>Espèces</span>
+                        {% elif payment.payment_method == 'bank_transfer' %}
+                        <span class="pill method-transfer"><i class="bi bi-bank me-1"></i>Virement</span>
+                        {% elif payment.payment_method == 'check' %}
+                        <span class="pill method-check"><i class="bi bi-file-earmark-text me-1"></i>Chèque</span>
+                        {% elif payment.payment_method == 'card' %}
+                        <span class="pill method-card"><i class="bi bi-credit-card me-1"></i>Carte</span>
+                        {% elif payment.payment_method == 'installment' %}
+                        <span class="pill" style="background:rgba(99,102,241,.10);color:#6366f1;"><i class="bi bi-calendar-check me-1"></i>Échelonné</span>
+                        {% else %}
+                        <span class="pill method-other">{{ payment.get_payment_method_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-muted);font-size:12px;">
+                        {{ payment.bank_reference|default:"—" }}
+                    </td>
+                    <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">
+                        {{ payment.amount|floatformat:0 }} <span style="font-size:11px;font-weight:400;color:var(--text-muted);">DA</span>
+                    </td>
+                    <td>
+                        {% if payment.is_confirmed %}
+                        <span class="pill pill-success"><i class="bi bi-check-circle me-1"></i>Confirmé</span>
+                        {% else %}
+                        <span class="pill pill-warning"><i class="bi bi-clock me-1"></i>En attente</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-row">
+        <div class="pagination-info">
+            Affichage {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-btns">
+            {% if page_obj.has_previous %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_method %}payment_method={{ request.GET.payment_method }}&{% endif %}page={{ page_obj.previous_page_number }}" class="pg-btn">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="pg-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="pg-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_method %}payment_method={{ request.GET.payment_method }}&{% endif %}page={{ num }}" class="pg-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.payment_method %}payment_method={{ request.GET.payment_method }}&{% endif %}page={{ page_obj.next_page_number }}" class="pg-btn">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="pg-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align:center;padding:56px 20px;color:var(--text-muted);">
+        <i class="bi bi-credit-card" style="font-size:36px;display:block;margin-bottom:14px;color:var(--border-strong);"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucun paiement trouvé</div>
+        <div style="font-size:13px;">
+            {% if request.GET.search %}Aucun paiement ne correspond à votre recherche.{% else %}Aucun paiement n'a encore été enregistré.{% endif %}
+        </div>
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+        <a href="{% url 'payments:create' %}" class="btn-primary" style="margin-top:18px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+            <i class="bi bi-plus-lg"></i> Enregistrer un paiement
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const filterToggle  = document.getElementById('filterToggle');
+const filterBody    = document.getElementById('filterBody');
+const filterChevron = document.getElementById('filterChevron');
+let filterOpen = true;
+
+filterToggle.addEventListener('click', () => {
+    filterOpen = !filterOpen;
+    filterBody.style.display = filterOpen ? '' : 'none';
+    filterChevron.style.transform = filterOpen ? '' : 'rotate(180deg)';
+});
+</script>
+{% endblock %}

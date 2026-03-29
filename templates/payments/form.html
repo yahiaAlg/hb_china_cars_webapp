@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}{% if payment %}Modifier le paiement{% else %}Nouveau paiement{% endif %}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}{% if payment %}Modifier le paiement{% else %}Enregistrer un paiement{% endif %}{% endblock %}
+{% block page_sub_text %}{% if payment %}{{ payment.payment_number }}{% else %}Saisie d'un nouveau règlement{% endif %}{% endblock %}
+
+{% block extra_css %}
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+    max-width: 980px;
+}
+
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-raised);
+}
+
+.form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-card-body { padding: 22px 20px; }
+
+.form-row { display: grid; gap: 14px; margin-bottom: 14px; }
+.form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.field-label span.req { color: var(--accent); }
+
+.field-input, .field-select, .field-textarea {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 11px 14px;
+    width: 100%;
+    min-height: 44px;
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.field-input:focus, .field-select:focus, .field-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.field-textarea { resize: vertical; min-height: 90px; }
+.field-select option { background: var(--bg-raised); }
+
+.field-error {
+    font-size: 11.5px;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Carte résumé de facture */
+.invoice-summary-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 14px;
+}
+
+.invoice-summary-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-raised);
+}
+
+.invoice-summary-body { padding: 14px 16px; }
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--text-muted); }
+.summary-value { color: var(--text-secondary); font-weight: 500; }
+
+.fade-in { animation: fadeIn .35s ease both; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .form-layout { grid-template-columns: 1fr; }
+    .form-row.cols-2 { grid-template-columns: 1fr; }
+    .form-row.cols-3 { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Retour -->
+<div style="margin-bottom:20px;">
+    <a href="{% url 'payments:list' %}" class="section-link" style="font-size:13px;color:var(--text-secondary);">
+        <i class="bi bi-arrow-left me-1"></i> Retour aux paiements
+    </a>
+</div>
+
+<div class="form-layout">
+
+    <!-- Gauche : formulaire -->
+    <div class="fade-in">
+        <div class="form-card">
+            <div class="form-card-head">
+                <div style="width:40px;height:40px;background:var(--accent-dim);border-radius:var(--radius-sm);display:grid;place-items:center;color:var(--accent);font-size:18px;flex-shrink:0;">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+                <div>
+                    <div class="form-card-title">{% if payment %}Modifier le paiement{% else %}Nouveau paiement{% endif %}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Remplissez tous les champs obligatoires</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                {% if form.non_field_errors %}
+                <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;">
+                    <div style="font-size:13px;color:#dc2626;display:flex;align-items:center;gap:6px;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" id="paymentForm">
+                    {% csrf_token %}
+
+                    <!-- Facture -->
+                    <div class="form-row">
+                        <div class="field-group">
+                            <label class="field-label">Facture <span class="req">*</span></label>
+                            <select name="{{ form.invoice.html_name }}"
+                                class="field-select {% if form.invoice.errors %}is-invalid{% endif %}"
+                                id="invoiceSelect">
+                                <option value="">— Sélectionner une facture —</option>
+                                {% for inv in form.invoice.field.queryset %}
+                                <option value="{{ inv.pk }}"
+                                    data-total="{{ inv.total_ttc|stringformat:'.2f' }}"
+                                    data-paid="{{ inv.amount_paid|stringformat:'.2f' }}"
+                                    data-balance="{{ inv.balance_due|stringformat:'.2f' }}"
+                                    data-customer="{{ inv.customer.name|default:'' }}"
+                                    {% if payment and inv.pk == payment.invoice_id %}selected
+                                    {% elif not payment and form.invoice.value|stringformat:"s" == inv.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ inv.invoice_number }} — {{ inv.customer.name|default:"?" }} ({{ inv.balance_due|floatformat:0 }} DA restant)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.invoice.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.invoice.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Montant + Date -->
+                    <div class="form-row cols-2">
+                        <div class="field-group">
+                            <label class="field-label">Montant (DA) <span class="req">*</span></label>
+                            <input type="number"
+                                name="{{ form.amount.html_name }}"
+                                id="amountInput"
+                                step="0.01" min="0.01"
+                                class="field-input {% if form.amount.errors %}is-invalid{% endif %}"
+                                placeholder="0,00">
+                            {% if form.amount.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.amount.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Date du paiement <span class="req">*</span></label>
+                            <input type="date"
+                                name="{{ form.payment_date.html_name }}"
+                                value="{{ form.payment_date.value|date:'Y-m-d'|default_if_none:'' }}"
+                                class="field-input {% if form.payment_date.errors %}is-invalid{% endif %}">
+                            {% if form.payment_date.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.payment_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Méthode + Référence -->
+                    <div class="form-row cols-2">
+                        <div class="field-group">
+                            <label class="field-label">Méthode de paiement <span class="req">*</span></label>
+                            <!-- Payment method: add "installment" option -->
+                            <select name="{{ form.payment_method.html_name }}"
+                                class="field-select {% if form.payment_method.errors %}is-invalid{% endif %}">
+                                <option value="">— Sélectionner —</option>
+                                <option value="cash"          {% if form.payment_method.value == 'cash' %}selected{% endif %}>💵 Espèces</option>
+                                <option value="bank_transfer" {% if form.payment_method.value == 'bank_transfer' %}selected{% endif %}>🏦 Virement bancaire</option>
+                                <option value="check"         {% if form.payment_method.value == 'check' %}selected{% endif %}>📄 Chèque</option>
+                                <option value="card"          {% if form.payment_method.value == 'card' %}selected{% endif %}>💳 Carte</option>
+                                <option value="installment"   {% if form.payment_method.value == 'installment' %}selected{% endif %}>📅 Versement échelonné</option>
+                                <option value="other"         {% if form.payment_method.value == 'other' %}selected{% endif %}>Autre</option>
+                            </select>
+                            {% if form.payment_method.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.payment_method.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Référence bancaire / chèque</label>
+                            <input type="text"
+                                name="{{ form.bank_reference.html_name }}"
+                                value="{{ form.bank_reference.value|default_if_none:'' }}"
+                                class="field-input {% if form.bank_reference.errors %}is-invalid{% endif %}"
+                                placeholder="N° de référence…">
+                            {% if form.bank_reference.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.bank_reference.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="field-group">
+                            <label class="field-label">Notes internes</label>
+                            <textarea name="{{ form.notes.html_name }}"
+                                class="field-textarea {% if form.notes.errors %}is-invalid{% endif %}"
+                                placeholder="Observations, commentaires…">{{ form.notes.value|default_if_none:'' }}</textarea>
+                            {% if form.notes.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+                        <button type="submit" class="btn-primary" style="flex:1;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;">
+                            <i class="bi bi-check-circle"></i>
+                            {% if payment %}Enregistrer les modifications{% else %}Valider le paiement{% endif %}
+                        </button>
+                        <a href="{% url 'payments:list' %}" class="btn-ghost" style="padding:12px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+                            <i class="bi bi-x-lg"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Droite : résumé de la facture -->
+    <div class="fade-in" style="animation-delay:60ms;">
+
+        <!-- Résumé dynamique -->
+        <div class="invoice-summary-card" id="invoiceSummaryCard" style="{% if not form.invoice.value %}display:none;{% endif %}">
+            <div class="invoice-summary-head">
+                <i class="bi bi-receipt" style="color:var(--accent);"></i>
+                Résumé de la facture
+            </div>
+            <div class="invoice-summary-body">
+                <div style="background:linear-gradient(135deg,rgba(217,119,6,.10),rgba(217,119,6,.03));border:1px solid rgba(217,119,6,.20);border-radius:var(--radius-md);padding:14px;text-align:center;margin-bottom:12px;">
+                    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Solde restant</div>
+                    <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--accent);" id="summaryBalance">—</div>
+                    <div style="font-size:11px;color:var(--text-muted);">DA</div>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Client</span>
+                    <span class="summary-value" id="summaryCustomer">—</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Total facture</span>
+                    <span class="summary-value" id="summaryTotal">—</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Déjà payé</span>
+                    <span class="summary-value" style="color:#16a34a;font-weight:600;" id="summaryPaid">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aide contextuelle -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-sm);">
+            <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:10px;">
+                Conseils
+            </div>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+                <li style="display:flex;gap:8px;font-size:12.5px;color:var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+                    Sélectionnez d'abord la facture pour voir le solde restant.
+                </li>
+                <li style="display:flex;gap:8px;font-size:12.5px;color:var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+                    Le montant ne peut pas dépasser le solde dû.
+                </li>
+                <li style="display:flex;gap:8px;font-size:12.5px;color:var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+                    Ajoutez la référence chèque/virement pour la traçabilité.
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const invoiceSelect = document.getElementById('invoiceSelect');
+const summaryCard   = document.getElementById('invoiceSummaryCard');
+
+function updateSummary() {
+    const opt = invoiceSelect.options[invoiceSelect.selectedIndex];
+    if (!opt || !opt.value) {
+        summaryCard.style.display = 'none';
+        return;
+    }
+    summaryCard.style.display = '';
+    
+    const balance = parseFloat(opt.dataset.balance || 0);
+    const total   = parseFloat(opt.dataset.total   || 0);
+    const paid    = parseFloat(opt.dataset.paid     || 0);
+    
+    document.getElementById('summaryBalance').textContent  = Math.round(balance).toLocaleString('fr-FR');
+    document.getElementById('summaryTotal').textContent    = Math.round(total).toLocaleString('fr-FR') + ' DA';
+    document.getElementById('summaryPaid').textContent     = Math.round(paid).toLocaleString('fr-FR') + ' DA';
+    document.getElementById('summaryCustomer').textContent = opt.dataset.customer || '—';
+
+    // Only pre-fill amount on NEW payments, not edits
+    const amountInput = document.getElementById('amountInput');
+    const isEdit = {{ payment.pk|default:"false" }} !== false;
+    if (!isEdit && !amountInput.value) {
+        amountInput.value = balance.toFixed(2);
+    }
+}
+
+// Set amount for edit mode — done via JS to avoid number input rendering issues
+{% if payment %}
+document.getElementById('amountInput').value = '{{ payment.amount }}';
+{% endif %}
+
+invoiceSelect.addEventListener('change', updateSummary);
+updateSummary(); // Au chargement si déjà sélectionnée
+
+// Pré-remplir la date avec aujourd'hui si vide
+const dateInput = document.querySelector('input[name*="payment_date"]');
+if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+}
+</script>
+{% endblock %}

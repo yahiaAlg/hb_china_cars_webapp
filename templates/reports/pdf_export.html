@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export Rapport — HB China Cars</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #111827; background: #fff; line-height: 1.5; }
+
+/* Layout */
+.container { max-width: 1000px; margin: 0 auto; padding: 32px 40px; }
+
+/* Header */
+.report-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 42px; height: 42px; background: #d97706; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex-shrink: 0; }
+.brand-name { font-family: 'Segoe UI', Arial, sans-serif; font-size: 18px; font-weight: 800; color: #111827; }
+.brand-sub { font-size: 11px; color: #6b7280; margin-top: 1px; }
+.report-meta { text-align: right; }
+.report-title { font-size: 16px; font-weight: 700; color: #111827; }
+.report-date { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+
+/* Summary box */
+.summary-box { background: #f9fafb; border-left: 4px solid #d97706; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+.summary-box p { font-size: 12.5px; color: #4b5563; margin: 0; }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+.kpi-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: #9ca3af; margin-bottom: 5px; }
+.kpi-value { font-size: 20px; font-weight: 800; color: #111827; }
+.kpi-unit { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+/* Section */
+.section-title { font-size: 14px; font-weight: 700; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 14px; margin-top: 28px; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px; }
+thead tr th { background: #d97706; color: #fff; font-weight: 600; padding: 9px 12px; text-align: left; font-size: 11px; letter-spacing: .03em; }
+tbody tr:nth-child(even) td { background: #f9fafb; }
+tbody tr td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 600; }
+.badge-success { background: rgba(22,163,74,.12); color: #16a34a; }
+.badge-warning { background: rgba(217,119,6,.12); color: #d97706; }
+.badge-danger  { background: rgba(220,38,38,.12); color: #dc2626; }
+.badge-info    { background: rgba(2,132,199,.12);  color: #0284c7; }
+.badge-neutral { background: rgba(0,0,0,.07);       color: #4b5563; }
+
+/* Footer */
+.report-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+.footer-conf { font-size: 10.5px; color: #9ca3af; }
+.footer-ts   { font-size: 10.5px; color: #9ca3af; }
+
+/* Print button */
+.print-btn { position: fixed; top: 20px; right: 24px; background: #d97706; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 2px 8px rgba(217,119,6,.30); }
+.print-btn:hover { opacity: .88; }
+
+@media print {
+    .print-btn, .no-print { display: none !important; }
+    body { font-size: 11px; }
+    .container { padding: 0; max-width: 100%; }
+    .kpi-row { grid-template-columns: repeat(4, 1fr); }
+}
+@page { size: A4; margin: 20mm 18mm; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">
+    &#128438; Imprimer / Sauvegarder PDF
+</button>
+
+<div class="container">
+
+    <!-- En-tête -->
+    <div class="report-header">
+        <div class="brand">
+            <div class="brand-icon">&#128663;</div>
+            <div>
+                <div class="brand-name">HB China Cars</div>
+                <div class="brand-sub">Plateforme de négoce automobile</div>
+            </div>
+        </div>
+        <div class="report-meta">
+            <div class="report-title">
+                {% if report_type == 'profit_analysis' %}Analyse de rentabilité
+                {% elif report_type == 'inventory_status' %}État du stock
+                {% elif report_type == 'payment_status' %}Statut des paiements
+                {% elif report_type == 'sales_summary' %}Récapitulatif des ventes
+                {% else %}Rapport{% endif %}
+            </div>
+            <div class="report-date">Généré le {% now "j F Y à H:i" %} · {{ request.user.get_full_name|default:request.user.username }}</div>
+        </div>
+    </div>
+
+    <!-- Résumé -->
+    <div class="summary-box">
+        <p>
+            {% if report_type == 'profit_analysis' %}Ce rapport présente une analyse complète des marges et du chiffre d'affaires sur la période sélectionnée. Les données sont groupées par période ou trader selon les filtres appliqués.
+            {% elif report_type == 'inventory_status' %}Ce rapport détaille l'état actuel du stock : valorisation, répartition par statut, ancienneté des véhicules et identification des invendus à plus de 90 jours.
+            {% elif report_type == 'payment_status' %}Ce rapport dresse le bilan des encaissements et des impayés : taux de recouvrement, tranches de retard et principaux débiteurs à relancer.
+            {% elif report_type == 'sales_summary' %}Ce rapport synthétise les ventes sur la période : volume, CA, modes de paiement et classement des meilleurs clients.
+            {% else %}Rapport généré depuis la plateforme HB China Cars.{% endif %}
+        </p>
+    </div>
+
+    <!-- ══ BLOCS CONDITIONNELS PAR TYPE ══ -->
+
+    {% if report_type == 'profit_analysis' %}
+    <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-label">Total ventes</div><div class="kpi-value">—</div><div class="kpi-unit">transactions</div></div>
+        <div class="kpi-box"><div class="kpi-label">CA total</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Marge brute</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Taux de marge</div><div class="kpi-value">—</div><div class="kpi-unit">%</div></div>
+    </div>
+    <div class="section-title">Décomposition par période</div>
+    <table>
+        <thead><tr><th>Période</th><th>Nb. ventes</th><th>CA (DA)</th><th>Marge (DA)</th><th>Taux marge</th><th>Commission (DA)</th></tr></thead>
+        <tbody><tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:20px;">Les données seront intégrées dynamiquement depuis la vue.</td></tr></tbody>
+    </table>
+    {% endif %}
+
+    {% if report_type == 'inventory_status' %}
+    <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-label">Total véhicules</div><div class="kpi-value">—</div><div class="kpi-unit">unités</div></div>
+        <div class="kpi-box"><div class="kpi-label">Disponibles</div><div class="kpi-value">—</div><div class="kpi-unit">unités</div></div>
+        <div class="kpi-box"><div class="kpi-label">Valeur totale</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Valeur moyenne</div><div class="kpi-value">—</div><div class="kpi-unit">DA/veh.</div></div>
+    </div>
+    <div class="section-title">Répartition par statut</div>
+    <table>
+        <thead><tr><th>Statut</th><th>Nb. véhicules</th><th>Valeur (DA)</th></tr></thead>
+        <tbody><tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:20px;">Les données seront intégrées dynamiquement depuis la vue.</td></tr></tbody>
+    </table>
+    <div class="section-title">Ancienneté en stock</div>
+    <table>
+        <thead><tr><th>Tranche</th><th>Nb. véhicules</th><th>Valeur immobilisée (DA)</th></tr></thead>
+        <tbody>
+            <tr><td>0–30 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>31–60 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>61–90 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>90+ jours <span class="badge badge-danger">Invendus</span></td><td>—</td><td>—</td></tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if report_type == 'payment_status' %}
+    <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-label">Total facturé</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Encaissé</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Impayés</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Taux recouvrement</div><div class="kpi-value">—</div><div class="kpi-unit">%</div></div>
+    </div>
+    <div class="section-title">Tranches de retard</div>
+    <table>
+        <thead><tr><th>Tranche</th><th>Nb. factures</th><th>Montant impayé (DA)</th></tr></thead>
+        <tbody>
+            <tr><td>1–30 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>31–60 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>61–90 jours</td><td>—</td><td>—</td></tr>
+            <tr><td>90+ jours <span class="badge badge-danger">Critique</span></td><td>—</td><td>—</td></tr>
+        </tbody>
+    </table>
+    <div class="section-title">Principaux débiteurs</div>
+    <table>
+        <thead><tr><th>Client</th><th>Nb. factures</th><th>Solde impayé (DA)</th></tr></thead>
+        <tbody><tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:20px;">Les données seront intégrées dynamiquement depuis la vue.</td></tr></tbody>
+    </table>
+    {% endif %}
+
+    {% if report_type == 'sales_summary' %}
+    <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-label">Total ventes</div><div class="kpi-value">—</div><div class="kpi-unit">transactions</div></div>
+        <div class="kpi-box"><div class="kpi-label">CA total</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+        <div class="kpi-box"><div class="kpi-label">Prix moyen</div><div class="kpi-value">—</div><div class="kpi-unit">DA/veh.</div></div>
+        <div class="kpi-box"><div class="kpi-label">Commissions</div><div class="kpi-value">—</div><div class="kpi-unit">DA</div></div>
+    </div>
+    <div class="section-title">Détail par période</div>
+    <table>
+        <thead><tr><th>Période</th><th>Nb. ventes</th><th>CA (DA)</th><th>Vente moy. (DA)</th><th>Commission (DA)</th></tr></thead>
+        <tbody><tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:20px;">Les données seront intégrées dynamiquement depuis la vue.</td></tr></tbody>
+    </table>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="report-footer">
+        <div class="footer-conf">&#128274; CONFIDENTIEL — Usage interne uniquement. Ne pas diffuser.</div>
+        <div class="footer-ts">HB China Cars · {% now "j F Y" %}</div>
+    </div>
+
+</div>
+</body>
+</html>

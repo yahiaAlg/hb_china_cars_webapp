@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Statut des paiements{% endblock %}
+{% block nav_reports %}active{% endblock %}
+{% block page_title %}Statut des paiements{% endblock %}
+{% block page_sub_text %}Suivi des encaissements &amp; analyse des impayés{% endblock %}
+
+{% block extra_css %}
+.filter-bar{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;align-items:end;}
+.filter-group{display:flex;flex-direction:column;gap:5px;}
+.filter-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);}
+.filter-input{background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;width:100%;min-height:44px;}
+.filter-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.filter-input option{background:var(--bg-raised);}
+.btn-primary-sm{background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:9px 18px;border-radius:var(--radius-md);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:44px;}
+.btn-primary-sm:hover{opacity:.88;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;padding:8px 16px;border-radius:var(--radius-md);cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;min-height:44px;}
+.btn-ghost-sm:hover{background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary);}
+.chart-panel{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);}
+.cp-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;}
+.cp-sub{font-size:12px;color:var(--text-muted);margin-bottom:14px;}
+.gauge-wrap{position:relative;width:160px;height:160px;margin:0 auto 10px;}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.section-head{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);}
+.section-sub{font-size:12px;color:var(--text-muted);}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-family:'Syne',sans-serif;font-size:11px;font-weight:800;flex-shrink:0;}
+@media(max-width:768px){.filter-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.filter-grid{grid-template-columns:1fr;}}
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+  <a href="{% url 'reports:dashboard' %}" style="font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.color='var(--text-secondary)';" onmouseout="this.style.color='var(--text-muted)';">
+    <i class="bi bi-arrow-left"></i> Tableau des rapports
+  </a>
+  {% if request.user.userprofile %}{% if request.user.userprofile.is_manager %}
+  <a href="{% url 'reports:export_report' %}" class="btn-ghost-sm"><i class="bi bi-download"></i> Exporter</a>
+  {% endif %}{% endif %}
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-blue"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="metric-label">Total factures</div>
+      <div class="metric-value">{{ total_invoices }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">factures</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-green"><i class="bi bi-check-circle"></i></div>
+      <div class="metric-label">Total encaissé</div>
+      <div class="metric-value sm">{{ total_paid|floatformat:0 }}</div>
+      <span class="metric-delta {% if collection_rate > 80 %}up{% elif collection_rate > 60 %}neutral{% else %}down{% endif %}">{{ collection_rate|floatformat:1 }}%</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-pink"><i class="bi bi-exclamation-circle"></i></div>
+      <div class="metric-label">Soldes impayés</div>
+      <div class="metric-value sm">{{ total_outstanding|floatformat:0 }}</div>
+      <span style="font-size:12px;color:#dc2626;font-weight:600;">DA</span>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="metric-card">
+      <div class="metric-icon ic-amber"><i class="bi bi-cash-stack"></i></div>
+      <div class="metric-label">Total facturé</div>
+      <div class="metric-value sm">{{ total_amount|floatformat:0 }}</div>
+      <span style="font-size:12px;color:var(--text-muted);">DA</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="filter-bar">
+  <form method="get">
+    <div class="filter-grid">
+      {% if request.user.userprofile %}{% if not request.user.userprofile.is_trader %}
+      <div class="filter-group">
+        <label class="filter-label">Client</label>
+        <select name="customer" class="filter-input">
+          <option value="">Tous les clients</option>
+          {% for c in form.customer.field.queryset %}<option value="{{ c.pk }}" {% if form.customer.value == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Trader</label>
+        <select name="trader" class="filter-input">
+          <option value="">Tous les traders</option>
+          {% for c in form.trader.field.queryset %}<option value="{{ c.pk }}" {% if form.trader.value == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.get_full_name|default:c.username }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endif %}{% endif %}
+      <div class="filter-group"><label class="filter-label">Montant min (DA)</label><input type="number" name="amount_min" class="filter-input" placeholder="0" value="{{ form.amount_min.value|default:'' }}"></div>
+      <div class="filter-group"><label class="filter-label">Retard min (jours)</label><input type="number" name="days_overdue_min" class="filter-input" placeholder="0" value="{{ form.days_overdue_min.value|default:'' }}"></div>
+      <div class="filter-group">
+        <label class="filter-label">&nbsp;</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-secondary);cursor:pointer;min-height:44px;">
+          <input type="checkbox" name="overdue_only" {% if form.overdue_only.value %}checked{% endif %} style="accent-color:var(--accent);width:14px;height:14px;"> Impayés seulement
+        </label>
+      </div>
+      <div class="filter-group"><label class="filter-label">&nbsp;</label>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn-primary-sm"><i class="bi bi-funnel"></i> Filtrer</button>
+          <a href="{% url 'reports:payment_status' %}" class="btn-ghost-sm"><i class="bi bi-x"></i></a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ═══ GRAPHIQUES ═══ -->
+<!-- Ligne 1 : Gauge + Donut statut + Tranches de retard -->
+<div class="row g-3 mb-4">
+  <!-- Gauge taux encaissement -->
+  <div class="col-xl-3">
+    <div class="chart-panel" style="text-align:center;">
+      <div class="cp-title">Taux d'encaissement</div>
+      <div class="cp-sub">Paiements reçus / Total facturé</div>
+      <div class="gauge-wrap">
+        <canvas id="gaugeChart"></canvas>
+        <div class="gauge-center">
+          <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:{% if collection_rate > 80 %}#16a34a{% elif collection_rate > 60 %}#d97706{% else %}#dc2626{% endif %};">{{ collection_rate|floatformat:0 }}%</div>
+          <div style="font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:.05em;">RECOUVRÉ</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+        <div style="background:rgba(22,163,74,.08);border-radius:var(--radius-md);padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#16a34a;">{{ total_paid|floatformat:0 }}</div>
+          <div style="font-size:10px;color:var(--text-muted);">DA encaissé</div>
+        </div>
+        <div style="background:rgba(220,38,38,.08);border-radius:var(--radius-md);padding:10px;text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#dc2626;">{{ total_outstanding|floatformat:0 }}</div>
+          <div style="font-size:10px;color:var(--text-muted);">DA impayé</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Donut statut -->
+  <div class="col-xl-3">
+    <div class="chart-panel">
+      <div class="cp-title">Statut des factures</div>
+      <div class="cp-sub">Nombre de factures par état</div>
+      <div style="height:200px;"><canvas id="statusDonut"></canvas></div>
+    </div>
+  </div>
+  <!-- Tranches de retard -->
+  <div class="col-xl-6">
+    <div class="chart-panel">
+      <div class="cp-title">Tranches de retard</div>
+      <div class="cp-sub">Montant des impayés par ancienneté du retard</div>
+      <div style="height:220px;"><canvas id="overdueChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Ligne 2 : Top débiteurs + Facturé vs Encaissé par statut -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-6">
+    <div class="chart-panel">
+      <div class="cp-title">Principaux débiteurs</div>
+      <div class="cp-sub">Solde impayé cumulé — Top 10 clients</div>
+      <div style="height:250px;"><canvas id="debtorsChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="chart-panel">
+      <div class="cp-title">Facturé · Encaissé · Solde par statut</div>
+      <div class="cp-sub">Comparatif des montants par type de facture</div>
+      <div style="height:250px;"><canvas id="statusAmountsChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TABLEAU : Soldes impayés (tranches de retard) ═══ -->
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Tranches de retard</div>
+    <div class="section-sub">Répartition des impayés par ancienneté</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead><tr><th>Tranche</th><th>Nb. factures</th><th>Solde impayé</th><th>Niveau de risque</th></tr></thead>
+      <tbody>
+        {% for tranche, data in overdue_breakdown.items %}
+        <tr>
+          <td style="font-weight:600;color:var(--text-primary);">{{ tranche }}</td>
+          <td>{{ data.count }}</td>
+          <td style="color:{% if '90' in tranche %}#dc2626{% elif '61' in tranche %}#d97706{% else %}var(--text-secondary){% endif %};font-weight:{% if '90' in tranche or '61' in tranche %}600{% else %}400{% endif %};">{{ data.amount|floatformat:0 }} DA</td>
+          <td>
+            {% if '90' in tranche %}<span class="pill pill-danger">Critique</span>
+            {% elif '61' in tranche %}<span class="pill pill-warning">Élevé</span>
+            {% elif '31' in tranche %}<span class="pill pill-warning">Modéré</span>
+            {% else %}<span class="pill pill-neutral">Faible</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TABLEAU : Principaux débiteurs ═══ -->
+{% if top_outstanding %}
+<div class="card mb-4">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+    <div class="section-head">Principaux débiteurs</div>
+    <div class="section-sub">Clients avec le solde impayé le plus élevé — Top 10</div>
+  </div>
+  <div class="table-scroll">
+    <table class="table-custom">
+      <thead><tr><th>#</th><th>Client</th><th>Nb. factures</th><th>Solde impayé</th></tr></thead>
+      <tbody>
+        {% for d in top_outstanding %}
+        <tr>
+          <td>
+            <span class="rank-badge" style="background:{% if forloop.counter <= 3 %}rgba(220,38,38,.15);color:#dc2626;{% else %}rgba(0,0,0,.05);color:var(--text-muted);{% endif %}">{{ forloop.counter }}</span>
+          </td>
+          <td style="font-weight:600;color:var(--text-primary);">{{ d.customer__name }}</td>
+          <td style="color:var(--text-secondary);">{{ d.invoice_count }}</td>
+          <td style="color:#dc2626;font-weight:600;">{{ d.total_outstanding|floatformat:0 }} DA</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ TABLEAU : Détail des factures ═══ -->
+<div class="card">
+  <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+    <div>
+      <div class="section-head">Détail des factures</div>
+      <div class="section-sub">50 premières factures correspondant aux filtres</div>
+    </div>
+  </div>
+  <div class="table-scroll">
+    {% if invoices_list %}
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>N° facture</th>
+          <th>Client</th>
+          <th>Véhicule</th>
+          <th>Total TTC</th>
+          <th>Payé</th>
+          <th>Solde dû</th>
+          <th>Statut</th>
+          <th>Échéance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices_list %}
+        <tr>
+          <td style="font-family:monospace;font-size:11.5px;color:var(--text-muted);">#{{ inv.invoice_number|default:inv.pk }}</td>
+          <td style="font-weight:600;color:var(--text-primary);">{{ inv.customer.name }}</td>
+          <td style="color:var(--text-muted);font-size:12px;white-space:nowrap;">
+            {% if inv.sale %}{{ inv.sale.vehicle.make }} {{ inv.sale.vehicle.model }}{% else %}—{% endif %}
+          </td>
+          <td style="white-space:nowrap;">{{ inv.total_ttc|floatformat:0 }} DA</td>
+          <td style="color:#16a34a;white-space:nowrap;">{{ inv.amount_paid|floatformat:0 }} DA</td>
+          <td style="color:{% if inv.balance_due > 0 %}#dc2626{% else %}#16a34a{% endif %};font-weight:600;white-space:nowrap;">{{ inv.balance_due|floatformat:0 }} DA</td>
+          <td>
+            {% if inv.status == 'paid' %}<span class="pill pill-success">Payée</span>
+            {% elif inv.status == 'issued' %}<span class="pill pill-warning">Émise</span>
+            {% elif inv.status == 'cancelled' %}<span class="pill pill-neutral">Annulée</span>
+            {% else %}<span class="pill pill-neutral">{{ inv.get_status_display }}</span>{% endif %}
+          </td>
+          <td style="color:{% if inv.due_date and inv.balance_due > 0 %}#dc2626{% else %}var(--text-muted){% endif %};white-space:nowrap;">
+            {% if inv.due_date %}{{ inv.due_date|date:"j M Y" }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;">
+      <i class="bi bi-file-earmark-x" style="font-size:32px;color:var(--border-strong);display:block;margin-bottom:12px;"></i>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucune facture trouvée</div>
+      <div style="font-size:13px;color:var(--text-muted);">Ajustez les filtres pour afficher les données.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function p(s){return parseFloat(String(s).replace(/[\u00a0\u0020]/g,"").replace(",","."))||0;}
+const ttCfg={backgroundColor:'#ffffff',borderColor:'rgba(0,0,0,.10)',borderWidth:1,titleColor:'#111827',bodyColor:'#6b7280',padding:10,cornerRadius:8};
+const _cr=p("{{ collection_rate|floatformat:2 }}");
+const gaugeColor=_cr>80?'#16a34a':_cr>60?'#d97706':'#dc2626';
+new Chart(document.getElementById('gaugeChart').getContext('2d'),{type:'doughnut',data:{datasets:[{data:[_cr,100-_cr],backgroundColor:[gaugeColor+'30','rgba(0,0,0,.05)'],borderColor:[gaugeColor,'transparent'],borderWidth:[3,0]}]},options:{cutout:'74%',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{enabled:false}},rotation:-90,circumference:180}});
+
+const sbLabels=[{% for row in status_breakdown %}"{{ row.status }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const sbCounts=[{% for row in status_breakdown %}p("{{ row.count }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const sbPalette=['#16a34a','#d97706','#dc2626','#0284c7','#7c3aed'];
+new Chart(document.getElementById('statusDonut').getContext('2d'),{type:'doughnut',data:{labels:sbLabels,datasets:[{data:sbCounts,backgroundColor:sbPalette.map(c=>c+'22'),borderColor:sbPalette,borderWidth:2}]},options:{cutout:'65%',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{size:10.5},padding:8,boxWidth:10,boxHeight:10}},tooltip:ttCfg}}});
+
+const odLabels=[{% for k,v in overdue_breakdown.items %}"{{ k }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const odAmounts=[{% for k,v in overdue_breakdown.items %}p("{{ v.amount|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const odCounts=[{% for k,v in overdue_breakdown.items %}p("{{ v.count }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const odColors=['rgba(22,163,74,.18)','rgba(217,119,6,.18)','rgba(234,88,12,.18)','rgba(220,38,38,.18)'];
+const odBorders=['#16a34a','#d97706','#ea580c','#dc2626'];
+new Chart(document.getElementById('overdueChart').getContext('2d'),{type:'bar',data:{labels:odLabels,datasets:[{label:'Solde impayé (DA)',data:odAmounts,backgroundColor:odColors,borderColor:odBorders,borderWidth:1.5,borderRadius:7,borderSkipped:false,yAxisID:'y'},{label:'Nb. factures',data:odCounts,type:'line',borderColor:'#0284c7',backgroundColor:'rgba(2,132,199,.08)',borderWidth:2,tension:.3,fill:true,pointBackgroundColor:'#0284c7',pointRadius:5,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12}},tooltip:ttCfg},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{position:'left',grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}},y1:{position:'right',grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}}}}});
+
+const debLbls=[{% for d in top_outstanding %}"{{ d.customer__name }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const debVals=[{% for d in top_outstanding %}p("{{ d.total_outstanding|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+new Chart(document.getElementById('debtorsChart').getContext('2d'),{type:'bar',data:{labels:debLbls,datasets:[{label:'Solde impayé (DA)',data:debVals,backgroundColor:'rgba(220,38,38,.18)',borderColor:'#dc2626',borderWidth:1.5,borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.x).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10},callback:v=>(v/1000000).toFixed(1)+'M'}},y:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}}}}});
+
+const saLabels=[{% for row in status_breakdown %}"{{ row.status }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const saTotals=[{% for row in status_breakdown %}p("{{ row.amount|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const saOutstanding=[{% for row in status_breakdown %}p("{{ row.outstanding|floatformat:2 }}"){% if not forloop.last %},{% endif %}{% endfor %}];
+const saPaid=saTotals.map((t,i)=>Math.max(0,t-(saOutstanding[i]||0)));
+new Chart(document.getElementById('statusAmountsChart').getContext('2d'),{type:'bar',data:{labels:saLabels,datasets:[{label:'Total facturé (DA)',data:saTotals,backgroundColor:'rgba(2,132,199,.16)',borderColor:'#0284c7',borderWidth:1.5,borderRadius:6,borderSkipped:false},{label:'Encaissé (DA)',data:saPaid,backgroundColor:'rgba(22,163,74,.18)',borderColor:'#16a34a',borderWidth:1.5,borderRadius:6,borderSkipped:false},{label:'Solde impayé (DA)',data:saOutstanding,backgroundColor:'rgba(220,38,38,.16)',borderColor:'#dc2626',borderWidth:1.5,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12}},tooltip:{...ttCfg,callbacks:{label:c=>' '+Number(c.parsed.y).toLocaleString('fr-FR')+' DA'}}},scales:{x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:10.5}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9ca3af',font:{size:10.5},callback:v=>(v/1000000).toFixed(1)+'M'}}}}});
+</script>
+{% endblock %}

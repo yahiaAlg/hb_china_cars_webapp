@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}Record a tax rate entry{% endblock %}
+
+{% block extra_css %}
+.back-link { display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-bottom:20px;text-decoration:none;transition:color var(--transition); }
+.back-link:hover { color:var(--accent); }
+
+.form-layout { display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start; }
+@media (max-width:900px) { .form-layout { grid-template-columns:1fr; } }
+
+.form-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden; }
+.form-card-head { padding:16px 20px;border-bottom:1px solid var(--border); }
+.form-card-title { font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary); }
+.form-card-body { padding:20px; }
+
+.section-label { font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;margin-top:4px; }
+.field { margin-bottom:16px; }
+.field label { font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:7px; }
+.field-required::after { content:' *';color:var(--accent); }
+
+.form-control { width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 13px;outline:none;appearance:none;transition:border-color var(--transition),box-shadow var(--transition); }
+.form-control:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(240,165,0,.15); }
+.form-control::placeholder { color:var(--text-muted); }
+
+.field-group { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+@media (max-width:640px) { .field-group { grid-template-columns:1fr; } }
+
+.form-error { font-size:11.5px;color:#f87171;margin-top:5px;display:flex;align-items:center;gap:4px; }
+
+/* Type selector */
+.type-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px; }
+.type-opt { padding:14px 8px;border:1px solid var(--border);border-radius:var(--radius-md);text-align:center;cursor:pointer;transition:all var(--transition); }
+.type-opt:hover { border-color:var(--border-strong);background:var(--bg-hover); }
+.type-opt.selected { border-color:var(--accent);background:var(--accent-dim); }
+.type-opt i { font-size:20px;display:block;margin-bottom:6px; }
+.type-opt-label { font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary); }
+
+.rate-preview-wrap { background:rgba(240,165,0,.07);border:1px solid rgba(240,165,0,.2);border-radius:var(--radius-md);padding:14px 16px;text-align:center;margin-bottom:0; }
+.rate-preview-val { font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--accent);letter-spacing:-.02em; }
+.rate-preview-label { font-size:12px;color:var(--text-muted);margin-top:2px; }
+
+.submit-row { display:flex;align-items:center;gap:10px;padding-top:8px; }
+.btn-primary-x { display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:11px 22px;border:none;cursor:pointer;transition:opacity .18s; }
+.btn-primary-x:hover { opacity:.88; }
+.btn-ghost-x { display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:14px;border-radius:var(--radius-md);padding:11px 20px;text-decoration:none;transition:all var(--transition); }
+.btn-ghost-x:hover { background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary); }
+
+.sidebar-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px; }
+.sidebar-card-title { font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px; }
+
+.fade-in { animation:fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+{% endblock %}
+
+{% block content %}
+
+<a href="{% url 'system_settings:tax_rates' %}" class="back-link fade-in">
+    <i class="bi bi-arrow-left"></i> Back to Tax Rates
+</a>
+
+<div class="form-layout fade-in">
+
+    <div>
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;color:#f87171;">
+                <i class="bi bi-exclamation-circle me-2"></i>{% for e in form.non_field_errors %}{{ e }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title"><i class="bi bi-percent me-2" style="color:#fbbf24;"></i>{{ title }}</div>
+                </div>
+                <div class="form-card-body">
+
+                    <!-- Tax type visual selector -->
+                    <div class="section-label">Tax Type</div>
+                    <input type="hidden" name="tax_type" id="taxTypeInput" value="{{ form.tax_type.value|default:'tva' }}">
+                    <div class="type-grid">
+                        <div class="type-opt {% if form.tax_type.value == 'tva' or not form.tax_type.value %}selected{% endif %}"
+                             onclick="selectType('tva', this)">
+                            <i class="bi bi-percent" style="color:#fbbf24;"></i>
+                            <div class="type-opt-label">TVA</div>
+                        </div>
+                        <div class="type-opt {% if form.tax_type.value == 'tariff' %}selected{% endif %}"
+                             onclick="selectType('tariff', this)">
+                            <i class="bi bi-file-earmark-text" style="color:#7dd3fc;"></i>
+                            <div class="type-opt-label">Tarif Douanier</div>
+                        </div>
+                        <div class="type-opt {% if form.tax_type.value == 'other' %}selected{% endif %}"
+                             onclick="selectType('other', this)">
+                            <i class="bi bi-tag" style="color:#c4b5fd;"></i>
+                            <div class="type-opt-label">Autre</div>
+                        </div>
+                    </div>
+                    {% for e in form.tax_type.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+                    <div class="section-label">Rate &amp; Date</div>
+
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Rate (%)</label>
+                            <input type="number" name="rate" id="rateInput" value="{{ form.rate.value|default:'' }}" step="0.01" min="0" max="100" placeholder="0.00" class="form-control" oninput="updatePreview()">
+                            {% for e in form.rate.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Effective Date</label>
+                            <input type="date" name="effective_date" value="{{ form.effective_date.value|default:'' }}" class="form-control">
+                            {% for e in form.effective_date.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Live preview -->
+                    <div class="rate-preview-wrap" style="margin-bottom:20px;">
+                        <div class="rate-preview-val" id="previewVal">{{ form.rate.value|default:"0" }}%</div>
+                        <div class="rate-preview-label" id="previewLabel">Current rate preview</div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+                    <div class="field" style="margin-bottom:0;">
+                        <label>Description</label>
+                        <input type="text" name="description" value="{{ form.description.value|default:'' }}" placeholder="e.g. Rate update per decree 2024-XX…" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="btn-primary-x"><i class="bi bi-check-lg"></i> Save Rate</button>
+                <a href="{% url 'system_settings:tax_rates' %}" class="btn-ghost-x">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <div class="sidebar-card" style="border-left:2px solid var(--accent);">
+            <div class="sidebar-card-title"><i class="bi bi-info-circle" style="color:var(--accent);"></i>How Rates Are Used</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;display:flex;flex-direction:column;gap:10px;">
+                <p style="margin:0;"><strong style="color:var(--text-primary);">TVA</strong> is applied on top of the CIF value + import duty when calculating customs costs.</p>
+                <p style="margin:0;"><strong style="color:var(--text-primary);">Tarif Douanier</strong> is the customs tariff applied on the CIF value of imported vehicles.</p>
+                <p style="margin:0;">Rates here are used as <strong style="color:var(--text-primary);">defaults</strong> when creating new customs declarations.</p>
+            </div>
+        </div>
+
+        {% if rate %}
+        <div class="sidebar-card">
+            <div class="sidebar-card-title"><i class="bi bi-clock-history" style="color:#a5b4fc;"></i>Current Record</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-muted);">Type</span>
+                    <span style="color:var(--text-primary);font-weight:500;">{{ rate.get_tax_type_display }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-muted);">Rate</span>
+                    <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--accent);">{{ rate.rate|floatformat:2 }}%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                    <span style="color:var(--text-muted);">Effective</span>
+                    <span style="color:var(--text-primary);">{{ rate.effective_date|date:"M j, Y" }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const typeLabels = { tva:'TVA rate', tariff:'Customs tariff rate', other:'Tax rate' };
+
+function selectType(value, el) {
+    document.getElementById('taxTypeInput').value = value;
+    document.querySelectorAll('.type-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    updatePreview();
+}
+
+function updatePreview() {
+    const r   = parseFloat(document.getElementById('rateInput').value) || 0;
+    const t   = document.getElementById('taxTypeInput').value;
+    document.getElementById('previewVal').textContent   = r.toFixed(2) + '%';
+    document.getElementById('previewLabel').textContent = typeLabels[t] || 'Tax rate';
+}
+
+document.addEventListener('DOMContentLoaded', updatePreview);
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Exchange Rates{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block page_title %}Exchange Rates{% endblock %}
+{% block page_sub_text %}{{ total_count }} historical rate record{{ total_count|pluralize }}{% endblock %}
+
+{% block extra_css %}
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+
+/* Current rate cards */
+.current-rates-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-bottom:24px; }
+
+.rate-card {
+    background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:18px 20px; position:relative; overflow:hidden;
+}
+.rate-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent);
+}
+
+.rate-card-pair { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+.rate-card-value { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--accent); letter-spacing:-.02em; }
+.rate-card-unit { font-size:12px; color:var(--text-muted); margin-top:4px; }
+.rate-card-meta { font-size:11px; color:var(--text-muted); margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+
+/* Filter card */
+.filter-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:20px; }
+.filter-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; align-items:end; }
+@media (max-width:800px) { .filter-row { grid-template-columns:1fr 1fr; } }
+@media (max-width:500px) { .filter-row { grid-template-columns:1fr; } }
+.filter-label { font-size:10.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:5px; }
+.filter-control { width:100%; background:var(--bg-raised); border:1px solid var(--border); border-radius:var(--radius-md); color:var(--text-primary); font-family:'DM Sans',sans-serif; font-size:13.5px; padding:9px 11px; outline:none; appearance:none; transition:border-color var(--transition); }
+.filter-control:focus { border-color:var(--accent); }
+
+/* Table */
+.table-card { background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.table-card-head { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.table-scroll { overflow-x:auto; }
+
+/* Pagination */
+.pagination-bar { display:flex; align-items:center; justify-content:space-between; padding:13px 20px; border-top:1px solid var(--border); font-size:12.5px; color:var(--text-muted); flex-wrap:wrap; gap:8px; }
+.page-btns { display:flex; gap:4px; }
+.page-btn { width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--border); border-radius:var(--radius-sm); background:transparent; color:var(--text-secondary); font-size:12.5px; text-decoration:none; transition:all var(--transition); }
+.page-btn:hover { background:var(--bg-hover); border-color:var(--border-strong); color:var(--text-primary); }
+.page-btn.active { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); font-weight:600; }
+.page-btn.disabled { opacity:.35; pointer-events:none; }
+
+.section-eyebrow { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); font-weight:600; margin-bottom:12px; margin-top:4px; }
+
+.fade-in { animation:fadeIn .35s ease both; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-in">
+    <div>
+        <div class="section-eyebrow">Settings / Exchange Rates</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin-top:2px;">Exchange Rates</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'system_settings:system_status' %}" style="display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:9px 14px;text-decoration:none;transition:all var(--transition);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <i class="bi bi-arrow-left"></i> Settings
+        </a>
+        <a href="{% url 'system_settings:exchange_rate_create' %}" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:9px 18px;text-decoration:none;transition:opacity .18s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+            <i class="bi bi-plus-lg"></i> Add Rate
+        </a>
+    </div>
+</div>
+
+<!-- Current rates -->
+{% if current_rates %}
+<div class="section-eyebrow fade-in">Current Rates (Latest per Pair)</div>
+<div class="current-rates-grid fade-in">
+    {% for rate in current_rates %}
+    <div class="rate-card">
+        <div class="rate-card-pair">{{ rate.from_currency.code }} → {{ rate.to_currency.code }}</div>
+        <div class="rate-card-value">{{ rate.rate|floatformat:4 }}</div>
+        <div class="rate-card-unit">1 {{ rate.from_currency.code }} = {{ rate.rate|floatformat:4 }} {{ rate.to_currency.code }}</div>
+        <div class="rate-card-meta">
+            <i class="bi bi-calendar3 me-1"></i>{{ rate.effective_date|date:"M j, Y" }}
+            {% if rate.source %} · {{ rate.source }}{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="filter-card fade-in">
+    <form method="get">
+        <div class="filter-row">
+            <div>
+                <label class="filter-label">From Currency</label>
+                <select name="from_currency" class="filter-control">
+                    <option value="">All</option>
+                    {% for cur in search_form.from_currency.field.queryset %}
+                    <option value="{{ cur.pk }}" {% if search_form.from_currency.value|stringformat:"s" == cur.pk|stringformat:"s" %}selected{% endif %}>{{ cur.code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="filter-label">To Currency</label>
+                <select name="to_currency" class="filter-control">
+                    <option value="">All</option>
+                    {% for cur in search_form.to_currency.field.queryset %}
+                    <option value="{{ cur.pk }}" {% if search_form.to_currency.value|stringformat:"s" == cur.pk|stringformat:"s" %}selected{% endif %}>{{ cur.code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="filter-label">From Date</label>
+                <input type="date" name="date_from" value="{{ search_form.date_from.value|default:'' }}" class="filter-control">
+            </div>
+            <div>
+                <label class="filter-label">To Date</label>
+                <input type="date" name="date_to" value="{{ search_form.date_to.value|default:'' }}" class="filter-control">
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+            <button type="submit" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;border-radius:var(--radius-sm);padding:8px 14px;border:none;cursor:pointer;"><i class="bi bi-funnel"></i> Filter</button>
+            <a href="{% url 'system_settings:exchange_rates' %}" style="display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:8px 14px;text-decoration:none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'"><i class="bi bi-x-lg"></i> Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Rate History</div>
+        <span style="font-size:11.5px;color:var(--text-muted);">{{ total_count }} record{{ total_count|pluralize }}</span>
+    </div>
+    {% if page_obj %}
+    <div class="table-scroll">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Pair</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:right;">Rate</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Effective Date</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Source</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Notes</th>
+                    <th style="padding:12px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);text-align:right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in page_obj %}
+                <tr style="transition:background .15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:13px 14px;font-size:13px;border-bottom:1px solid var(--border);">
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">{{ rate.from_currency.code }}</span>
+                        <i class="bi bi-arrow-right mx-1" style="color:var(--text-muted);font-size:11px;"></i>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">{{ rate.to_currency.code }}</span>
+                    </td>
+                    <td style="padding:13px 14px;font-size:13px;border-bottom:1px solid var(--border);text-align:right;">
+                        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--accent);">{{ rate.rate|floatformat:6 }}</span>
+                    </td>
+                    <td style="padding:13px 14px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid var(--border);">
+                        {{ rate.effective_date|date:"M j, Y" }}
+                    </td>
+                    <td style="padding:13px 14px;font-size:13px;color:var(--text-muted);border-bottom:1px solid var(--border);">
+                        {{ rate.source|default:"—" }}
+                    </td>
+                    <td style="padding:13px 14px;font-size:12.5px;color:var(--text-muted);border-bottom:1px solid var(--border);max-width:200px;">
+                        {{ rate.notes|truncatechars:40|default:"—" }}
+                    </td>
+                    <td style="padding:13px 14px;border-bottom:1px solid var(--border);text-align:right;">
+                        <a href="{% url 'system_settings:exchange_rate_edit' rate.pk %}" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);transition:all var(--transition);" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination-bar">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ total_count }} total</span>
+        <div class="page-btns">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
+            {% else %}<span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>{% endif %}
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}<span class="page-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}<a href="?page={{ num }}" class="page-btn">{{ num }}</a>{% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
+            {% else %}<span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>{% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+        <i class="bi bi-currency-exchange" style="font-size:32px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">No exchange rates found</div>
+        <div style="font-size:13px;margin-bottom:16px;">Add your first rate to track currency conversion history.</div>
+        <a href="{% url 'system_settings:exchange_rate_create' %}" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;border-radius:var(--radius-md);padding:10px 18px;text-decoration:none;">
+            <i class="bi bi-plus-lg"></i> Add Rate
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

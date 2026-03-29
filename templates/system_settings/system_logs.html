@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}System Logs{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block page_title %}System Logs{% endblock %}
+{% block page_sub_text %}{{ total_count }} log entr{{ total_count|pluralize:"y,ies" }}{% endblock %}
+
+{% block extra_css %}
+.page-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
+.section-eyebrow { font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:12px;margin-top:4px; }
+
+/* Stat cards */
+.stats-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px; }
+@media (max-width:800px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:500px) { .stats-grid { grid-template-columns:1fr 1fr; } }
+
+.stat-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px; }
+.stat-label { font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px; }
+.stat-value { font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.02em; }
+
+/* Filter card */
+.filter-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:20px; }
+.filter-grid { display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end; }
+@media (max-width:900px) { .filter-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:500px) { .filter-grid { grid-template-columns:1fr; } }
+
+.filter-label { font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:5px; }
+.filter-control { width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13.5px;padding:9px 11px;outline:none;appearance:none;transition:border-color var(--transition); }
+.filter-control:focus { border-color:var(--accent); }
+
+/* Table */
+.table-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden; }
+.table-card-head { padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+
+/* Log level dots */
+.level-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.level-dot.info     { background:#7dd3fc; }
+.level-dot.warning  { background:#fbbf24; }
+.level-dot.error    { background:#f87171;box-shadow:0 0 6px rgba(239,68,68,.5); }
+.level-dot.critical { background:#f87171;box-shadow:0 0 8px rgba(239,68,68,.7); }
+
+/* Pills */
+.pill { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500; }
+.pill-info     { background:rgba(56,189,248,.12);color:#7dd3fc; }
+.pill-warning  { background:rgba(240,165,0,.15); color:#fbbf24; }
+.pill-error    { background:rgba(239,68,68,.12); color:#f87171; }
+.pill-critical { background:rgba(239,68,68,.18); color:#f87171; }
+.pill-neutral  { background:var(--bg-hover);     color:var(--text-secondary); }
+
+/* Pagination */
+.pagination-bar { display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-muted);flex-wrap:wrap;gap:8px; }
+.page-btns { display:flex;gap:4px; }
+.page-btn { width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text-secondary);font-size:12.5px;text-decoration:none;transition:all var(--transition); }
+.page-btn:hover { background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary); }
+.page-btn.active { background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600; }
+.page-btn.disabled { opacity:.35;pointer-events:none; }
+
+/* Details expand */
+.log-details { display:none;padding:8px 14px 10px;background:var(--bg-raised);border-radius:var(--radius-sm);margin-top:4px;font-size:11.5px;color:var(--text-muted);word-break:break-all; }
+
+/* Clear modal */
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;place-items:center;z-index:1000; }
+.modal-overlay.open { display:grid; }
+.modal-box { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;max-width:420px;width:90%; }
+.modal-title { font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--text-primary);margin-bottom:8px; }
+.modal-desc { font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6; }
+
+.fade-in { animation:fadeIn .35s ease both; }
+.fade-in:nth-child(1) { animation-delay:0ms; }
+.fade-in:nth-child(2) { animation-delay:50ms; }
+.fade-in:nth-child(3) { animation-delay:100ms; }
+.fade-in:nth-child(4) { animation-delay:150ms; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-in">
+    <div>
+        <div class="section-eyebrow">Settings / Audit</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin-top:2px;">System Logs</h1>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="{% url 'system_settings:system_status' %}" style="display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:9px 14px;text-decoration:none;transition:all var(--transition);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <i class="bi bi-arrow-left"></i> Settings
+        </a>
+        <button onclick="document.getElementById('clearModal').classList.add('open')"
+                style="display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#f87171;font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:9px 14px;cursor:pointer;transition:all var(--transition);">
+            <i class="bi bi-trash"></i> Clear Old Logs
+        </button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid fade-in">
+    <div class="stat-card">
+        <div class="stat-label">Total Entries</div>
+        <div class="stat-value" style="color:var(--text-primary);">{{ stats.total_logs }}</div>
+    </div>
+    <div class="stat-card" style="border-left:2px solid #7dd3fc;">
+        <div class="stat-label">Info</div>
+        <div class="stat-value" style="color:#7dd3fc;">{{ stats.info_count }}</div>
+    </div>
+    <div class="stat-card" style="border-left:2px solid #fbbf24;">
+        <div class="stat-label">Warnings</div>
+        <div class="stat-value" style="color:#fbbf24;">{{ stats.warning_count }}</div>
+    </div>
+    <div class="stat-card" style="border-left:2px solid #f87171;">
+        <div class="stat-label">Errors</div>
+        <div class="stat-value" style="color:#f87171;">{{ stats.error_count }}</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card fade-in">
+    <form method="get">
+        <div class="filter-grid">
+            <div>
+                <label class="filter-label">Search</label>
+                <div style="position:relative;">
+                    <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="text" name="search" value="{{ filter_form.search.value|default:'' }}"
+                           placeholder="Search messages…"
+                           class="filter-control" style="padding-left:32px;">
+                </div>
+            </div>
+            <div>
+                <label class="filter-label">Level</label>
+                <select name="level" class="filter-control">
+                    <option value="">All Levels</option>
+                    {% for val, label in filter_form.level.field.choices %}
+                    {% if val %}<option value="{{ val }}" {% if filter_form.level.value == val %}selected{% endif %}>{{ label }}</option>{% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="filter-label">Action Type</label>
+                <select name="action_type" class="filter-control">
+                    <option value="">All Actions</option>
+                    {% for val, label in filter_form.action_type.field.choices %}
+                    {% if val %}<option value="{{ val }}" {% if filter_form.action_type.value == val %}selected{% endif %}>{{ label }}</option>{% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="filter-label">User</label>
+                <input type="text" name="user" value="{{ filter_form.user.value|default:'' }}" placeholder="Username…" class="filter-control">
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+            <button type="submit" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#0d0f12;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;border-radius:var(--radius-sm);padding:8px 14px;border:none;cursor:pointer;"><i class="bi bi-funnel"></i> Filter</button>
+            <a href="{% url 'system_settings:system_logs' %}" style="display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;border-radius:var(--radius-sm);padding:8px 14px;text-decoration:none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'"><i class="bi bi-x-lg"></i> Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Log Entries</div>
+        <span style="font-size:11.5px;color:var(--text-muted);">{{ total_count }} total · 50 per page</span>
+    </div>
+
+    {% if page_obj %}
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">Time</th>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Level</th>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Action</th>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">Message</th>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">User</th>
+                    <th style="padding:11px 14px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);">IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr style="transition:background .15s;cursor:pointer;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="toggleDetails({{ log.pk }})">
+                    <td style="padding:11px 14px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">
+                        {{ log.created_at|date:"M j, H:i:s" }}
+                    </td>
+                    <td style="padding:11px 14px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div class="level-dot {{ log.level }}"></div>
+                            <span class="pill pill-{{ log.level }}">{{ log.get_level_display }}</span>
+                        </div>
+                    </td>
+                    <td style="padding:11px 14px;border-bottom:1px solid var(--border);">
+                        <span class="pill pill-neutral">{{ log.get_action_type_display }}</span>
+                    </td>
+                    <td style="padding:11px 14px;border-bottom:1px solid var(--border);max-width:280px;">
+                        <div style="font-size:12.5px;color:var(--text-secondary);">{{ log.message|truncatechars:80 }}</div>
+                        {% if log.details %}
+                        <div class="log-details" id="details-{{ log.pk }}">
+                            {{ log.details }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="padding:11px 14px;font-size:12.5px;color:var(--text-secondary);border-bottom:1px solid var(--border);white-space:nowrap;">
+                        {% if log.user %}
+                        <i class="bi bi-person me-1" style="color:var(--text-muted);"></i>{{ log.user.username }}
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:11px 14px;font-size:11.5px;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">
+                        {{ log.ip_address|default:"—" }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination-bar">
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ total_count }} total</span>
+        <div class="page-btns">
+            {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.level %}&level={{ request.GET.level }}{% endif %}" class="page-btn"><i class="bi bi-chevron-left"></i></a>{% else %}<span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>{% endif %}
+            {% for num in page_obj.paginator.page_range %}{% if page_obj.number == num %}<span class="page-btn active">{{ num }}</span>{% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}<a href="?page={{ num }}" class="page-btn">{{ num }}</a>{% endif %}{% endfor %}
+            {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>{% else %}<span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>{% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+        <i class="bi bi-journal-x" style="font-size:32px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">No log entries found</div>
+        <div style="font-size:13px;">Try adjusting your filters.</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Clear old logs modal -->
+<div class="modal-overlay" id="clearModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-box">
+        <div style="width:44px;height:44px;background:rgba(239,68,68,.12);border-radius:var(--radius-md);display:grid;place-items:center;font-size:20px;color:#f87171;margin-bottom:14px;">
+            <i class="bi bi-trash"></i>
+        </div>
+        <div class="modal-title">Clear Old Log Entries</div>
+        <div class="modal-desc">
+            Select how far back to delete logs. This action is <strong style="color:#f87171;">permanent</strong> and cannot be undone.
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:7px;">Delete logs older than</label>
+            <select id="clearDaysSelect" style="width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 13px;outline:none;appearance:none;">
+                <option value="7">7 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="180">180 days</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="clearLogs()" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:11px 0;cursor:pointer;transition:all var(--transition);" id="clearBtn">
+                <i class="bi bi-trash"></i> Delete
+            </button>
+            <button onclick="document.getElementById('clearModal').classList.remove('open')" style="flex:1;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:14px;border-radius:var(--radius-md);padding:11px 0;cursor:pointer;transition:all var(--transition);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDetails(pk) {
+    const el = document.getElementById('details-' + pk);
+    if (!el) return;
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function clearLogs() {
+    const days = document.getElementById('clearDaysSelect').value;
+    const btn  = document.getElementById('clearBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting…';
+
+    fetch("{% url 'system_settings:clear_old_logs' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'days=' + encodeURIComponent(days)
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('clearModal').classList.remove('open');
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Error occurred.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+    });
+}
+</script>
+{% endblock %}

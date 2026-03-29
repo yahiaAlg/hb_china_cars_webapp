@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}Plan de paiement — {{ plan.invoice.invoice_number }}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Plan de paiement{% endblock %}
+{% block page_sub_text %}{{ plan.invoice.invoice_number }} — {{ plan.number_of_installments }} échéance{{ plan.number_of_installments|pluralize }}{% endblock %}
+
+{% block extra_css %}
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+    align-items: start;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.plan-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.plan-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--bg-raised);
+}
+
+.plan-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-scroll { overflow-x: auto; }
+
+.plan-progress {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+}
+
+.progress-bar-wrap {
+    height: 8px;
+    background: var(--bg-base);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid var(--border);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    border-radius: 6px;
+    transition: width .5s ease;
+}
+
+.installment-row td { transition: background .15s; }
+.installment-row:hover td { background: var(--bg-hover); }
+
+/* Modal paiement d'échéance */
+.pay-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    display: none;
+    place-items: center;
+    padding: 16px;
+}
+
+.pay-overlay.open { display: grid; }
+
+.pay-modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+    animation: slideUp .25s ease;
+    box-shadow: var(--shadow-lg);
+}
+
+.pay-modal-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-raised);
+}
+
+.pay-modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pay-modal-body { padding: 20px; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+.field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.field-input, .field-select {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 11px 14px;
+    width: 100%;
+    min-height: 44px;
+    transition: border-color .18s;
+}
+
+.field-input:focus, .field-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.field-select option { background: var(--bg-raised); }
+
+/* Sidebar */
+.sidebar-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-card-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--bg-raised);
+}
+
+.sidebar-card-body { padding: 14px 16px; }
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); }
+.info-value { color: var(--text-secondary); font-weight: 500; }
+
+.fade-in { animation: fadeIn .35s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 50ms; }
+.fade-in:nth-child(3) { animation-delay: 100ms; }
+.fade-in:nth-child(4) { animation-delay: 150ms; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Retour + statut -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+    <a href="{% url 'payments:outstanding' %}" class="section-link" style="font-size:13px;color:var(--text-secondary);">
+        <i class="bi bi-arrow-left me-1"></i> Retour aux factures impayées
+    </a>
+    <div>
+        <span class="pill {% if plan.status == 'active' %}pill-info{% elif plan.status == 'completed' %}pill-success{% elif plan.status == 'defaulted' %}pill-danger{% else %}pill-warning{% endif %}">
+            {{ plan.get_status_display }}
+        </span>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MÉTRIQUES
+══════════════════════════════════ -->
+<div class="stats-row">
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-green">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="metric-label">Échéances payées</div>
+        <div class="metric-value sm">{{ stats.paid_count }} / {{ stats.total_installments }}</div>
+        <span class="metric-delta {% if stats.paid_count > 0 %}up{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if stats.paid_count > 0 %}arrow-up-right{% else %}dash{% endif %}"></i>
+            {{ stats.completion_percentage|floatformat:0 }}% complété
+        </span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-green">
+            <i class="bi bi-graph-up-arrow"></i>
+        </div>
+        <div class="metric-label">Total encaissé</div>
+        <div class="metric-value sm">{{ stats.total_paid|floatformat:0 }} <span style="font-size:12px;color:var(--text-muted)">DA</span></div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Collecté à ce jour</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-amber">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="metric-label">Restant</div>
+        <div class="metric-value sm">{{ stats.total_remaining|floatformat:0 }} <span style="font-size:12px;color:var(--text-muted)">DA</span></div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> À percevoir</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-red">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="metric-label">En retard</div>
+        <div class="metric-value sm">{{ stats.overdue_count }}</div>
+        <span class="metric-delta {% if stats.overdue_count > 0 %}down{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if stats.overdue_count > 0 %}arrow-down-right{% else %}check{% endif %}"></i>
+            {% if stats.overdue_count == 0 %}À jour{% else %}échéance{{ stats.overdue_count|pluralize }} en retard{% endif %}
+        </span>
+    </div>
+
+</div>
+
+<div class="detail-grid">
+
+    <!-- Gauche : tableau des échéances -->
+    <div>
+        <div class="plan-card fade-in">
+            <div class="plan-card-head">
+                <div class="plan-card-title">
+                    <i class="bi bi-calendar3" style="color:var(--accent);"></i>
+                    Échéancier
+                </div>
+                <span style="font-size:12px;color:var(--text-muted);">
+                    {{ plan.installment_amount|floatformat:0 }} DA / échéance
+                </span>
+            </div>
+
+            <!-- Barre de progression -->
+            <div class="plan-progress">
+                <div style="display:flex;justify-content:space-between;font-size:11.5px;">
+                    <span style="color:var(--text-muted);">Progression du plan</span>
+                    <span style="font-weight:600;color:#16a34a;">{{ stats.completion_percentage|floatformat:0 }}%</span>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" style="width:{{ stats.completion_percentage|floatformat:0 }}%;"></div>
+                </div>
+            </div>
+
+            <div class="table-scroll">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date d'échéance</th>
+                            <th style="text-align:right;">Montant</th>
+                            <th style="text-align:right;">Payé</th>
+                            <th style="text-align:right;">Solde</th>
+                            <th>Statut</th>
+                            {% if request.user.userprofile %}
+                            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                            <th></th>
+                            {% endif %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for installment in plan.installments.all %}
+                        <tr class="installment-row">
+                            <td>
+                                <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--text-muted);font-size:12px;">#{{ installment.installment_number }}</span>
+                            </td>
+                            <td>
+                                <span style="{% if installment.status == 'overdue' %}color:#dc2626;font-weight:500;{% endif %}">
+                                    {{ installment.due_date|date:"j M Y" }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;color:var(--text-secondary);">{{ installment.amount|floatformat:0 }} DA</td>
+                            <td style="text-align:right;color:#16a34a;font-weight:600;">{{ installment.amount_paid|floatformat:0 }} DA</td>
+                            <td style="text-align:right;">
+                                <span style="font-family:'Syne',sans-serif;font-weight:700;color:{% if installment.balance_due > 0 %}var(--accent){% else %}#16a34a{% endif %};">
+                                    {{ installment.balance_due|floatformat:0 }} DA
+                                </span>
+                            </td>
+                            <td>
+                                {% if installment.status == 'paid' %}
+                                <span class="pill pill-success" style="font-size:10.5px;"><i class="bi bi-check-circle me-1"></i>Payé</span>
+                                {% elif installment.status == 'partial' %}
+                                <span class="pill pill-info" style="font-size:10.5px;"><i class="bi bi-slash-circle me-1"></i>Partiel</span>
+                                {% elif installment.status == 'overdue' %}
+                                <span class="pill pill-danger" style="font-size:10.5px;"><i class="bi bi-exclamation-circle me-1"></i>En retard</span>
+                                {% else %}
+                                <span class="pill pill-warning" style="font-size:10.5px;"><i class="bi bi-hourglass-split me-1"></i>En attente</span>
+                                {% endif %}
+                            </td>
+                            {% if request.user.userprofile %}
+                            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                            <td>
+                                {% if installment.status != 'paid' %}
+                                <button class="btn-primary pay-btn"
+                                    data-id="{{ installment.pk }}"
+                                    data-num="{{ installment.installment_number }}"
+                                    data-balance="{{ installment.balance_due|floatformat:2 }}"
+                                    style="padding:5px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;min-height:36px;">
+                                    <i class="bi bi-plus-lg"></i> Payer
+                                </button>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Droite : barre latérale -->
+    <div>
+        <div class="sidebar-card fade-in">
+            <div class="sidebar-card-head">
+                <i class="bi bi-receipt" style="color:var(--accent);"></i>
+                Facture liée
+            </div>
+            <div class="sidebar-card-body">
+                <div class="info-row">
+                    <span class="info-label">N° facture</span>
+                    <span class="info-value">
+                        <a href="{% url 'sales:invoice_detail' plan.invoice.pk %}"
+                            style="color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;">
+                            {{ plan.invoice.invoice_number }}
+                        </a>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Client</span>
+                    <span class="info-value" style="color:var(--text-primary);">{{ plan.invoice.customer.name|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trader</span>
+                    <span class="info-value">{{ plan.invoice.sale.assigned_trader.get_full_name|default:plan.invoice.sale.assigned_trader.username|default:"—" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-card fade-in" style="animation-delay:50ms;">
+            <div class="sidebar-card-head">
+                <i class="bi bi-calendar3" style="color:#0284c7;"></i>
+                Récapitulatif du plan
+            </div>
+            <div class="sidebar-card-body">
+                <div class="info-row">
+                    <span class="info-label">Montant total</span>
+                    <span class="info-value">{{ plan.total_amount|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Acompte</span>
+                    <span class="info-value">{{ plan.down_payment|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Montant restant</span>
+                    <span class="info-value">{{ plan.remaining_amount|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Par échéance</span>
+                    <span class="info-value" style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">{{ plan.installment_amount|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Nb. d'échéances</span>
+                    <span class="info-value">{{ plan.number_of_installments }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date de début</span>
+                    <span class="info-value">{{ plan.start_date|date:"j M Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Statut</span>
+                    <span class="info-value">
+                        <span class="pill {% if plan.status == 'active' %}pill-info{% elif plan.status == 'completed' %}pill-success{% elif plan.status == 'defaulted' %}pill-danger{% else %}pill-warning{% endif %}" style="font-size:10px;">
+                            {{ plan.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% if plan.notes %}
+        <div class="sidebar-card fade-in" style="animation-delay:100ms;">
+            <div class="sidebar-card-head">
+                <i class="bi bi-chat-text" style="color:var(--text-muted);"></i>
+                Notes
+            </div>
+            <div class="sidebar-card-body" style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;">
+                {{ plan.notes }}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL — PAIEMENT D'ÉCHÉANCE
+══════════════════════════════════ -->
+<div class="pay-overlay" id="payOverlay">
+    <div class="pay-modal">
+        <div class="pay-modal-head">
+            <div class="pay-modal-title">
+                <i class="bi bi-lightning-charge" style="color:var(--accent);"></i>
+                Régler l'échéance <span id="modalInstNum"></span>
+            </div>
+            <button onclick="closePayModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:4px;min-width:32px;">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="pay-modal-body">
+            <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:var(--text-secondary);">
+                Solde dû : <strong id="modalBalance" style="color:var(--accent);font-family:'Syne',sans-serif;"></strong> DA
+            </div>
+
+            <form id="payInstallmentForm">
+                {% csrf_token %}
+                <div class="field-group">
+                    <label class="field-label">Montant (DA) <span style="color:var(--accent)">*</span></label>
+                    <input type="number" id="modalAmount" name="amount"
+                        step="0.01" min="0.01" class="field-input" placeholder="0,00">
+                </div>
+                <div class="field-group" style="margin-bottom:0;">
+                    <label class="field-label">Méthode de paiement</label>
+                    <select id="modalMethod" name="payment_method" class="field-select">
+                        <option value="cash">💵 Espèces</option>
+                        <option value="bank_transfer">🏦 Virement bancaire</option>
+                        <option value="check">📄 Chèque</option>
+                        <option value="card">💳 Carte</option>
+                    </select>
+                </div>
+
+                <div id="modalError" style="display:none;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:10px 14px;margin-top:12px;font-size:12.5px;color:#dc2626;"></div>
+
+                <div style="display:flex;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+                    <button type="button" id="paySubmitBtn" class="btn-primary" style="flex:1;padding:10px;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;">
+                        <i class="bi bi-check-circle"></i> Confirmer
+                    </button>
+                    <button type="button" onclick="closePayModal()" class="btn-ghost" style="padding:10px 16px;font-size:13.5px;min-height:44px;">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentInstallmentId = null;
+
+document.querySelectorAll('.pay-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentInstallmentId = btn.dataset.id;
+        const balance = parseFloat(btn.dataset.balance);
+        document.getElementById('modalInstNum').textContent = '#' + btn.dataset.num;
+        document.getElementById('modalBalance').textContent = balance.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+        document.getElementById('modalAmount').value = balance.toFixed(2);
+        document.getElementById('modalAmount').max = balance;
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('payOverlay').classList.add('open');
+        document.getElementById('modalAmount').focus();
+    });
+});
+
+function closePayModal() {
+    document.getElementById('payOverlay').classList.remove('open');
+    currentInstallmentId = null;
+}
+
+document.getElementById('payOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closePayModal();
+});
+
+document.getElementById('paySubmitBtn').addEventListener('click', async () => {
+    if (!currentInstallmentId) return;
+
+    const amount  = document.getElementById('modalAmount').value;
+    const method  = document.getElementById('modalMethod').value;
+    const btn     = document.getElementById('paySubmitBtn');
+    const errBox  = document.getElementById('modalError');
+
+    errBox.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Traitement en cours…';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    try {
+        const res  = await fetch(`/payments/installment/${currentInstallmentId}/payment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+            },
+            body: `amount=${encodeURIComponent(amount)}&payment_method=${encodeURIComponent(method)}`
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            closePayModal();
+            window.location.reload();
+        } else {
+            errBox.textContent     = data.message || 'Une erreur est survenue.';
+            errBox.style.display   = 'block';
+            btn.disabled           = false;
+            btn.innerHTML          = '<i class="bi bi-check-circle"></i> Confirmer';
+        }
+    } catch (err) {
+        errBox.textContent     = 'Erreur réseau. Veuillez réessayer.';
+        errBox.style.display   = 'block';
+        btn.disabled           = false;
+        btn.innerHTML          = '<i class="bi bi-check-circle"></i> Confirmer';
+    }
+});
+</script>
+{% endblock %}

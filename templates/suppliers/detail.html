@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block page_title %}{{ supplier.name }}{% endblock %}
+{% block page_sub_text %}{{ supplier.country }}{% endblock %}
+
+{% block extra_css %}
+.btn-danger {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(220,38,38,.10); color: #dc2626;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid rgba(220,38,38,.25); border-radius: var(--radius-md); padding: 9px 14px;
+    min-height: 44px; cursor: pointer; text-decoration: none; transition: all var(--transition);
+}
+.btn-danger:hover { background: rgba(220,38,38,.18); border-color: rgba(220,38,38,.45); }
+
+/* ── Layout ── */
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* ── KPI row ── */
+.stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+/* metric-card, metric-card:hover, metric-icon inherited from base.html */
+.metric-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 17px;
+    margin-bottom: 12px;
+}
+.metric-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -.01em;
+}
+.metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.ic-teal  { background: rgba(13,148,136,.10); color: #0d9488; }
+.ic-green { background: rgba(22,163,74,.10);  color: #16a34a; }
+.ic-amber { background: rgba(217,119,6,.12);  color: #d97706; }
+
+/* ── Panel ── */
+.panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.panel-head {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+}
+.panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13.5px; font-weight: 700;
+    letter-spacing: -.01em;
+    color: var(--text-primary);
+}
+.panel-body { padding: 18px 20px; }
+
+/* ── Info grid ── */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+.info-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 4px;
+}
+.info-value { font-size: 13.5px; color: var(--text-primary); }
+
+/* ── Table ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-custom { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table-custom thead th {
+    background: var(--bg-raised);
+    padding: 11px 14px; text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.table-custom tbody tr { transition: background var(--transition); }
+.table-custom tbody tr:hover { background: var(--bg-hover); }
+.table-custom tbody tr:last-child td { border-bottom: none; }
+
+/* ── Pills ── */
+.pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.pill-success { background: rgba(22,163,74,.10);  color: #16a34a; }
+.pill-danger  { background: rgba(220,38,38,.10);  color: #dc2626; }
+
+/* ── Back link ── */
+.back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-secondary);
+    text-decoration: none; transition: color var(--transition);
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── Animations ── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn .3s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 60ms; }
+.fade-in:nth-child(3) { animation-delay: 120ms; }
+.fade-in:nth-child(4) { animation-delay: 180ms; }
+
+@media (max-width: 1024px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+    .stat-row { grid-template-columns: 1fr; }
+    .panel-body { padding: 14px 16px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Back + Actions -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <a href="{% url 'suppliers:list' %}" class="back-link">
+        <i class="bi bi-arrow-left"></i> Retour aux fournisseurs
+    </a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% if request.user.userprofile %}
+            {% if request.user.userprofile.is_manager or request.user.userprofile.is_finance %}
+            <a href="{% url 'suppliers:edit' supplier.pk %}" class="btn-ghost">
+                <i class="bi bi-pencil"></i> Modifier
+            </a>
+            <button class="btn-danger" id="toggleStatusBtn"
+                data-url="{% url 'suppliers:toggle_status' supplier.pk %}"
+                {% if supplier.has_purchases and supplier.is_active %}title="Ce fournisseur a des achats — désactivation impossible"{% endif %}>
+                {% if supplier.is_active %}
+                    <i class="bi bi-slash-circle"></i> Désactiver
+                {% else %}
+                    <i class="bi bi-check-circle"></i> Activer
+                {% endif %}
+            </button>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Stats -->
+<div class="stat-row fade-in">
+    <div class="metric-card">
+        <div class="metric-icon ic-teal"><i class="bi bi-box-seam"></i></div>
+        <div class="metric-label">Achats totaux</div>
+        <div class="metric-value">{{ total_purchases }}</div>
+        <div class="metric-sub">véhicule{{ total_purchases|pluralize }} acheté{{ total_purchases|pluralize }}</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon ic-green"><i class="bi bi-cash-stack"></i></div>
+        <div class="metric-label">Valeur totale</div>
+        <div class="metric-value" style="font-size:18px;">{{ total_value|floatformat:0 }}</div>
+        <div class="metric-sub">DA — coût d'achat cumulé</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon ic-amber"><i class="bi bi-graph-up"></i></div>
+        <div class="metric-label">Valeur moyenne</div>
+        <div class="metric-value" style="font-size:18px;">{{ avg_value|floatformat:0 }}</div>
+        <div class="metric-sub">DA par véhicule</div>
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- Left: Purchase history -->
+    <div>
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <i class="bi bi-receipt me-2" style="color:var(--accent);"></i>Achats récents
+                </div>
+                {% if total_purchases > 5 %}
+                <span style="font-size:12px;color:var(--text-muted);">5 derniers sur {{ total_purchases }}</span>
+                {% endif %}
+            </div>
+            {% if recent_purchases %}
+            <div class="table-scroll">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Véhicule(s)</th>
+                            <th style="text-align:right;">Prix FOB</th>
+                            <th style="text-align:right;">Prix DA</th>
+                            <th>Devise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in recent_purchases %}
+                        <tr>
+                            <td style="white-space:nowrap;color:var(--text-secondary);">
+                                {{ purchase.purchase_date|date:"d/m/Y" }}
+                            </td>
+                            <td>
+                                {% for vehicle in purchase.vehicle_set.all %}
+                                <span style="font-size:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;display:inline-block;margin:2px 2px 2px 0;color:var(--text-secondary);">
+                                    {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}
+                                </span>
+                                {% empty %}
+                                <span style="color:var(--text-muted);font-size:12px;">—</span>
+                                {% endfor %}
+                            </td>
+                            <td style="text-align:right;white-space:nowrap;color:var(--text-secondary);">
+                                {{ purchase.purchase_price_fob|floatformat:2 }}
+                                <span style="color:var(--text-muted);font-size:11.5px;">{{ purchase.currency.code }}</span>
+                            </td>
+                            <td style="text-align:right;white-space:nowrap;">
+                                {% if purchase.purchase_price_da %}
+                                <span style="font-weight:500;color:var(--text-primary);">{{ purchase.purchase_price_da|floatformat:0 }}</span>
+                                <span style="color:var(--text-muted);font-size:11.5px;"> DA</span>
+                                {% else %}
+                                <span style="color:var(--text-muted);">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="pill" style="background:var(--bg-raised);color:var(--text-secondary);border:1px solid var(--border);">
+                                    {{ purchase.currency.code }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:48px 24px;color:var(--text-muted);">
+                <i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                <div style="font-size:13px;">Aucun achat enregistré pour ce fournisseur.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: Supplier info + Notes + Danger zone -->
+    <div>
+
+        <!-- Supplier info card -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <i class="bi bi-building me-2" style="color:var(--accent);"></i>Informations
+                </div>
+                {% if supplier.is_active %}
+                <span class="pill pill-success"><span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Actif</span>
+                {% else %}
+                <span class="pill pill-danger"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Inactif</span>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <div class="info-label">Pays</div>
+                        <div class="info-value"><i class="bi bi-globe2 me-1" style="color:var(--text-muted);"></i>{{ supplier.country }}</div>
+                    </div>
+                    {% if supplier.contact_person %}
+                    <div>
+                        <div class="info-label">Contact</div>
+                        <div class="info-value"><i class="bi bi-person me-1" style="color:var(--text-muted);"></i>{{ supplier.contact_person }}</div>
+                    </div>
+                    {% endif %}
+                    {% if supplier.phone %}
+                    <div>
+                        <div class="info-label">Téléphone / WhatsApp</div>
+                        <div class="info-value">
+                            <i class="bi bi-telephone me-1" style="color:var(--text-muted);"></i>
+                            <a href="tel:{{ supplier.phone }}" style="color:var(--accent);">{{ supplier.phone }}</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if supplier.email %}
+                    <div>
+                        <div class="info-label">Email</div>
+                        <div class="info-value">
+                            <i class="bi bi-envelope me-1" style="color:var(--text-muted);"></i>
+                            <a href="mailto:{{ supplier.email }}" style="color:var(--accent);">{{ supplier.email }}</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="info-label">Devise par défaut</div>
+                        <div class="info-value"><i class="bi bi-currency-exchange me-1" style="color:var(--text-muted);"></i>{{ supplier.currency.code }} — {{ supplier.currency.name }}</div>
+                    </div>
+                    {% if supplier.payment_terms %}
+                    <div>
+                        <div class="info-label">Conditions de paiement</div>
+                        <div class="info-value">{{ supplier.payment_terms }}</div>
+                    </div>
+                    {% endif %}
+                    {% if supplier.address %}
+                    <div>
+                        <div class="info-label">Adresse</div>
+                        <div class="info-value" style="white-space:pre-line;">{{ supplier.address }}</div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="info-label">Ajouté le</div>
+                        <div class="info-value" style="color:var(--text-secondary);">{{ supplier.created_at|date:"j M Y" }}</div>
+                    </div>
+                    {% if supplier.updated_at %}
+                    <div>
+                        <div class="info-label">Mis à jour le</div>
+                        <div class="info-value" style="color:var(--text-secondary);">{{ supplier.updated_at|date:"j M Y" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if supplier.notes %}
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-sticky me-2" style="color:var(--accent);"></i>Notes</div>
+            </div>
+            <div class="panel-body">
+                <p style="font-size:13.5px;color:var(--text-secondary);white-space:pre-line;margin:0;line-height:1.6;">
+                    {{ supplier.notes }}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Danger zone (manager only) -->
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_manager %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:16px 18px;" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:6px;font-size:13px;">
+                <i class="bi bi-exclamation-triangle me-1"></i> Zone dangereuse
+            </div>
+            <p style="font-size:12.5px;color:var(--text-secondary);margin:0 0 12px;">
+                {% if supplier.is_active %}
+                    {% if supplier.has_purchases %}
+                    Ce fournisseur a des achats existants et ne peut pas être désactivé.
+                    {% else %}
+                    Désactiver ce fournisseur empêchera de nouveaux achats de lui être associés.
+                    {% endif %}
+                {% else %}
+                Réactiver ce fournisseur permettra de l'associer à de nouveaux achats.
+                {% endif %}
+            </p>
+            <button class="btn-danger" id="dangerToggleBtn"
+                data-url="{% url 'suppliers:toggle_status' supplier.pk %}"
+                style="font-size:12px;padding:7px 14px;min-height:36px;"
+                {% if supplier.has_purchases and supplier.is_active %}disabled style="opacity:.5;cursor:not-allowed;"{% endif %}>
+                {% if supplier.is_active %}
+                <i class="bi bi-pause-circle"></i> Désactiver le fournisseur
+                {% else %}
+                <i class="bi bi-play-circle"></i> Réactiver le fournisseur
+                {% endif %}
+            </button>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div>
+
+</div><!-- end detail-grid -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStatus(url) {
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Impossible de mettre à jour le statut.');
+        }
+    })
+    .catch(() => alert('La requête a échoué. Veuillez réessayer.'));
+}
+
+const toggleBtn = document.getElementById('toggleStatusBtn');
+if (toggleBtn) toggleBtn.addEventListener('click', () => toggleStatus(toggleBtn.dataset.url));
+
+const dangerBtn = document.getElementById('dangerToggleBtn');
+if (dangerBtn) dangerBtn.addEventListener('click', () => toggleStatus(dangerBtn.dataset.url));
+</script>
+{% endblock %}

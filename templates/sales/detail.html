@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sale.sale_number }}{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}{{ sale.sale_number }}{% endblock %}
+{% block page_sub_text %}{{ sale.sale_date|date:"j M Y" }}{% endblock %}
+
+{% block extra_css %}
+.detail-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm); }
+.card-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-body { padding: 20px; }
+.info-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 12px; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+/* Line items table */
+.items-table { width: 100%; border-collapse: collapse; }
+.items-table th { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted); padding: 0 0 12px; border-bottom: 1px solid var(--border); }
+.items-table th:not(:first-child) { text-align: right; }
+.items-table td { padding: 13px 0; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; color: var(--text-secondary); }
+.items-table tr:last-child td { border-bottom: none; }
+.items-table td:not(:first-child) { text-align: right; }
+.item-name { font-weight: 600; color: var(--text-primary); font-size: 13.5px; margin-bottom: 2px; }
+.item-sub  { font-size: 11px; color: var(--text-muted); }
+
+/* Cost grid */
+.cost-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.cost-item { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; text-align: center; }
+.cost-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 6px; }
+.cost-value { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; }
+.cost-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+.margin-track { height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; flex: 1; }
+.margin-fill { height: 100%; background: #16a34a; border-radius: 4px; width: 0; transition: width .6s ease; }
+.margin-fill.negative { background: #dc2626; }
+.margin-bar { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
+
+.action-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 16px; border-radius: var(--radius-md); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--transition); border: none; text-decoration: none; justify-content: center; margin-bottom: 8px; min-height: 44px; }
+.action-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+.action-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.action-primary { background: var(--accent); color: #ffffff; }
+.action-primary:hover { opacity: .9; color: #ffffff; }
+.action-danger { background: rgba(220,38,38,.10); border: 1px solid rgba(220,38,38,.25); color: #dc2626; }
+.action-danger:hover { background: rgba(220,38,38,.18); }
+
+@media (max-width: 1024px) { .detail-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .cost-breakdown { grid-template-columns: 1fr 1fr; } }
+{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <a href="{% url 'sales:list' %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);transition:color var(--transition);"
+       onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour aux ventes
+    </a>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% if not sale.is_finalized %}
+        <a href="{% url 'sales:edit' sale.pk %}" class="btn-ghost" style="min-height:44px;">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        {% endif %}
+        {% if not has_invoice and sale.line_items.count > 0 %}
+        <a href="{% url 'sales:create_invoice' sale.pk %}" class="btn-primary" style="min-height:44px;">
+            <i class="bi bi-file-earmark-text"></i> Créer une facture
+        </a>
+        {% elif has_invoice %}
+        <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="btn-ghost" style="min-height:44px;">
+            <i class="bi bi-receipt"></i> Voir la facture
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- LEFT -->
+    <div>
+
+        <!-- Sale header -->
+        <div class="card">
+            <div class="card-head">
+                <div>
+                    <div class="card-title">{{ sale.sale_number }}</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">{{ sale.sale_date|date:"l j N Y" }}</div>
+                </div>
+                {% if sale.is_finalized %}
+                <span class="pill pill-success"><i class="bi bi-lock"></i> Finalisée</span>
+                {% else %}
+                <span class="pill pill-warning">Brouillon</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">Client</span>
+                    <span class="info-value">
+                        <a href="{% url 'customers:detail' sale.customer.pk %}" style="color:var(--accent);">{{ sale.customer.name }}</a>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trader assigné</span>
+                    <span class="info-value">{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Mode de paiement</span>
+                    <span class="info-value">{{ sale.get_payment_method_display }}</span>
+                </div>
+                {% if sale.down_payment > 0 %}
+                <div class="info-row">
+                    <span class="info-label">Acompte versé</span>
+                    <span class="info-value" style="color:#16a34a;">{{ sale.down_payment|floatformat:0 }} DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Solde restant</span>
+                    <span class="info-value" style="color:#dc2626;">{{ sale.remaining_balance|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+                {% if sale.notes %}
+                <div class="info-row" style="align-items:flex-start;">
+                    <span class="info-label">Notes</span>
+                    <span class="info-value" style="font-size:12.5px;color:var(--text-secondary);font-weight:400;max-width:60%;">{{ sale.notes }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-car-front me-2" style="color:#0284c7;"></i>Véhicules vendus</div>
+                <span class="pill" style="background:var(--bg-hover);color:var(--text-secondary);">{{ sale.vehicle_count }} véhicule{{ sale.vehicle_count|pluralize }}</span>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <table class="items-table" style="margin:0;">
+                    <thead>
+                        <tr style="padding:0 20px;">
+                            <th style="padding:12px 20px;">Véhicule</th>
+                            <th style="padding:12px 20px;">Coût</th>
+                            <th style="padding:12px 20px;">Prix vente</th>
+                            <th style="padding:12px 20px;">Marge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in sale.line_items.all %}
+                        <tr>
+                            <td style="padding:13px 20px;">
+                                <div class="item-name">{{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}</div>
+                                <div class="item-sub">
+                                    {{ item.vehicle.color }}
+                                    {% if item.vehicle.vin_chassis %} · {{ item.vehicle.vin_chassis }}{% endif %}
+                                </div>
+                                {% if item.notes %}<div class="item-sub" style="margin-top:2px;font-style:italic;">{{ item.notes }}</div>{% endif %}
+                            </td>
+                            <td style="padding:13px 20px;">{{ item.vehicle.landed_cost|floatformat:0 }} DA</td>
+                            <td style="padding:13px 20px;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;">{{ item.sale_price|floatformat:0 }} DA</td>
+                            <td style="padding:13px 20px;">
+                                <span style="color:{% if item.margin_amount >= 0 %}#16a34a{% else %}#dc2626{% endif %};font-weight:600;">
+                                    {{ item.margin_amount|floatformat:0 }} DA
+                                </span>
+                                <div style="font-size:11px;color:var(--text-muted);">{{ item.margin_percentage|floatformat:1 }}%</div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" style="padding:24px 20px;text-align:center;color:var(--text-muted);">Aucun véhicule dans cette vente.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                    {% if sale.vehicle_count > 1 %}
+                    <tfoot>
+                        <tr style="border-top: 2px solid var(--border);">
+                            <td style="padding:12px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;">Total</td>
+                            <td style="padding:12px 20px;font-weight:600;">{{ landed_cost|floatformat:0 }} DA</td>
+                            <td style="padding:12px 20px;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--accent);">{{ sale.sale_price|floatformat:0 }} DA</td>
+                            <td style="padding:12px 20px;font-weight:700;color:{% if margin_amount >= 0 %}#16a34a{% else %}#dc2626{% endif %};">{{ margin_amount|floatformat:0 }} DA</td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Financial analysis -->
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-piggy-bank me-2" style="color:#d97706;"></i>Analyse financière</div>
+            </div>
+            <div class="card-body">
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <div class="cost-label">Coût total</div>
+                        <div class="cost-value">{{ landed_cost|floatformat:0 }}</div>
+                        <div class="cost-sub">DA</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-label">Prix de vente</div>
+                        <div class="cost-value" style="color:var(--accent);">{{ sale.sale_price|floatformat:0 }}</div>
+                        <div class="cost-sub">DA</div>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-label">Marge brute</div>
+                        <div class="cost-value" style="color:{% if margin_amount >= 0 %}#16a34a{% else %}#dc2626{% endif %};">{{ margin_amount|floatformat:0 }}</div>
+                        <div class="cost-sub">DA</div>
+                    </div>
+                </div>
+
+                <div class="margin-bar">
+                    <div style="min-width:90px;">
+                        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:3px;">Marge</div>
+                        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:{% if margin_amount >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+                            {{ margin_percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                    <div class="margin-track">
+                        <div class="margin-fill {% if margin_amount < 0 %}negative{% endif %}" id="marginBar"></div>
+                    </div>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Taux de commission</span>
+                    <span class="info-value">{{ sale.commission_rate|floatformat:1 }}%</span>
+                </div>
+                {% if sale.commission_amount %}
+                <div class="info-row">
+                    <span class="info-label">Montant de la commission</span>
+                    <span class="info-value" style="color:#7c3aed;font-family:'Syne',sans-serif;font-weight:700;">{{ sale.commission_amount|floatformat:0 }} DA</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT: actions -->
+    <div>
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Actions</div></div>
+            <div class="card-body">
+                {% if not sale.is_finalized %}
+                <a href="{% url 'sales:edit' sale.pk %}" class="action-btn action-ghost">
+                    <i class="bi bi-pencil"></i> Modifier la vente
+                </a>
+                {% endif %}
+                {% if has_invoice %}
+                <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="action-btn action-ghost">
+                    <i class="bi bi-receipt"></i> Voir la facture
+                </a>
+                {% elif sale.line_items.count > 0 %}
+                <a href="{% url 'sales:create_invoice' sale.pk %}" class="action-btn action-primary">
+                    <i class="bi bi-file-earmark-text"></i> Créer une facture
+                </a>
+                {% endif %}
+                {% if not sale.is_finalized %}
+                <button class="action-btn action-ghost" id="finalizeBtn">
+                    <i class="bi bi-lock"></i> Finaliser la vente
+                </button>
+                {% endif %}
+                {% if request.user.userprofile.is_manager and not sale.is_finalized %}
+                <a href="{% url 'sales:delete' sale.pk %}"
+                   class="action-btn action-danger"
+                   onclick="return confirm('Supprimer définitivement cette vente ?')">
+                    <i class="bi bi-trash3"></i> Supprimer
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Dates</div></div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">Date de vente</span>
+                    <span class="info-value">{{ sale.sale_date|date:"j M Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Créée le</span>
+                    <span class="info-value" style="font-size:11.5px;">{{ sale.created_at|date:"j M Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const pct = Math.min(Math.abs(parseFloat('{{ margin_percentage|floatformat:2 }}') || 0), 100);
+    const bar = document.getElementById('marginBar');
+    if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 100);
+
+    const finalizeBtn = document.getElementById('finalizeBtn');
+    if (finalizeBtn) {
+        finalizeBtn.addEventListener('click', () => {
+            if (!confirm('Finaliser la vente {{ sale.sale_number }} ? Elle ne pourra plus être modifiée.')) return;
+            fetch("{% url 'sales:finalize' sale.pk %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) location.reload();
+                else alert(d.message);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

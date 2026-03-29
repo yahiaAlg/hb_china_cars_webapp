@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{% if customer %}Modifier la fiche client{% else %}Ajouter un nouveau client au répertoire{% endif %}{% endblock %}
+
+{% block extra_css %}
+/* ── Boutons ── */
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 10px 22px;
+    min-height: 44px; cursor: pointer; text-decoration: none;
+    transition: opacity .18s, transform .12s; width: 100%; justify-content: center;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 18px;
+    min-height: 44px; cursor: pointer; text-decoration: none;
+    transition: all var(--transition); width: 100%; justify-content: center;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Carte formulaire ── */
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.form-card-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 16px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-card-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+.form-card-body { padding: 24px; }
+
+/* ── Sections de champs ── */
+.field-section-label {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.form-section-gap { margin-bottom: 20px; }
+.form-section-gap:last-child { margin-bottom: 0; }
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.form-row.single { grid-template-columns: 1fr; }
+.form-row:last-child { margin-bottom: 0; }
+
+/* ── Champs ── */
+.field-wrap { display: flex; flex-direction: column; gap: 5px; }
+
+.field-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: .02em;
+}
+.field-label .required { color: var(--accent); margin-left: 2px; }
+
+.form-input,
+.form-select,
+.form-textarea {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 10px 13px;
+    width: 100%;
+    min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder,
+.form-textarea::placeholder { color: var(--text-muted); }
+.form-input.error,
+.form-select.error,
+.form-textarea.error { border-color: rgba(220,38,38,.6); }
+
+.form-select { cursor: pointer; appearance: auto; }
+.form-select option { background: var(--bg-raised); }
+
+.form-textarea { resize: vertical; min-height: 90px; }
+
+.field-help  { font-size: 11px; color: var(--text-muted); }
+.field-error { font-size: 11.5px; color: #dc2626; }
+
+/* ── Case à cocher ── */
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color var(--transition);
+}
+.check-row:hover { border-color: var(--border-strong); }
+.form-check-input {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.check-label {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.check-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+/* ── Avis NIF ── */
+.nif-notice {
+    background: var(--accent-dim);
+    border: 1px solid rgba(217,119,6,.25);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #d97706;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+.nif-notice.show { display: flex; }
+
+/* ── Erreurs non-champ ── */
+.non-field-errors {
+    background: rgba(220,38,38,.08);
+    border: 1px solid rgba(220,38,38,.25);
+    border-radius: var(--radius-md);
+    padding: 13px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+/* ── Animation ── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn .3s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 60ms; }
+.fade-in:nth-child(3) { animation-delay: 120ms; }
+.fade-in:nth-child(4) { animation-delay: 180ms; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .form-row, .form-row.triple { grid-template-columns: 1fr; }
+    .form-card-body { padding: 16px; }
+    .form-card-head { padding: 14px 16px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Bouton retour -->
+<div style="margin-bottom:18px;">
+    <a href="{% if customer %}{% url 'customers:detail' customer.pk %}{% else %}{% url 'customers:list' %}{% endif %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);text-decoration:none;transition:color var(--transition);"
+       onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i>
+        {% if customer %}Retour à la fiche{% else %}Retour à la liste{% endif %}
+    </a>
+</div>
+
+<form method="post" id="customerForm">
+{% csrf_token %}
+
+<!-- Erreurs non-champ -->
+{% if form.non_field_errors %}
+<div class="non-field-errors fade-in">
+    <i class="bi bi-exclamation-circle me-2"></i>
+    {{ form.non_field_errors|join:" · " }}
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+    <!-- ════════════════════════════
+         COLONNE PRINCIPALE
+    ═════════════════════════════ -->
+    <div class="col-xl-8">
+
+        <!-- Identité -->
+        <div class="form-card fade-in" style="margin-bottom:20px;">
+            <div class="form-card-head">
+                <div class="form-card-icon"><i class="bi bi-person-badge"></i></div>
+                <div>
+                    <div class="form-card-title">Identité du client</div>
+                    <div class="form-card-sub">Nom, type et numéro fiscal</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                <div class="form-section-gap">
+                    <div class="field-section-label">Informations principales</div>
+
+                    <!-- Nom complet -->
+                    <div class="form-row single" style="margin-bottom:16px;">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.name.id_for_label }}">
+                                Nom complet / Raison sociale <span class="required">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="{{ form.name.id_for_label }}"
+                                name="name"
+                                class="form-input{% if form.name.errors %} error{% endif %}"
+                                placeholder="Nom complet ou nom de l'entreprise"
+                                value="{{ form.name.value|default:'' }}"
+                                required>
+                            {% if form.name.errors %}
+                            <div class="field-error">{{ form.name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Type + NIF -->
+                    <div class="form-row">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.customer_type.id_for_label }}">
+                                Type de client <span class="required">*</span>
+                            </label>
+                            <select
+                                id="{{ form.customer_type.id_for_label }}"
+                                name="customer_type"
+                                class="form-select{% if form.customer_type.errors %} error{% endif %}">
+                                {% for val, label in form.fields.customer_type.choices %}
+                                <option value="{{ val }}" {% if form.customer_type.value == val %}selected{% endif %}>
+                                    {% if val == 'individual' %}Particulier{% elif val == 'company' %}Entreprise{% else %}{{ label }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.customer_type.errors %}
+                            <div class="field-error">{{ form.customer_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.nif_tax_id.id_for_label }}">
+                                NIF / Identifiant fiscal
+                            </label>
+                            <input
+                                type="text"
+                                id="{{ form.nif_tax_id.id_for_label }}"
+                                name="nif_tax_id"
+                                class="form-input"
+                                placeholder="NIF (si applicable)"
+                                value="{{ form.nif_tax_id.value|default:'' }}">
+                            <div class="nif-notice" id="nifNotice">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Requis pour les clients de type Entreprise
+                            </div>
+                            {% if form.nif_tax_id.errors %}
+                            <div class="field-error">{{ form.nif_tax_id.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Coordonnées -->
+        <div class="form-card fade-in" style="margin-bottom:20px;">
+            <div class="form-card-head">
+                <div class="form-card-icon"><i class="bi bi-telephone"></i></div>
+                <div>
+                    <div class="form-card-title">Coordonnées</div>
+                    <div class="form-card-sub">Téléphone, e-mail et localisation</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                <!-- Contact -->
+                <div class="form-section-gap">
+                    <div class="field-section-label">Contact</div>
+
+                    <div class="form-row">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.phone.id_for_label }}">
+                                Téléphone <span class="required">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="{{ form.phone.id_for_label }}"
+                                name="phone"
+                                class="form-input{% if form.phone.errors %} error{% endif %}"
+                                placeholder="+213 XXX XXX XXX"
+                                value="{{ form.phone.value|default:'' }}"
+                                required>
+                            <span class="field-help">Format : +213XXXXXXXXX ou 0XXXXXXXXX</span>
+                            {% if form.phone.errors %}
+                            <div class="field-error">{{ form.phone.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.email.id_for_label }}">
+                                Adresse e-mail
+                            </label>
+                            <input
+                                type="email"
+                                id="{{ form.email.id_for_label }}"
+                                name="email"
+                                class="form-input{% if form.email.errors %} error{% endif %}"
+                                placeholder="client@exemple.com"
+                                value="{{ form.email.value|default:'' }}">
+                            {% if form.email.errors %}
+                            <div class="field-error">{{ form.email.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Localisation -->
+                <div class="form-section-gap">
+                    <div class="field-section-label">Localisation</div>
+
+                    <div class="form-row single" style="margin-bottom:16px;">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.address.id_for_label }}">
+                                Adresse <span class="required">*</span>
+                            </label>
+                            <textarea
+                                id="{{ form.address.id_for_label }}"
+                                name="address"
+                                class="form-textarea{% if form.address.errors %} error{% endif %}"
+                                placeholder="Rue, quartier, commune…"
+                                rows="2"
+                                required>{{ form.address.value|default:'' }}</textarea>
+                            {% if form.address.errors %}
+                            <div class="field-error">{{ form.address.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row single">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.wilaya.id_for_label }}">
+                                Wilaya <span class="required">*</span>
+                            </label>
+                            <select
+                                id="{{ form.wilaya.id_for_label }}"
+                                name="wilaya"
+                                class="form-select{% if form.wilaya.errors %} error{% endif %}"
+                                required>
+                                <option value="">— Sélectionner une wilaya —</option>
+                                {% for val, label in form.fields.wilaya.choices %}
+                                {% if val %}
+                                <option value="{{ val }}" {% if form.wilaya.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if form.wilaya.errors %}
+                            <div class="field-error">{{ form.wilaya.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Notes internes -->
+        <div class="form-card fade-in" style="margin-bottom:20px;">
+            <div class="form-card-head">
+                <div class="form-card-icon"><i class="bi bi-chat-left-text"></i></div>
+                <div>
+                    <div class="form-card-title">Notes internes</div>
+                    <div class="form-card-sub">Remarques internes sur ce client</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+                <div class="field-wrap">
+                    <label class="field-label" for="{{ form.notes.id_for_label }}">Notes</label>
+                    <textarea
+                        id="{{ form.notes.id_for_label }}"
+                        name="notes"
+                        class="form-textarea{% if form.notes.errors %} error{% endif %}"
+                        placeholder="Informations complémentaires, préférences, historique…"
+                        rows="4">{{ form.notes.value|default:'' }}</textarea>
+                    {% if form.notes.errors %}
+                    <div class="field-error">{{ form.notes.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div><!-- fin col-xl-8 -->
+
+    <!-- ════════════════════════════
+         COLONNE DROITE
+    ═════════════════════════════ -->
+    <div class="col-xl-4">
+
+        <!-- Statut -->
+        <div class="form-card fade-in" style="margin-bottom:16px;">
+            <div class="form-card-head">
+                <div class="form-card-icon"><i class="bi bi-toggle-on"></i></div>
+                <div>
+                    <div class="form-card-title">Statut</div>
+                    <div class="form-card-sub">État d'activation du client</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+                <label class="check-row" for="{{ form.is_active.id_for_label }}">
+                    <input
+                        type="checkbox"
+                        id="{{ form.is_active.id_for_label }}"
+                        name="is_active"
+                        class="form-check-input"
+                        {% if form.is_active.value %}checked{% endif %}>
+                    <div>
+                        <div class="check-label">Client actif</div>
+                        <div class="check-desc">Les clients inactifs ne peuvent pas être associés à de nouvelles ventes</div>
+                    </div>
+                </label>
+                {% if form.is_active.errors %}
+                <div class="field-error" style="margin-top:6px;">{{ form.is_active.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Conseils rapides -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm);" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px;">
+                <i class="bi bi-info-circle me-1" style="color:var(--accent);"></i> Conseils rapides
+            </div>
+            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:var(--text-secondary);line-height:1.9;">
+                <li>Le NIF est obligatoire pour les clients de type Entreprise.</li>
+                <li>Le téléphone doit suivre le format algérien (+213 ou préfixe 0).</li>
+                <li>Les doublons de nom ou de téléphone seront rejetés.</li>
+                <li>L'adresse et la wilaya sont requises pour la livraison.</li>
+            </ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-card fade-in">
+            <div class="form-card-body">
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-check-lg"></i>
+                        {% if customer %}Enregistrer les modifications{% else %}Créer le client{% endif %}
+                    </button>
+                    {% if customer %}
+                    <a href="{% url 'customers:detail' customer.pk %}" class="btn-ghost">
+                        <i class="bi bi-x"></i> Annuler
+                    </a>
+                    {% else %}
+                    <a href="{% url 'customers:list' %}" class="btn-ghost">
+                        <i class="bi bi-x"></i> Annuler
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Aperçu en temps réel (nouveau client uniquement) -->
+        {% if not customer %}
+        <div id="previewCard" style="display:none;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;margin-top:16px;box-shadow:var(--shadow-sm);" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:var(--text-muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px;">Aperçu</div>
+            <div id="previewName" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:4px;"></div>
+            <div id="previewType" style="font-size:12px;color:var(--text-muted);"></div>
+        </div>
+        {% endif %}
+
+    </div><!-- fin col-xl-4 -->
+
+</div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    /* ── NIF : afficher l'avis si type = Entreprise ── */
+    const typeSelect = document.getElementById('{{ form.customer_type.id_for_label }}');
+    const nifInput   = document.getElementById('{{ form.nif_tax_id.id_for_label }}');
+    const nifNotice  = document.getElementById('nifNotice');
+
+    function updateNifState() {
+        if (!typeSelect) return;
+        const isCompany = typeSelect.value === 'company';
+        if (nifNotice)  nifNotice.classList.toggle('show', isCompany);
+        if (nifInput) {
+            nifInput.style.borderColor = isCompany ? 'rgba(217,119,6,.45)' : '';
+        }
+    }
+
+    if (typeSelect) {
+        typeSelect.addEventListener('change', updateNifState);
+        updateNifState();
+    }
+
+    /* ── Aperçu en temps réel ── */
+    const nameInput   = document.getElementById('{{ form.name.id_for_label }}');
+    const previewCard = document.getElementById('previewCard');
+    const previewName = document.getElementById('previewName');
+    const previewType = document.getElementById('previewType');
+
+    function updatePreview() {
+        if (!previewCard || !nameInput) return;
+        const name = nameInput.value.trim();
+        const type = typeSelect ? (typeSelect.value === 'company' ? 'Entreprise' : 'Particulier') : '';
+        if (name) {
+            previewCard.style.display = 'block';
+            previewName.textContent = name;
+            previewType.textContent = type;
+        } else {
+            previewCard.style.display = 'none';
+        }
+    }
+
+    if (nameInput)   nameInput.addEventListener('input', updatePreview);
+    if (typeSelect)  typeSelect.addEventListener('change', updatePreview);
+})();
+</script>
+{% endblock %}

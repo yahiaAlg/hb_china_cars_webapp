@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Paliers de Commission{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Paliers de Commission{% endblock %}
+{% block page_sub_text %}Configuration des taux basée sur la performance{% endblock %}
+
+{% block extra_css %}
+.tier-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    opacity: 0;
+    animation: fadeIn .35s ease forwards;
+    box-shadow: var(--shadow-sm);
+}
+.tier-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.tier-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+.tier-card:hover::after { opacity: 1; }
+.tier-card.inactive { opacity: .55; animation: fadeIn .35s ease forwards; }
+.tier-card.inactive:hover { opacity: .75; }
+.rate-display {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+}
+.sales-range {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+.tier-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    align-items: center;
+}
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+}
+.btn-icon:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+.btn-create {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 20px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition), transform .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+.btn-create:hover { opacity: .88; }
+.btn-ghost-sm {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 16px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.btn-ghost-sm:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.tier-card:nth-child(1) { animation-delay: 0ms; }
+.tier-card:nth-child(2) { animation-delay: 40ms; }
+.tier-card:nth-child(3) { animation-delay: 80ms; }
+.tier-card:nth-child(4) { animation-delay: 120ms; }
+.tier-card:nth-child(5) { animation-delay: 160ms; }
+.tier-card:nth-child(6) { animation-delay: 200ms; }
+.tier-card:nth-child(7) { animation-delay: 240ms; }
+.tier-card:nth-child(8) { animation-delay: 280ms; }
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de section -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Configuration</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin:0;">Paliers de Commission</h1>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <a href="{% url 'commissions:overview' %}" class="btn-ghost-sm">
+            <i class="bi bi-arrow-left"></i> Aperçu
+        </a>
+        {% if request.user.userprofile.is_manager %}
+        <a href="{% url 'commissions:tier_create' %}" class="btn-create">
+            <i class="bi bi-plus-lg"></i> Nouveau palier
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bandeau d'information -->
+<div style="background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:14px 18px;display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;box-shadow:var(--shadow-sm);">
+    <div style="width:36px;height:36px;background:var(--accent-dim);border-radius:var(--radius-sm);display:grid;place-items:center;font-size:16px;color:var(--accent);flex-shrink:0;">
+        <i class="bi bi-info-circle"></i>
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);">
+        Les paliers de commission définissent des taux basés sur la performance, appliqués chaque mois. Les traders atteignant le seuil de ventes d'un palier bénéficient du taux de commission correspondant. Les paliers supérieurs génèrent des bonus additionnels au-delà du taux de base.
+    </div>
+</div>
+
+<!-- Grille des paliers -->
+{% if tiers %}
+<div class="row g-3">
+    {% for tier in tiers %}
+    <div class="col-sm-6 col-xl-4">
+        <div class="tier-card {% if not tier.is_active %}inactive{% endif %}">
+
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+                <div>
+                    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text-primary);">{{ tier.name }}</div>
+                    <div class="sales-range">
+                        <i class="bi bi-bar-chart-line me-1"></i>
+                        {% if tier.max_sales_count %}
+                            {{ tier.min_sales_count }} – {{ tier.max_sales_count }} ventes
+                        {% else %}
+                            {{ tier.min_sales_count }}+ ventes
+                        {% endif %}
+                    </div>
+                </div>
+                {% if tier.is_active %}
+                    <span class="pill pill-success"><i class="bi bi-circle-fill" style="font-size:7px;"></i> Actif</span>
+                {% else %}
+                    <span class="pill pill-neutral">Inactif</span>
+                {% endif %}
+            </div>
+
+            <div class="rate-display">{{ tier.commission_rate|floatformat:1 }}<span style="font-size:20px;">%</span></div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">taux de commission</div>
+
+            <!-- Indicateur visuel -->
+            <div style="margin-top:14px;">
+                <div style="height:4px;background:var(--bg-raised);border-radius:20px;overflow:hidden;">
+                    <div style="height:100%;border-radius:20px;background:var(--accent);width:{% widthratio tier.commission_rate 30 100 %}%;transition:width .5s ease;"></div>
+                </div>
+            </div>
+
+            {% if request.user.userprofile.is_manager %}
+            <div class="tier-actions">
+                <a href="{% url 'commissions:tier_edit' tier.pk %}" class="btn-icon" title="Modifier le palier">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">
+                    Ajouté le {{ tier.created_at|date:"j N Y" }}
+                </span>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- État vide -->
+<div style="text-align:center;padding:72px 20px;color:var(--text-muted);">
+    <i class="bi bi-layers" style="font-size:40px;display:block;margin-bottom:14px;color:var(--border-strong);"></i>
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucun palier configuré</div>
+    <div style="font-size:13px;margin-bottom:16px;">Créez votre premier palier de commission pour définir des taux basés sur la performance.</div>
+    {% if request.user.userprofile.is_manager %}
+    <a href="{% url 'commissions:tier_create' %}" class="btn-create" style="margin-top:4px;">
+        <i class="bi bi-plus-lg"></i> Créer le premier palier
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

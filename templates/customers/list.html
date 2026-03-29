@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Clients{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block page_title %}Clients{% endblock %}
+{% block page_sub_text %}{{ total_count }} client{{ total_count|pluralize }} au total{% endblock %}
+
+{% block extra_css %}
+
+/* ── Barre de filtres ── */
+.filters-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;          /* wrap naturellement — JAMAIS de min-width fixe */
+    box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
+}
+
+.filter-input-wrap {
+    position: relative;
+    flex: 2 1 180px;          /* priorité de croissance plus haute que les selects */
+    min-width: 0;
+}
+.filter-input-wrap i {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.filter-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 9px 13px 9px 36px;
+    min-height: 44px;
+    box-sizing: border-box;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.filter-input::placeholder { color: var(--text-muted); }
+
+.filter-select {
+    flex: 1 1 130px;          /* rétrécit librement */
+    min-width: 0;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 13px;
+    min-height: 44px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.filter-check-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    min-height: 44px;
+    flex-shrink: 0;
+}
+.filter-check-wrap input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* ── Boutons ── */
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md);
+    padding: 9px 18px; min-height: 44px;
+    cursor: pointer; text-decoration: none;
+    transition: opacity .18s, transform .12s;
+    white-space: nowrap; flex-shrink: 0;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 9px 14px; min-height: 44px;
+    cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+    white-space: nowrap; flex-shrink: 0;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Carte tableau ── */
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    /* overflow: hidden retiré — seul .table-scroll gère le défilement */
+    box-shadow: var(--shadow-sm);
+}
+
+.table-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+}
+.table-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+}
+.table-card-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+/* ── SEULE zone de défilement horizontal ── */
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.table-scroll::-webkit-scrollbar { height: 5px; }
+.table-scroll::-webkit-scrollbar-track { background: var(--bg-raised); }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* ── Tableau : min-width déclenche le scroll dès que l'espace manque ── */
+.table-custom {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+.table-custom thead th {
+    background: var(--bg-raised);
+    padding: 11px 14px; text-align: left;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.table-custom tbody td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+.table-custom tbody tr:last-child td { border-bottom: none; }
+.table-custom tbody tr:hover { background: var(--bg-hover); }
+
+/* ── Cellule nom client ── */
+.cust-name { font-weight: 500; color: var(--text-primary); font-size: 13.5px; }
+.cust-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── Pastille statut ── */
+.status-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; margin-right: 5px; flex-shrink: 0;
+}
+.status-dot.actif   { background: #16a34a; box-shadow: 0 0 5px rgba(22,163,74,.4); }
+.status-dot.inactif { background: var(--text-muted); }
+
+/* ── Badges / Pills ── */
+.pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500; letter-spacing: .02em;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.pill-info    { background: rgba(2,132,199,.10);  color: #0284c7; }
+.pill-neutral { background: var(--bg-raised); color: var(--text-secondary); border: 1px solid var(--border); }
+.pill-success { background: rgba(22,163,74,.10);  color: #16a34a; }
+.pill-warning { background: rgba(217,119,6,.12);  color: #d97706; }
+.pill-danger  { background: rgba(220,38,38,.10);  color: #dc2626; }
+
+/* ── Actions de ligne ── */
+.row-actions {
+    display: flex; align-items: center; gap: 4px;
+    opacity: 0; transition: opacity var(--transition);
+}
+tr:hover .row-actions { opacity: 1; }
+
+.row-btn {
+    width: 30px; height: 30px;
+    border: 1px solid var(--border); background: var(--bg-raised);
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 12px; color: var(--text-muted);
+    cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+}
+.row-btn:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-hover); }
+
+/* ── Pagination ── */
+.pagination-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+}
+.pagination-info { font-size: 12px; color: var(--text-muted); }
+.pagination-links { display: flex; gap: 4px; }
+
+.page-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-secondary);
+    font-size: 12px; cursor: pointer; text-decoration: none;
+    transition: all var(--transition);
+    font-family: 'DM Sans', sans-serif;
+}
+.page-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.page-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.page-btn.disabled { opacity: .35; pointer-events: none; }
+
+/* ── État vide ── */
+.empty-state { text-align: center; padding: 56px 20px; color: var(--text-muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 14px; color: var(--border-strong); }
+.empty-state-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
+.empty-state-desc { font-size: 13px; margin-bottom: 18px; }
+
+/* ── Animation ── */
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* ── Responsive mobile (≤ 640px) ── */
+@media (max-width: 640px) {
+    .filters-bar { padding: 12px 14px; gap: 8px; }
+    .filter-input-wrap { flex: 1 1 100%; }
+    .filter-select { flex: 1 1 calc(50% - 4px); font-size: 12px; }
+    .filter-check-wrap, .btn-primary, .btn-ghost { width: 100%; justify-content: center; }
+    .row-actions { opacity: 1; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête de page -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:3px;">Gestion des clients</div>
+        <div style="font-family:'Syne',sans-serif;font-size:clamp(18px,4vw,22px);font-weight:800;letter-spacing:-.025em;color:var(--text-primary);">
+            Répertoire clients
+        </div>
+    </div>
+    {% if request.user.userprofile %}
+    {% if request.user.userprofile.is_manager or request.user.userprofile.is_trader %}
+    <a href="{% url 'customers:create' %}" class="btn-primary">
+        <i class="bi bi-plus-lg"></i> Nouveau client
+    </a>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Barre de filtres -->
+<form method="get" id="filterForm">
+    <div class="filters-bar fade-in">
+        <!-- Recherche -->
+        <div class="filter-input-wrap">
+            <i class="bi bi-search"></i>
+            <input
+                type="text"
+                name="search"
+                class="filter-input"
+                placeholder="Rechercher par nom, téléphone, NIF…"
+                value="{{ request.GET.search|default:'' }}">
+        </div>
+
+        <!-- Type -->
+        <select name="customer_type" class="filter-select">
+            <option value="">Tous les types</option>
+            <option value="individual" {% if request.GET.customer_type == 'individual' %}selected{% endif %}>Particulier</option>
+            <option value="company"    {% if request.GET.customer_type == 'company'    %}selected{% endif %}>Entreprise</option>
+        </select>
+
+        <!-- Wilaya -->
+        <select name="wilaya" class="filter-select">
+            <option value="">Toutes les wilayas</option>
+            {% for val, label in search_form.fields.wilaya.choices %}
+            {% if val %}<option value="{{ val }}" {% if request.GET.wilaya == val %}selected{% endif %}>{{ label }}</option>{% endif %}
+            {% endfor %}
+        </select>
+
+        <!-- Statut -->
+        <select name="is_active" class="filter-select">
+            <option value="">Tous les statuts</option>
+            <option value="1" {% if request.GET.is_active == '1' %}selected{% endif %}>Actif</option>
+            <option value="0" {% if request.GET.is_active == '0' %}selected{% endif %}>Inactif</option>
+        </select>
+
+        <!-- Solde impayé -->
+        <label class="filter-check-wrap">
+            <input type="checkbox" name="has_outstanding" {% if request.GET.has_outstanding %}checked{% endif %}>
+            <span>Solde impayé</span>
+        </label>
+
+        <button type="submit" class="btn-primary" style="padding:9px 16px;">
+            <i class="bi bi-funnel"></i> Filtrer
+        </button>
+
+        {% if request.GET %}
+        <a href="{% url 'customers:list' %}" class="btn-ghost">
+            <i class="bi bi-x-lg"></i> Réinitialiser
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Carte tableau -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Liste des clients</div>
+            <div class="table-card-sub">{{ total_count }} résultat{{ total_count|pluralize }} trouvé{{ total_count|pluralize }}</div>
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);">
+            Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </span>
+    </div>
+
+    {% if page_obj %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Type</th>
+                    <th>Téléphone</th>
+                    <th>Wilaya</th>
+                    <th style="text-align:right;">Achats</th>
+                    <th style="text-align:right;">Montant total</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in page_obj %}
+                <tr onclick="location.href='{% url 'customers:detail' customer.pk %}'" style="cursor:pointer;">
+
+                    <!-- Nom -->
+                    <td>
+                        <div class="cust-name">{{ customer.name }}</div>
+                        {% if customer.email %}
+                        <div class="cust-meta"><i class="bi bi-envelope" style="margin-right:3px;"></i>{{ customer.email }}</div>
+                        {% endif %}
+                        {% if customer.nif_tax_id %}
+                        <div class="cust-meta">NIF : {{ customer.nif_tax_id }}</div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Type -->
+                    <td>
+                        {% if customer.customer_type == 'company' %}
+                        <span class="pill pill-info"><i class="bi bi-building"></i> Entreprise</span>
+                        {% else %}
+                        <span class="pill pill-neutral"><i class="bi bi-person"></i> Particulier</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Téléphone -->
+                    <td style="white-space:nowrap;">
+                        <i class="bi bi-telephone" style="color:var(--text-muted);margin-right:5px;"></i>{{ customer.phone }}
+                    </td>
+
+                    <!-- Wilaya -->
+                    <td>
+                        <i class="bi bi-geo-alt" style="color:var(--text-muted);margin-right:4px;"></i>{{ customer.get_wilaya_display }}
+                    </td>
+
+                    <!-- Nombre d'achats -->
+                    <td style="text-align:right;font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary);">
+                        {{ customer.sales_count|default:"0" }}
+                    </td>
+
+                    <!-- Valeur totale -->
+                    <td style="text-align:right;">
+                        {% if customer.purchases_total %}
+                        <span style="font-weight:500;color:var(--text-primary);">
+                            {{ customer.purchases_total|floatformat:0 }}&nbsp;<span style="font-size:11px;color:var(--text-muted);">DA</span>
+                        </span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Statut -->
+                    <td>
+                        {% if customer.is_active %}
+                        <span style="display:inline-flex;align-items:center;font-size:12px;color:#16a34a;">
+                            <span class="status-dot actif"></span> Actif
+                        </span>
+                        {% else %}
+                        <span style="display:inline-flex;align-items:center;font-size:12px;color:var(--text-muted);">
+                            <span class="status-dot inactif"></span> Inactif
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td onclick="event.stopPropagation();">
+                        <div class="row-actions">
+                            <a href="{% url 'customers:detail' customer.pk %}" class="row-btn" title="Voir la fiche">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if request.user.userprofile %}
+                            {% if request.user.userprofile.is_manager or request.user.userprofile.is_trader %}
+                            <a href="{% url 'customers:edit' customer.pk %}" class="row-btn" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+        <div class="pagination-info">
+            Affichage {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ total_count }}
+        </div>
+        <div class="pagination-links">
+            {% if page_obj.has_previous %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-btn">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ num }}" class="page-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-btn">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <!-- État vide -->
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <div class="empty-state-title">Aucun client trouvé</div>
+        <div class="empty-state-desc">
+            {% if request.GET %}
+            Aucun résultat ne correspond aux filtres actuels. Essayez d'ajuster ou de réinitialiser vos critères.
+            {% else %}
+            Aucun client n'a encore été ajouté.
+            {% endif %}
+        </div>
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_manager or request.user.userprofile.is_trader %}
+        <a href="{% url 'customers:create' %}" class="btn-primary" style="margin-top:4px;">
+            <i class="bi bi-plus-lg"></i> Créer le premier client
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div><!-- fin .table-card -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /* Soumission auto du formulaire lors du changement d'un select */
+    document.querySelectorAll('.filters-bar select').forEach(sel => {
+        sel.addEventListener('change', () => document.getElementById('filterForm').submit());
+    });
+</script>
+{% endblock %}

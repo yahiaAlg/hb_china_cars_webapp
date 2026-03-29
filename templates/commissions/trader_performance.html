@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Performance des Traders{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Performance des Traders{% endblock %}
+{% block page_sub_text %}Comparaison des Commissions et des Ventes{% endblock %}
+
+{% block extra_css %}
+.filter-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.filter-input {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 12px;
+    min-width: 160px;
+    min-height: 44px;
+    transition: border-color var(--transition);
+}
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.filter-input option { background: var(--bg-surface); }
+.btn-primary-sm {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 18px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: opacity var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-primary-sm:hover { opacity: .88; }
+.btn-ghost-sm {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+.btn-ghost-sm:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+.rank-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+.rank-1 { background: var(--accent-dim); color: var(--accent); border: 1.5px solid var(--accent); }
+.rank-2 { background: rgba(2,132,199,.1); color: #0284c7; border: 1.5px solid rgba(2,132,199,.3); }
+.rank-3 { background: rgba(22,163,74,.1); color: #16a34a; border: 1.5px solid rgba(22,163,74,.3); }
+.rank-other { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border); }
+.perf-bar-track {
+    height: 5px;
+    background: var(--bg-raised);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+.perf-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--accent);
+}
+.chart-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.table-scroll { overflow-x: auto; }
+{% endblock %}
+
+{% block content %}
+
+<!-- Barre de filtres -->
+<div class="filter-bar">
+    <form method="get" style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;width:100%;">
+        {% if filter_form %}
+            <div class="filter-group">
+                <label class="filter-label">De</label>
+                {{ filter_form.period_from }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">À</label>
+                {{ filter_form.period_to }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Ventes min.</label>
+                {{ filter_form.min_sales }}
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Trier par</label>
+                {{ filter_form.sort_by }}
+            </div>
+        {% else %}
+            <div class="filter-group">
+                <label class="filter-label">De (mois)</label>
+                <input type="month" name="period_from" class="filter-input" value="{{ request.GET.period_from }}">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">À (mois)</label>
+                <input type="month" name="period_to" class="filter-input" value="{{ request.GET.period_to }}">
+            </div>
+        {% endif %}
+        <button type="submit" class="btn-primary-sm"><i class="bi bi-funnel"></i> Appliquer</button>
+        <a href="{% url 'commissions:trader_performance' %}" class="btn-ghost-sm"><i class="bi bi-x"></i> Réinitialiser</a>
+        <a href="{% url 'commissions:overview' %}" class="btn-ghost-sm" style="margin-left:auto;"><i class="bi bi-arrow-left"></i> Aperçu</a>
+    </form>
+</div>
+
+<div class="row g-3">
+
+    <!-- Gauche : Tableau de classement -->
+    <div class="col-xl-7">
+        <div class="card">
+            <div style="padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-primary);">Classement</span>
+                <span style="font-size:12px;color:var(--text-muted);">
+                    {% if period_range %}{{ period_range }}{% else %}Toutes périodes{% endif %}
+                </span>
+            </div>
+            <div style="padding:4px 20px 12px;" class="table-scroll">
+                {% if traders_data %}
+                <table class="table-custom" style="margin-top:10px;">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Trader</th>
+                            <th>Ventes</th>
+                            <th>Marge Totale</th>
+                            <th>Commission</th>
+                            <th>Taux moy.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for td in traders_data %}
+                        <tr>
+                            <td>
+                                <div class="rank-badge {% if forloop.counter == 1 %}rank-1{% elif forloop.counter == 2 %}rank-2{% elif forloop.counter == 3 %}rank-3{% else %}rank-other{% endif %}">
+                                    {{ forloop.counter }}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1.5px solid var(--accent);display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:700;font-size:10px;color:var(--accent);flex-shrink:0;">
+                                        {{ td.trader.get_full_name|slice:":1"|default:td.trader.username|slice:":1"|upper }}
+                                    </div>
+                                    <span style="color:var(--text-primary);font-weight:500;">{{ td.trader.get_full_name|default:td.trader.username }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="color:var(--text-primary);font-weight:500;">{{ td.sales_count }}</span>
+                                <div class="perf-bar-track" style="width:80px;">
+                                    <div class="perf-bar-fill" style="width:{% if max_sales > 0 %}{% widthratio td.sales_count max_sales 100 %}{% else %}0{% endif %}%;"></div>
+                                </div>
+                            </td>
+                            <td>{{ td.total_margin|floatformat:0 }} DA</td>
+                            <td>
+                                <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">{{ td.total_commission|floatformat:0 }} DA</span>
+                            </td>
+                            <td>
+                                <span style="color:var(--text-secondary);">{{ td.average_commission_rate|floatformat:1 }}%</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="text-align:center;padding:48px 20px;color:var(--text-muted);">
+                    <i class="bi bi-person-badge" style="font-size:32px;display:block;margin-bottom:12px;color:var(--border-strong);"></i>
+                    <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">Aucune donnée de performance</div>
+                    <div style="font-size:13px;">Aucun résultat trouvé pour la période sélectionnée.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Droite : Graphiques -->
+    <div class="col-xl-5">
+
+        <!-- Graphique en barres des commissions -->
+        <div class="chart-panel mb-3">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Commission par Trader</span>
+                <span style="font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);">DA</span>
+            </div>
+            <canvas id="commissionChart" height="220" style="max-height:220px;"></canvas>
+        </div>
+
+        <!-- Graphique du nombre de ventes -->
+        <div class="chart-panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary);">Nombre de Ventes</span>
+                <span style="font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);">Transactions</span>
+            </div>
+            <canvas id="salesChart" height="180" style="max-height:180px;"></canvas>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const traders = [{% for td in traders_data %}"{{ td.trader.get_full_name|default:td.trader.username }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const commissions = [{% for td in traders_data %}{{ td.total_commission|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+const salesCounts = [{% for td in traders_data %}{{ td.sales_count }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+const palette = ['#f0a500','#0284c7','#16a34a','#7c3aed','#ea580c','#0d9488','#db2777','#4f46e5','#dc2626'];
+
+/* Tooltips thème clair v2 */
+const tooltipDefaults = {
+    backgroundColor: '#ffffff',
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderWidth: 1,
+    titleColor: '#111827',
+    bodyColor: '#6b7280',
+    padding: 10,
+    cornerRadius: 8,
+};
+
+const gridColor = 'rgba(0,0,0,0.05)';
+const tickColor = '#9ca3af';
+
+/* Graphique des commissions */
+const commCtx = document.getElementById('commissionChart').getContext('2d');
+new Chart(commCtx, {
+    type: 'bar',
+    data: {
+        labels: traders,
+        datasets: [{
+            label: 'Commission (DA)',
+            data: commissions,
+            backgroundColor: traders.map((_, i) => palette[i % palette.length] + '28'),
+            borderColor: traders.map((_, i) => palette[i % palette.length]),
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                ...tooltipDefaults,
+                callbacks: { label: ctx => ' ' + Number(ctx.parsed.x).toLocaleString('fr-DZ') + ' DA' }
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: { size: 10.5 }, callback: v => (v/1000).toFixed(0) + 'k' }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: { size: 11 } }
+            }
+        }
+    }
+});
+
+/* Graphique des ventes */
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+new Chart(salesCtx, {
+    type: 'bar',
+    data: {
+        labels: traders,
+        datasets: [{
+            label: 'Ventes',
+            data: salesCounts,
+            backgroundColor: 'rgba(2,132,199,0.12)',
+            borderColor: '#0284c7',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltipDefaults }
+        },
+        scales: {
+            x: {
+                grid: { color: gridColor, drawBorder: false },
+                ticks: { color: tickColor, font: { size: 10.5 } }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { color: tickColor, font: { size: 11 } }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

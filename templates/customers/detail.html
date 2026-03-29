@@ -1,0 +1,730 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ customer.name }}{% endblock %}
+{% block nav_customers %}active{% endblock %}
+
+{% block page_title %}{{ customer.name }}{% endblock %}
+{% block page_sub_text %}Fiche client{% endblock %}
+
+{% block extra_css %}
+/* ── Boutons ── */
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 9px 18px;
+    min-height: 44px; cursor: pointer; text-decoration: none;
+    transition: opacity .18s, transform .12s;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 14px;
+    min-height: 44px; cursor: pointer; text-decoration: none; transition: all var(--transition);
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+.btn-danger {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(220,38,38,.10); color: #dc2626;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid rgba(220,38,38,.25); border-radius: var(--radius-md); padding: 9px 14px;
+    min-height: 44px; cursor: pointer; text-decoration: none; transition: all var(--transition);
+}
+.btn-danger:hover { background: rgba(220,38,38,.18); border-color: rgba(220,38,38,.45); }
+
+/* ── En-tête de profil ── */
+.profile-header {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-avatar {
+    width: 56px; height: 56px;
+    border-radius: var(--radius-md);
+    display: grid; place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    flex-shrink: 0;
+}
+.profile-avatar.entreprise  { background: rgba(2,132,199,.12);  color: #0284c7; }
+.profile-avatar.particulier { background: rgba(13,148,136,.12); color: #0d9488; }
+
+.profile-meta { flex: 1; min-width: 200px; }
+
+.profile-name {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(18px, 4vw, 22px); font-weight: 800;
+    letter-spacing: -.025em;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.profile-contact-row {
+    display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px;
+}
+.profile-contact-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--text-secondary);
+}
+.profile-contact-item i { color: var(--text-muted); font-size: 14px; }
+
+.profile-actions { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+
+/* ── Cartes métriques ── */
+.stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.metric-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.metric-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+.metric-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 17px;
+    margin-bottom: 12px;
+}
+.metric-label {
+    font-size: 10.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -.01em;
+}
+.metric-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.ic-teal   { background: rgba(13,148,136,.10); color: #0d9488; }
+.ic-green  { background: rgba(22,163,74,.10);  color: #16a34a; }
+.ic-amber  { background: rgba(217,119,6,.12);  color: #d97706; }
+.ic-red    { background: rgba(220,38,38,.10);  color: #dc2626; }
+.ic-blue   { background: rgba(2,132,199,.10);  color: #0284c7; }
+
+/* ── Panneau ── */
+.panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.panel-head {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.panel-body { padding: 18px 20px; }
+
+/* ── Grille d'infos ── */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.info-label {
+    font-size: 10.5px;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.info-value {
+    font-size: 13.5px;
+    color: var(--text-primary);
+}
+
+/* ── Notes ── */
+.note-item {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+}
+.note-item:last-child { border-bottom: none; }
+.note-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+.note-timestamp { font-size: 11px; color: var(--text-muted); }
+.note-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+/* ── Alerte solde impayé ── */
+.outstanding-bar {
+    background: rgba(220,38,38,.07);
+    border: 1px solid rgba(220,38,38,.20);
+    border-radius: var(--radius-md);
+    padding: 13px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+/* ── Tableau ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-custom { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table-custom thead th {
+    background: var(--bg-raised);
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.table-custom tbody td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+.table-custom tbody tr:last-child td { border-bottom: none; }
+.table-custom tbody tr:hover { background: var(--bg-hover); }
+
+/* ── Pills ── */
+.pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500; letter-spacing: .02em;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.pill-success { background: rgba(22,163,74,.10);  color: #16a34a; }
+.pill-warning { background: rgba(217,119,6,.12);  color: #d97706; }
+.pill-danger  { background: rgba(220,38,38,.10);  color: #dc2626; }
+.pill-info    { background: rgba(2,132,199,.10);  color: #0284c7; }
+
+/* ── Champ note ── */
+.form-textarea {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 11px 13px;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-textarea::placeholder { color: var(--text-muted); }
+
+.form-check-input {
+    width: 15px; height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* ── Animation ── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn .3s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 60ms; }
+.fade-in:nth-child(3) { animation-delay: 120ms; }
+.fade-in:nth-child(4) { animation-delay: 180ms; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .profile-header { padding: 16px; gap: 14px; }
+    .profile-actions { width: 100%; }
+    .profile-actions .btn-primary,
+    .profile-actions .btn-ghost { flex: 1; justify-content: center; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .panel-body { padding: 14px 16px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Bouton retour -->
+<div style="margin-bottom:18px;">
+    <a href="{% url 'customers:list' %}" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);text-decoration:none;transition:color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- ═══════════════════════════════════════
+     EN-TÊTE PROFIL
+════════════════════════════════════════ -->
+<div class="profile-header fade-in">
+    <!-- Avatar initiales -->
+    <div class="profile-avatar {% if customer.customer_type == 'company' %}entreprise{% else %}particulier{% endif %}">
+        {{ customer.name|slice:":1"|upper }}
+    </div>
+
+    <!-- Infos principales -->
+    <div class="profile-meta">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;">
+            <div class="profile-name">{{ customer.name }}</div>
+            {% if customer.is_active %}
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:#16a34a;background:rgba(22,163,74,.10);border-radius:20px;padding:2px 10px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#16a34a;display:inline-block;"></span> Actif
+            </span>
+            {% else %}
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--text-muted);background:var(--bg-raised);border:1px solid var(--border);border-radius:20px;padding:2px 10px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--text-muted);display:inline-block;"></span> Inactif
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Type -->
+        <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:2px;">
+            {% if customer.customer_type == 'company' %}
+            <i class="bi bi-building me-1" style="color:var(--text-muted);"></i>Entreprise
+            {% else %}
+            <i class="bi bi-person me-1" style="color:var(--text-muted);"></i>Particulier
+            {% endif %}
+            {% if customer.nif_tax_id %}
+            &nbsp;·&nbsp; NIF : <strong style="color:var(--text-primary);">{{ customer.nif_tax_id }}</strong>
+            {% endif %}
+        </div>
+
+        <!-- Contacts -->
+        <div class="profile-contact-row">
+            <div class="profile-contact-item">
+                <i class="bi bi-telephone"></i> {{ customer.phone }}
+            </div>
+            {% if customer.email %}
+            <div class="profile-contact-item">
+                <i class="bi bi-envelope"></i> {{ customer.email }}
+            </div>
+            {% endif %}
+            <div class="profile-contact-item">
+                <i class="bi bi-geo-alt"></i>
+                {% if customer.address %}{{ customer.address }}, {% endif %}{{ customer.get_wilaya_display }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="profile-actions">
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_manager or request.user.userprofile.is_trader %}
+        <a href="{% url 'customers:edit' customer.pk %}" class="btn-primary">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        {% endif %}
+        {% endif %}
+        <a href="{% url 'customers:list' %}" class="btn-ghost">
+            <i class="bi bi-arrow-left"></i> Liste
+        </a>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MÉTRIQUES
+════════════════════════════════════════ -->
+<div class="stat-row fade-in">
+    <div class="metric-card">
+        <div class="metric-icon ic-teal"><i class="bi bi-receipt"></i></div>
+        <div class="metric-label">Achats totaux</div>
+        <div class="metric-value">{{ customer.sales_count|default:"0" }}</div>
+        <div class="metric-sub">véhicule{{ customer.sales_count|pluralize }} acheté{{ customer.sales_count|pluralize }}</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon ic-green"><i class="bi bi-cash-stack"></i></div>
+        <div class="metric-label">Valeur totale</div>
+        <div class="metric-value">{{ customer.purchases_total|floatformat:0|default:"0" }}</div>
+        <div class="metric-sub">DA dépensés</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon ic-amber"><i class="bi bi-hourglass-split"></i></div>
+        <div class="metric-label">Solde impayé</div>
+        <div class="metric-value" style="{% if customer.outstanding_balance %}color:#dc2626;{% endif %}">
+            {{ customer.outstanding_balance|floatformat:0|default:"0" }}
+        </div>
+        <div class="metric-sub">DA en attente</div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon ic-blue"><i class="bi bi-calendar3"></i></div>
+        <div class="metric-label">Client depuis</div>
+        <div class="metric-value" style="font-size:16px;">{{ customer.created_at|date:"M Y" }}</div>
+        <div class="metric-sub">{{ customer.created_at|date:"j M Y" }}</div>
+    </div>
+</div>
+
+<!-- Alerte solde impayé -->
+{% if customer.outstanding_balance %}
+<div class="outstanding-bar fade-in">
+    <i class="bi bi-exclamation-circle" style="font-size:20px;color:#dc2626;flex-shrink:0;"></i>
+    <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;font-size:13px;">Solde impayé en cours</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px;">
+            Ce client a un solde impayé de <strong>{{ customer.outstanding_balance|floatformat:0 }} DA</strong>. Vérifiez les factures en attente ci-dessous.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════════════════
+     COLONNES PRINCIPALES
+════════════════════════════════════════ -->
+<div class="row g-4">
+
+    <!-- GAUCHE : Infos + Historique achats + Factures impayées -->
+    <div class="col-xl-8">
+
+        <!-- Informations client -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-person-vcard me-2" style="color:var(--accent);"></i>Informations client</div>
+            </div>
+            <div class="panel-body">
+                <div class="info-grid">
+                    <div>
+                        <div class="info-label">Nom complet</div>
+                        <div class="info-value">{{ customer.name }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Type</div>
+                        <div class="info-value">
+                            {% if customer.customer_type == 'company' %}Entreprise{% else %}Particulier{% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="info-label">Téléphone</div>
+                        <div class="info-value">{{ customer.phone }}</div>
+                    </div>
+                    {% if customer.email %}
+                    <div>
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ customer.email }}</div>
+                    </div>
+                    {% endif %}
+                    {% if customer.nif_tax_id %}
+                    <div>
+                        <div class="info-label">NIF / Identifiant fiscal</div>
+                        <div class="info-value">{{ customer.nif_tax_id }}</div>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="info-label">Wilaya</div>
+                        <div class="info-value">{{ customer.get_wilaya_display }}</div>
+                    </div>
+                    {% if customer.address %}
+                    <div style="grid-column:1/-1;">
+                        <div class="info-label">Adresse</div>
+                        <div class="info-value">{{ customer.address }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Historique des achats -->
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-receipt me-2" style="color:var(--accent);"></i>Historique des achats</div>
+                <span style="font-size:12px;color:var(--text-muted);">{{ customer.sales_count|default:"0" }} vente{{ customer.sales_count|pluralize }}</span>
+            </div>
+
+            {% if sales_history %}
+            <div class="table-scroll">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Véhicule</th>
+                            <th>Trader</th>
+                            <th>Date de vente</th>
+                            <th style="text-align:right;">Prix de vente</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales_history %}
+                        <tr onclick="location.href='{% url 'sales:detail' sale.pk %}'" style="cursor:pointer;">
+                            <td>
+                                <div style="font-weight:500;color:var(--text-primary);font-size:13px;">
+                                    {{ sale.vehicle.make|default:"—" }} {{ sale.vehicle.model|default:"" }}
+                                </div>
+                                <div style="font-size:11px;color:var(--text-muted);">
+                                    NIV : {{ sale.vehicle.vin|default:"Aucun NIV"|truncatechars:14 }}
+                                </div>
+                            </td>
+                            <td>{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username|default:"—" }}</td>
+                            <td style="white-space:nowrap;">{{ sale.sale_date|date:"j M Y" }}</td>
+                            <td style="text-align:right;font-weight:500;color:var(--text-primary);">
+                                {{ sale.sale_price|floatformat:0 }} DA
+                            </td>
+                            <td>
+                                {% if sale.is_finalized %}
+                                <span class="pill pill-success"><i class="bi bi-check-circle"></i> Finalisé</span>
+                                {% else %}
+                                <span class="pill pill-warning">Brouillon</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:36px 20px;color:var(--text-muted);">
+                <i class="bi bi-receipt" style="font-size:28px;display:block;margin-bottom:10px;color:var(--border-strong);"></i>
+                <div style="font-size:13px;">Aucun achat enregistré pour l'instant.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Factures impayées -->
+        {% if outstanding_invoices %}
+        <div class="panel fade-in">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <i class="bi bi-hourglass-split me-2" style="color:#dc2626;"></i>Factures impayées
+                </div>
+                <span class="pill pill-danger">{{ outstanding_invoices.count }} impayée{{ outstanding_invoices.count|pluralize }}</span>
+            </div>
+            <div class="table-scroll">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>N° facture</th>
+                            <th>Date</th>
+                            <th style="text-align:right;">Total</th>
+                            <th style="text-align:right;">Solde dû</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in outstanding_invoices %}
+                        <tr onclick="location.href='/sales/facture/{{ invoice.pk }}/'" style="cursor:pointer;">
+                            <td style="color:var(--text-primary);font-weight:500;">{{ invoice.invoice_number }}</td>
+                            <td>{{ invoice.invoice_date|date:"j M Y" }}</td>
+                            <td style="text-align:right;">{{ invoice.total_amount|floatformat:0 }} DA</td>
+                            <td style="text-align:right;font-weight:500;color:#dc2626;">{{ invoice.balance_due|floatformat:0 }} DA</td>
+                            <td><span class="pill pill-danger"><i class="bi bi-exclamation-circle"></i> Impayée</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- fin col-xl-8 -->
+
+    <!-- DROITE : Notes + Infos fiche + Zone dangereuse -->
+    <div class="col-xl-4">
+
+        <!-- Ajouter une note -->
+        <div class="panel fade-in" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-plus-circle me-2" style="color:var(--accent);"></i>Ajouter une note</div>
+            </div>
+            <div class="panel-body">
+                <form method="post" action="{% url 'customers:add_note' customer.pk %}">
+                    {% csrf_token %}
+                    <div style="margin-bottom:12px;">
+                        <textarea
+                            name="note"
+                            class="form-textarea"
+                            placeholder="Saisir une note interne sur ce client…"
+                            rows="3">{% if note_form.note.value %}{{ note_form.note.value }}{% endif %}</textarea>
+                        {% if note_form.note.errors %}
+                        <div style="font-size:11.5px;color:#dc2626;margin-top:5px;">{{ note_form.note.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer;">
+                            <input type="checkbox" name="is_important" class="form-check-input">
+                            <span>Marquer comme important</span>
+                        </label>
+                        <button type="submit" class="btn-primary" style="padding:7px 16px;font-size:13px;min-height:36px;">
+                            <i class="bi bi-plus-lg"></i> Ajouter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notes récentes -->
+        <div class="panel fade-in" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-chat-left-text me-2" style="color:var(--accent);"></i>Notes</div>
+            </div>
+            <div class="panel-body" style="padding-top:4px;padding-bottom:4px;">
+                {% if recent_notes %}
+                {% for note in recent_notes %}
+                <div class="note-item">
+                    <div class="note-item-head">
+                        <div>
+                            {% if note.is_important %}
+                            <span class="pill pill-warning" style="padding:1px 7px;font-size:10.5px;">
+                                <i class="bi bi-star-fill"></i> Important
+                            </span>
+                            {% endif %}
+                        </div>
+                        <span class="note-timestamp">{{ note.created_at|date:"j M Y" }}</span>
+                    </div>
+                    <div class="note-text">{{ note.note }}</div>
+                    {% if note.created_by %}
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
+                        — {{ note.created_by.get_full_name|default:note.created_by.username }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">
+                    <i class="bi bi-chat-left" style="font-size:22px;display:block;margin-bottom:8px;color:var(--border-strong);"></i>
+                    Aucune note pour l'instant.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informations de la fiche -->
+        <div class="panel fade-in" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-info-circle me-2" style="color:var(--text-muted);"></i>Infos de la fiche</div>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Créé le</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ customer.created_at|date:"j M Y" }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Dernière mise à jour</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">{{ customer.updated_at|date:"j M Y" }}</div>
+                    </div>
+                    {% if customer.created_by %}
+                    <div>
+                        <div class="info-label" style="font-size:10px;">Ajouté par</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">
+                            {{ customer.created_by.get_full_name|default:customer.created_by.username }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone dangereuse (gestionnaire uniquement) -->
+        {% if request.user.userprofile %}
+        {% if request.user.userprofile.is_manager %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:16px 18px;" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;margin-bottom:6px;font-size:13px;">
+                <i class="bi bi-exclamation-triangle me-1"></i> Zone dangereuse
+            </div>
+            <p style="font-size:12.5px;color:var(--text-secondary);margin:0 0 12px;">
+                {% if customer.is_active %}
+                Désactiver ce client empêchera toute nouvelle vente de lui être associée. La fiche n'est pas supprimée.
+                {% else %}
+                Réactiver ce client lui permettra d'être à nouveau associé à de nouvelles ventes.
+                {% endif %}
+            </p>
+            <button class="btn-danger" id="dangerToggleBtn"
+                data-url="{% url 'customers:toggle_status' customer.pk %}"
+                style="font-size:12px;padding:7px 14px;min-height:36px;">
+                {% if customer.is_active %}
+                <i class="bi bi-pause-circle"></i> Désactiver le client
+                {% else %}
+                <i class="bi bi-play-circle"></i> Réactiver le client
+                {% endif %}
+            </button>
+        </div>
+        {% endif %}
+        {% endif %}
+
+    </div><!-- fin col-xl-4 -->
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStatus(url) {
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Impossible de mettre à jour le statut.');
+        }
+    })
+    .catch(() => alert('La requête a échoué. Veuillez réessayer.'));
+}
+
+const dangerBtn = document.getElementById('dangerToggleBtn');
+if (dangerBtn) {
+    dangerBtn.addEventListener('click', () => toggleStatus(dangerBtn.dataset.url));
+}
+</script>
+{% endblock %}

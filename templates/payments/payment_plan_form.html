@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Plan de paiement — {{ invoice.invoice_number }}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Plan de paiement{% endblock %}
+{% block page_sub_text %}Facture {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+.form-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+    max-width: 980px;
+}
+
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-card-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-raised);
+}
+
+.form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-card-body { padding: 22px 20px; }
+
+.form-row { display: grid; gap: 14px; margin-bottom: 14px; }
+.form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.field-label span.req { color: var(--accent); }
+
+.field-input, .field-select, .field-textarea {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 11px 14px;
+    width: 100%;
+    min-height: 44px;
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.field-input:focus, .field-select:focus, .field-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.field-textarea { resize: vertical; min-height: 90px; }
+.field-select option { background: var(--bg-raised); }
+
+.field-error {
+    font-size: 11.5px;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Aperçu calculé des échéances */
+.preview-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+.preview-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-raised);
+}
+
+.preview-body { padding: 14px 16px; }
+
+.preview-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+
+.preview-row:last-child { border-bottom: none; }
+.preview-label { color: var(--text-muted); }
+.preview-value { color: var(--text-secondary); font-weight: 600; }
+.preview-value.accent { color: var(--accent); font-family: 'Syne',sans-serif; font-weight:700; }
+
+.invoice-banner {
+    background: linear-gradient(135deg, rgba(217,119,6,.10), rgba(217,119,6,.03));
+    border: 1px solid rgba(217,119,6,.20);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    text-align: center;
+}
+
+.banner-label {
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.banner-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.banner-value.accent { color: var(--accent); }
+.banner-value.green  { color: #16a34a; }
+
+.fade-in { animation: fadeIn .35s ease both; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+    .form-layout { grid-template-columns: 1fr; }
+    .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Retour -->
+<div style="margin-bottom:20px;">
+    <a href="{% url 'payments:outstanding' %}" class="section-link" style="font-size:13px;color:var(--text-secondary);">
+        <i class="bi bi-arrow-left me-1"></i> Retour aux factures impayées
+    </a>
+</div>
+
+<div class="form-layout">
+
+    <!-- Gauche : formulaire -->
+    <div class="fade-in">
+        <div class="form-card">
+            <div class="form-card-head">
+                <div style="width:40px;height:40px;background:rgba(2,132,199,.10);border-radius:var(--radius-sm);display:grid;place-items:center;color:#0284c7;font-size:18px;flex-shrink:0;">
+                    <i class="bi bi-calendar3"></i>
+                </div>
+                <div>
+                    <div class="form-card-title">Créer un plan de paiement</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Facture {{ invoice.invoice_number }} — {{ invoice.customer.name|default:"—" }}</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                <!-- Résumé facture -->
+                <div class="invoice-banner">
+                    <div>
+                        <div class="banner-label">Total facture</div>
+                        <div class="banner-value">{{ invoice.total_ttc|floatformat:0 }}</div>
+                        <div style="font-size:10px;color:var(--text-muted);">DA</div>
+                    </div>
+                    <div>
+                        <div class="banner-label">Déjà payé</div>
+                        <div class="banner-value green">{{ invoice.amount_paid|floatformat:0 }}</div>
+                        <div style="font-size:10px;color:var(--text-muted);">DA</div>
+                    </div>
+                    <div>
+                        <div class="banner-label">Solde à échelonner</div>
+                        <div class="banner-value accent" id="balanceDisplay">{{ invoice.balance_due|floatformat:0 }}</div>
+                        <div style="font-size:10px;color:var(--text-muted);">DA</div>
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;">
+                    <div style="font-size:13px;color:#dc2626;display:flex;align-items:center;gap:6px;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="post" id="planForm">
+                    {% csrf_token %}
+
+                    <!-- Acompte + Nombre d'échéances -->
+                    <div class="form-row cols-2">
+                        <div class="field-group">
+                            <label class="field-label">Acompte (DA)</label>
+                            <input type="number"
+                                name="{{ form.down_payment.html_name }}"
+                                value="{{ form.down_payment.value|default_if_none:'0' }}"
+                                id="downPaymentInput"
+                                step="0.01" min="0"
+                                max="{{ invoice.balance_due }}"
+                                class="field-input {% if form.down_payment.errors %}is-invalid{% endif %}"
+                                placeholder="0">
+                            {% if form.down_payment.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.down_payment.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Nombre d'échéances <span class="req">*</span></label>
+                            <input type="number"
+                                name="{{ form.number_of_installments.html_name }}"
+                                value="{{ form.number_of_installments.value|default_if_none:'' }}"
+                                id="installmentsInput"
+                                min="1" max="60"
+                                class="field-input {% if form.number_of_installments.errors %}is-invalid{% endif %}"
+                                placeholder="Ex : 6">
+                            {% if form.number_of_installments.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.number_of_installments.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Date de début -->
+                    <div class="form-row cols-2">
+                        <div class="field-group">
+                            <label class="field-label">Date de début <span class="req">*</span></label>
+                            <input type="date"
+                                name="{{ form.start_date.html_name }}"
+                                value="{{ form.start_date.value|date:'Y-m-d'|default_if_none:'' }}"
+                                class="field-input {% if form.start_date.errors %}is-invalid{% endif %}">
+                            {% if form.start_date.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.start_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Fréquence</label>
+                            <select name="{{ form.frequency.html_name }}"
+                                class="field-select {% if form.frequency.errors %}is-invalid{% endif %}">
+                                {% for value, label in form.frequency.field.choices %}
+                                <option value="{{ value }}" {% if form.frequency.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.frequency.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.frequency.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="field-group">
+                            <label class="field-label">Notes</label>
+                            <textarea name="{{ form.notes.html_name }}"
+                                class="field-textarea {% if form.notes.errors %}is-invalid{% endif %}"
+                                placeholder="Conditions particulières, accord verbal…">{{ form.notes.value|default_if_none:'' }}</textarea>
+                            {% if form.notes.errors %}
+                            <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.notes.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+                        <button type="submit" class="btn-primary" style="flex:1;padding:12px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;">
+                            <i class="bi bi-calendar-check"></i> Créer le plan
+                        </button>
+                        <a href="{% url 'payments:outstanding' %}" class="btn-ghost" style="padding:12px 18px;font-size:14px;display:inline-flex;align-items:center;gap:6px;min-height:44px;">
+                            <i class="bi bi-x-lg"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Droite : aperçu calculé -->
+    <div class="fade-in" style="animation-delay:60ms;">
+
+        <div class="preview-card">
+            <div class="preview-head">
+                <i class="bi bi-calculator" style="color:var(--accent);"></i>
+                Aperçu du plan
+            </div>
+            <div class="preview-body">
+                <div style="background:var(--bg-raised);border-radius:var(--radius-md);padding:14px;text-align:center;margin-bottom:12px;border:1px solid var(--border);">
+                    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Mensualité estimée</div>
+                    <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent);" id="previewInstallment">—</div>
+                    <div style="font-size:11px;color:var(--text-muted);">DA / échéance</div>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Solde total</span>
+                    <span class="preview-value">{{ invoice.balance_due|floatformat:0 }} DA</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Acompte</span>
+                    <span class="preview-value" id="previewDown">0 DA</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Montant à échelonner</span>
+                    <span class="preview-value accent" id="previewRemaining">{{ invoice.balance_due|floatformat:0 }} DA</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Nombre d'échéances</span>
+                    <span class="preview-value" id="previewCount">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow-sm);">
+            <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Conseils</div>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+                <li style="display:flex;gap:8px;font-size:12.5px;color:var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+                    L'acompte est déduit immédiatement du solde.
+                </li>
+                <li style="display:flex;gap:8px;font-size:12.5px;color:var(--text-secondary);">
+                    <i class="bi bi-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
+                    Les échéances sont générées automatiquement à partir de la date de début.
+                </li>
+            </ul>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const balanceDue      = {{ invoice.balance_due|floatformat:2 }};
+const downInput       = document.getElementById('downPaymentInput');
+const installInput    = document.getElementById('installmentsInput');
+const previewInstall  = document.getElementById('previewInstallment');
+const previewDown     = document.getElementById('previewDown');
+const previewRemain   = document.getElementById('previewRemaining');
+const previewCount    = document.getElementById('previewCount');
+
+function updatePreview() {
+    const down      = parseFloat(downInput.value) || 0;
+    const n         = parseInt(installInput.value)  || 0;
+    const remaining = Math.max(0, balanceDue - down);
+    const monthly   = n > 0 ? (remaining / n) : 0;
+
+    previewDown.textContent    = Math.round(down).toLocaleString('fr-FR') + ' DA';
+    previewRemain.textContent  = Math.round(remaining).toLocaleString('fr-FR') + ' DA';
+    previewCount.textContent   = n > 0 ? n : '—';
+    previewInstall.textContent = n > 0 ? Math.round(monthly).toLocaleString('fr-FR') : '—';
+}
+
+downInput.addEventListener('input', updatePreview);
+installInput.addEventListener('input', updatePreview);
+updatePreview();
+
+// Pré-remplir la date de début avec aujourd'hui
+const startDate = document.querySelector('input[name*="start_date"]');
+if (startDate && !startDate.value) {
+    startDate.value = new Date().toISOString().slice(0, 10);
+}
+</script>
+{% endblock %}

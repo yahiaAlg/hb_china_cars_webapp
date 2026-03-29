@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Factures impayées{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Factures impayées{% endblock %}
+{% block page_sub_text %}{{ stats.total_invoices }} facture{{ stats.total_invoices|pluralize }} en attente de règlement{% endblock %}
+
+{% block extra_css %}
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.filter-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg-raised);
+}
+
+.filter-head-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-body { padding: 18px 20px; }
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.filter-field label {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.filter-field input,
+.filter-field select {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    min-height: 44px;
+    transition: border-color .18s;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-raised);
+}
+
+.table-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.table-card-subtitle { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+.table-scroll { overflow-x: auto; }
+
+.overdue-row td { background: rgba(220,38,38,.04); }
+
+.progress-mini {
+    height: 5px;
+    background: var(--bg-raised);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+    border: 1px solid var(--border);
+}
+
+.progress-mini-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: #16a34a;
+}
+
+.pagination-row {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-raised);
+}
+
+.pagination-info { font-size: 12.5px; color: var(--text-muted); }
+.pagination-btns { display: flex; gap: 6px; }
+
+.pg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    text-decoration: none;
+    transition: all .18s;
+}
+
+.pg-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+.pg-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight:600; }
+.pg-btn.disabled { opacity: .35; pointer-events: none; }
+
+.fade-in { animation: fadeIn .35s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 50ms; }
+.fade-in:nth-child(3) { animation-delay: 100ms; }
+.fade-in:nth-child(4) { animation-delay: 150ms; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1100px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .filter-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════
+     MÉTRIQUES
+══════════════════════════════════ -->
+<div class="stats-row">
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-blue">
+            <i class="bi bi-receipt"></i>
+        </div>
+        <div class="metric-label">Factures impayées</div>
+        <div class="metric-value sm">{{ stats.total_invoices }}</div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Total filtré</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-amber">
+            <i class="bi bi-cash-coin"></i>
+        </div>
+        <div class="metric-label">Montant impayé</div>
+        <div class="metric-value sm">{{ stats.total_outstanding|floatformat:0 }} <span style="font-size:12px;color:var(--text-muted)">DA</span></div>
+        <span class="metric-delta neutral"><i class="bi bi-dash"></i> Toutes factures</span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-red">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="metric-label">En retard</div>
+        <div class="metric-value sm">{{ stats.overdue_count }}</div>
+        <span class="metric-delta {% if stats.overdue_count > 0 %}down{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if stats.overdue_count > 0 %}arrow-down-right{% else %}check{% endif %}"></i>
+            {% if stats.overdue_count > 0 %}Nécessite une action{% else %}Aucun retard{% endif %}
+        </span>
+    </div>
+
+    <div class="metric-card fade-in">
+        <div class="metric-icon ic-orange">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="metric-label">Montant en retard</div>
+        <div class="metric-value sm">{{ stats.overdue_amount|floatformat:0 }} <span style="font-size:12px;color:var(--text-muted)">DA</span></div>
+        <span class="metric-delta {% if stats.overdue_amount > 0 %}down{% else %}neutral{% endif %}">
+            <i class="bi bi-{% if stats.overdue_amount > 0 %}exclamation-circle{% else %}check{% endif %}"></i>
+            {% if stats.overdue_amount > 0 %}Encours échus{% else %}Aucun encours{% endif %}
+        </span>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     FILTRES
+══════════════════════════════════ -->
+<div class="filter-panel fade-in">
+    <div class="filter-head" id="filterToggle">
+        <div class="filter-head-title">
+            <i class="bi bi-funnel" style="color:var(--accent);"></i>
+            Filtres
+            {% if request.GET.customer or request.GET.overdue_only %}
+            <span class="pill pill-warning" style="font-size:10px;">Actif</span>
+            {% endif %}
+        </div>
+        <i class="bi bi-chevron-up" id="filterChevron" style="color:var(--text-muted);font-size:12px;transition:.18s;"></i>
+    </div>
+    <div class="filter-body" id="filterBody">
+        <form method="get" action="">
+            <div class="filter-grid">
+                <div class="filter-field">
+                    <label>Client</label>
+                    <select name="customer">
+                        <option value="">Tous les clients</option>
+                        {% for c in customers %}
+                        <option value="{{ c.pk }}" {% if request.GET.customer == c.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label>Solde min. (DA)</label>
+                    <input type="number" name="amount_min" value="{{ request.GET.amount_min }}"
+                        placeholder="0" step="0.01">
+                </div>
+                <div class="filter-field">
+                    <label>Jours de retard (min)</label>
+                    <input type="number" name="days_overdue_min" value="{{ request.GET.days_overdue_min }}"
+                        placeholder="0">
+                </div>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:14px;align-items:center;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);min-height:44px;">
+                    <input type="checkbox" name="overdue_only" value="1"
+                        {% if request.GET.overdue_only %}checked{% endif %}
+                        style="accent-color:var(--accent);width:16px;height:16px;">
+                    Retards uniquement
+                </label>
+                <button type="submit" class="btn-primary" style="padding:9px 20px;font-size:13px;min-height:44px;">
+                    <i class="bi bi-search me-1"></i> Appliquer
+                </button>
+                <a href="{% url 'payments:outstanding' %}" class="btn-ghost" style="padding:9px 16px;font-size:13px;min-height:44px;">
+                    <i class="bi bi-x-lg me-1"></i> Effacer
+                </a>
+                {% if request.user.userprofile %}
+                {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                <a href="{% url 'payments:create' %}" class="btn-primary" style="padding:9px 20px;font-size:13px;margin-left:auto;min-height:44px;">
+                    <i class="bi bi-plus-lg me-1"></i> Enregistrer un paiement
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════
+     TABLEAU
+══════════════════════════════════ -->
+<div class="table-card fade-in">
+    <div class="table-card-head">
+        <div>
+            <div class="table-card-title">Factures impayées</div>
+            <div class="table-card-subtitle">Factures avec un solde restant dû</div>
+        </div>
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>N° Facture</th>
+                    <th>Client</th>
+                    <th>Trader</th>
+                    <th>Date émission</th>
+                    <th>Date échéance</th>
+                    <th style="text-align:right;">Total</th>
+                    <th style="text-align:right;">Payé</th>
+                    <th style="text-align:right;">Solde dû</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj.object_list %}
+                <tr class="{% if invoice.due_date and invoice.due_date < today %}overdue-row{% endif %}">
+                    <td>
+                        <a href="{% url 'sales:invoice_detail' invoice.pk %}"
+                            style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);font-size:13px;">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td style="color:var(--text-primary);font-weight:500;">{{ invoice.customer.name|default:"—" }}</td>
+                    <td style="color:var(--text-muted);font-size:12.5px;">
+                        {{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username|default:"—" }}
+                    </td>
+                    <td>{{ invoice.invoice_date|date:"j M Y"|default:"—" }}</td>
+                    <td>
+                        {% if invoice.due_date %}
+                            {% if invoice.due_date < today %}
+                            <span style="color:#dc2626;font-weight:500;">{{ invoice.due_date|date:"j M Y" }}</span>
+                            {% else %}
+                            {{ invoice.due_date|date:"j M Y" }}
+                            {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="text-align:right;color:var(--text-secondary);">{{ invoice.total_ttc|floatformat:0 }} DA</td>
+                    <td style="text-align:right;color:#16a34a;font-weight:600;">{{ invoice.amount_paid|floatformat:0 }} DA</td>
+                    <td style="text-align:right;">
+                        <div>
+                            <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">
+                                {{ invoice.balance_due|floatformat:0 }} DA
+                            </span>
+                            {% if invoice.total_ttc %}
+                            <div class="progress-mini">
+                                <div class="progress-mini-fill" style="width:{% widthratio invoice.amount_paid invoice.total_ttc 100 %}%;"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if invoice.due_date and invoice.due_date < today %}
+                        <span class="pill pill-danger">
+                            <i class="bi bi-exclamation-circle me-1"></i>En retard
+                        </span>
+                        {% else %}
+                        <span class="pill pill-warning">
+                            <i class="bi bi-hourglass-split me-1"></i>En attente
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:6px;justify-content:flex-end;">
+                            {% if request.user.userprofile %}
+                            {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
+                            <a href="{% url 'payments:quick_payment' invoice.pk %}"
+                                class="btn-primary" style="padding:5px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;min-height:36px;"
+                                title="Paiement rapide">
+                                <i class="bi bi-plus-lg"></i> Payer
+                            </a>
+                            <a href="{% url 'payments:create_reminder' invoice.pk %}"
+                                class="btn-ghost" style="padding:5px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;min-height:36px;"
+                                title="Ajouter un rappel">
+                                <i class="bi bi-bell"></i>
+                            </a>
+                            {% if not invoice.payment_plan %}
+                            <a href="{% url 'payments:create_payment_plan' invoice.pk %}"
+                                class="btn-ghost" style="padding:5px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;min-height:36px;"
+                                title="Créer un plan de paiement">
+                                <i class="bi bi-calendar3"></i>
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-row">
+        <div class="pagination-info">
+            Affichage {{ page_obj.start_index }}–{{ page_obj.end_index }} sur {{ page_obj.paginator.count }}
+        </div>
+        <div class="pagination-btns">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.customer %}&customer={{ request.GET.customer }}{% endif %}{% if request.GET.overdue_only %}&overdue_only=1{% endif %}" class="pg-btn">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="pg-btn disabled"><i class="bi bi-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="pg-btn active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if request.GET.customer %}&customer={{ request.GET.customer }}{% endif %}{% if request.GET.overdue_only %}&overdue_only=1{% endif %}" class="pg-btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.customer %}&customer={{ request.GET.customer }}{% endif %}{% if request.GET.overdue_only %}&overdue_only=1{% endif %}" class="pg-btn">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="pg-btn disabled"><i class="bi bi-chevron-right"></i></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="text-align:center;padding:56px 20px;color:var(--text-muted);">
+        <i class="bi bi-check-circle" style="font-size:36px;display:block;margin-bottom:14px;color:#16a34a;"></i>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">
+            Toutes les factures sont réglées
+        </div>
+        <div style="font-size:13px;">Aucune facture impayée ne correspond aux filtres actuels.</div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const today = new Date().toISOString().slice(0,10);
+
+const filterToggle  = document.getElementById('filterToggle');
+const filterBody    = document.getElementById('filterBody');
+const filterChevron = document.getElementById('filterChevron');
+let filterOpen = true;
+
+filterToggle.addEventListener('click', () => {
+    filterOpen = !filterOpen;
+    filterBody.style.display = filterOpen ? '' : 'none';
+    filterChevron.style.transform = filterOpen ? '' : 'rotate(180deg)';
+});
+</script>
+{% endblock %}

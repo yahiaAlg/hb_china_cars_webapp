@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{% if vehicle %}Modification de {{ vehicle.vin_chassis }}{% else %}Enregistrer un nouveau véhicule{% endif %}{% endblock %}
+
+{% block extra_css %}
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 10px 22px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 18px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Cartes de formulaire ── */
+.form-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.form-card-head {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-surface);
+}
+.form-card-icon {
+    width: 34px; height: 34px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 15px;
+    background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
+}
+.form-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.form-card-sub   { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.form-card-body  { padding: 22px; }
+
+/* ── Champs ── */
+.form-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.three  { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.single { grid-template-columns: 1fr; }
+@media (max-width: 768px) { .form-row, .form-row.three { grid-template-columns: 1fr; } }
+
+.field-wrap { display: flex; flex-direction: column; gap: 5px; }
+.field-label {
+    font-size: 11.5px; font-weight: 500;
+    color: var(--text-secondary); letter-spacing: .02em;
+}
+.field-label .req { color: var(--accent); margin-left: 2px; }
+
+.form-input, .form-select, .form-textarea {
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px;
+    padding: 10px 13px; width: 100%; min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
+.form-select { cursor: pointer; appearance: auto; }
+.form-select option { background: var(--bg-raised); }
+.form-textarea { resize: vertical; min-height: 100px; }
+
+.field-help  { font-size: 11px; color: var(--text-muted); }
+.field-error { font-size: 11.5px; color: var(--danger); display: flex; align-items: center; gap: 4px; }
+
+.section-sep {
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+
+/* ── Erreurs non liées à un champ ── */
+.non-field-errors {
+    background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.25);
+    border-radius: var(--radius-md); padding: 12px 16px;
+    margin-bottom: 20px; font-size: 13px; color: var(--danger);
+}
+
+/* ── Astuce NIV ── */
+.vin-tip {
+    background: rgba(2,132,199,.06); border: 1px solid rgba(2,132,199,.18);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-size: 12px; color: #0284c7;
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+}
+
+/* ── Note d'achat ── */
+.purchase-note {
+    background: var(--accent-dim); border: 1px solid rgba(217,119,6,.20);
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-size: 12px; color: #d97706; margin-top: 6px;
+    display: flex; align-items: flex-start; gap: 6px;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .form-card-body { padding: 16px; }
+    .form-card-head { padding: 12px 16px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Lien de retour -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+    {% if vehicle %}
+    <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn-ghost" style="padding:7px 12px;min-height:40px;"><i class="bi bi-arrow-left"></i> Retour</a>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+    <span style="font-size:13px;color:var(--text-secondary);">{{ vehicle }}</span>
+    {% else %}
+    <a href="{% url 'inventory:list' %}" class="btn-ghost" style="padding:7px 12px;min-height:40px;"><i class="bi bi-arrow-left"></i> Inventaire</a>
+    {% endif %}
+</div>
+
+{% if form.non_field_errors %}
+<div class="non-field-errors fade-in">
+    <i class="bi bi-exclamation-circle me-2"></i>{{ form.non_field_errors|join:" " }}
+</div>
+{% endif %}
+
+<form method="post" id="vehicleForm">
+    {% csrf_token %}
+    <div class="row g-4">
+
+        <!-- Colonne principale -->
+        <div class="col-xl-8">
+
+            <!-- Identification -->
+            <div class="form-card fade-in">
+                <div class="form-card-head">
+                    <div class="form-card-icon"><i class="bi bi-upc-scan"></i></div>
+                    <div>
+                        <div class="form-card-title">Identification du véhicule</div>
+                        <div class="form-card-sub">Numéro NIV/châssis et lien d'achat</div>
+                    </div>
+                </div>
+                <div class="form-card-body">
+                    <div class="form-row single" style="margin-bottom:20px;">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.vin_chassis.id_for_label }}">
+                                NIV / Numéro de châssis <span class="req">*</span>
+                            </label>
+                            <input type="text" name="vin_chassis" id="{{ form.vin_chassis.id_for_label }}"
+                                class="form-input" placeholder="ex. LSGJA52B3GG123456"
+                                value="{{ form.vin_chassis.value|default:'' }}"
+                                style="font-family:monospace;letter-spacing:.07em;" required>
+                            <div class="vin-tip"><i class="bi bi-info-circle"></i> Doit comporter au moins 10 caractères. Unique par véhicule.</div>
+                            {% if form.vin_chassis.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle"></i> {{ form.vin_chassis.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row single">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.vehicle_purchase.id_for_label }}">
+                                Achat associé <span class="req">*</span>
+                            </label>
+                            {{ form.vehicle_purchase }} 
+                            <div class="purchase-note"><i class="bi bi-exclamation-triangle"></i>Seuls les achats sans véhicule attribué sont listés.</div>
+                            {% if form.vehicle_purchase.errors %}
+                            <div class="field-error"><i class="bi bi-x-circle"></i> {{ form.vehicle_purchase.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Détails du véhicule -->
+            <div class="form-card fade-in">
+                <div class="form-card-head">
+                    <div class="form-card-icon"><i class="bi bi-car-front-fill"></i></div>
+                    <div>
+                        <div class="form-card-title">Détails du véhicule</div>
+                        <div class="form-card-sub">Marque, modèle, année et spécifications</div>
+                    </div>
+                </div>
+                <div class="form-card-body">
+
+                    <div class="section-sep">Informations de base</div>
+                    <div class="form-row three">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.make.id_for_label }}">Marque <span class="req">*</span></label>
+                            <input type="text" name="make" id="{{ form.make.id_for_label }}"
+                                class="form-input" placeholder="ex. BYD, Chery, BAIC"
+                                value="{{ form.make.value|default:'' }}" required>
+                            {% if form.make.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.make.errors|join:", " }}</div>{% endif %}
+                        </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.model.id_for_label }}">Modèle <span class="req">*</span></label>
+                            <input type="text" name="model" id="{{ form.model.id_for_label }}"
+                                class="form-input" placeholder="ex. Atto 3, Tiggo 8"
+                                value="{{ form.model.value|default:'' }}" required>
+                            {% if form.model.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.model.errors|join:", " }}</div>{% endif %}
+                        </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.year.id_for_label }}">Année <span class="req">*</span></label>
+                            <input type="number" name="year" id="{{ form.year.id_for_label }}"
+                                class="form-input" placeholder="2024" min="2000" max="2030"
+                                value="{{ form.year.value|default:'' }}" required>
+                            {% if form.year.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.year.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-bottom:0;">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.color.id_for_label }}">Couleur <span class="req">*</span></label>
+                            <input type="text" name="color" id="{{ form.color.id_for_label }}"
+                                class="form-input" placeholder="ex. Blanc nacré, Noir minuit"
+                                value="{{ form.color.value|default:'' }}" required>
+                            {% if form.color.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.color.errors|join:", " }}</div>{% endif %}
+                        </div>
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.engine_type.id_for_label }}">Type de moteur</label>
+                            <input type="text" name="engine_type" id="{{ form.engine_type.id_for_label }}"
+                                class="form-input" placeholder="ex. Électrique, Essence 2.0T, Hybride"
+                                value="{{ form.engine_type.value|default:'' }}">
+                            {% if form.engine_type.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.engine_type.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                        <div class="field-wrap">
+                            <label class="field-label" for="{{ form.specifications.id_for_label }}">Spécifications</label>
+                            <textarea name="specifications" id="{{ form.specifications.id_for_label }}"
+                                class="form-textarea" rows="4"
+                                placeholder="Spécifications, caractéristiques ou notes supplémentaires…">{{ form.specifications.value|default:'' }}</textarea>
+                            {% if form.specifications.errors %}<div class="field-error"><i class="bi bi-x-circle"></i> {{ form.specifications.errors|join:", " }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Barre latérale -->
+        <div class="col-xl-4">
+
+            <!-- Bannière statut automatique -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm);" class="fade-in">
+                <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px;">
+                    <i class="bi bi-info-circle me-1" style="color:var(--accent);"></i> Statut automatique
+                </div>
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;">
+                    Le statut du véhicule est défini automatiquement selon l'achat associé :
+                    <ul style="margin:8px 0 0;padding-left:16px;">
+                        <li>Dédouanement effectué → <span style="color:#16a34a;font-weight:500;">Disponible</span></li>
+                        <li>Déclaration déposée → <span style="color:#ea580c;font-weight:500;">En douane</span></li>
+                        <li>Transport uniquement → <span style="color:#0284c7;font-weight:500;">En transit</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-card fade-in">
+                <div class="form-card-body">
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <button type="submit" class="btn-primary" style="justify-content:center;">
+                            <i class="bi bi-check-lg"></i>
+                            {% if vehicle %}Enregistrer les modifications{% else %}Enregistrer le véhicule{% endif %}
+                        </button>
+                        {% if vehicle %}
+                        <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn-ghost" style="justify-content:center;"><i class="bi bi-x"></i> Annuler</a>
+                        {% else %}
+                        <a href="{% url 'inventory:list' %}" class="btn-ghost" style="justify-content:center;"><i class="bi bi-x"></i> Annuler</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Avertissement vendu -->
+            {% if vehicle and vehicle.status == 'sold' %}
+            <div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.18);border-radius:var(--radius-md);padding:14px 16px;margin-top:14px;" class="fade-in">
+                <div style="font-family:'Syne',sans-serif;font-weight:700;color:#dc2626;font-size:13px;margin-bottom:4px;">
+                    <i class="bi bi-lock me-1"></i> Lecture seule
+                </div>
+                <div style="font-size:12px;color:var(--text-secondary);">Ce véhicule a été vendu. La plupart des champs sont verrouillés.</div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_sales %}active{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{% if sale %}{{ sale.sale_number }}{% else %}Nouvelle vente{% endif %}{% endblock %}
+
+{% block extra_css %}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+}
+.card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+}
+.card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-body { padding: 20px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.field-group { margin-bottom: 16px; }
+.field-label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px;
+}
+.field-input {
+    width: 100%; background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    padding: 10px 13px; min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+textarea.field-input { resize: vertical; min-height: 90px; }
+select.field-input {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+}
+.field-error { font-size: 12px; color: #dc2626; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+
+/* ── Line-item row ── */
+.line-item-row {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    position: relative;
+}
+.line-item-row.marked-delete {
+    opacity: .45;
+    pointer-events: none;
+}
+.line-row-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+}
+.line-row-num {
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em;
+}
+.remove-line-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 16px; padding: 4px;
+    border-radius: var(--radius-sm); transition: color .15s, background .15s;
+    display: flex; align-items: center;
+}
+.remove-line-btn:hover { color: #dc2626; background: rgba(220,38,38,.08); }
+
+/* Margin preview badge */
+.margin-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; margin-top: 8px; transition: all .2s;
+}
+.margin-badge.pos { background: rgba(22,163,74,.10); color: #16a34a; }
+.margin-badge.neg { background: rgba(220,38,38,.10); color: #dc2626; }
+.margin-badge.hidden { display: none; }
+
+.add-line-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 11px 16px;
+    border: 1.5px dashed var(--border); border-radius: var(--radius-md);
+    background: transparent; color: var(--text-muted);
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .18s; justify-content: center;
+    margin-top: 4px;
+}
+.add-line-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-dim);
+}
+
+/* Summary sidebar */
+.info-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; gap: 12px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.info-value { color: var(--text-primary); font-weight: 500; text-align: right; }
+
+@media (max-width: 1024px) { .form-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .row-2, .row-3 { grid-template-columns: 1fr; } }
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px;">
+    {% if sale %}
+    <a href="{% url 'sales:detail' sale.pk %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);transition:color var(--transition);"
+       onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour à {{ sale.sale_number }}
+    </a>
+    {% else %}
+    <a href="{% url 'sales:list' %}"
+       style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);transition:color var(--transition);"
+       onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+        <i class="bi bi-arrow-left"></i> Retour aux ventes
+    </a>
+    {% endif %}
+</div>
+
+<form method="post" id="saleForm">
+{% csrf_token %}
+{{ formset.management_form }}
+
+<div class="form-grid">
+
+    <!-- LEFT: sale header + line items -->
+    <div>
+
+        <!-- Sale header -->
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-receipt me-2" style="color:#d97706;"></i>Informations générales</div>
+            </div>
+            <div class="card-body">
+                <div class="row-2">
+                    <div class="field-group">
+                        <label class="field-label">Date de vente</label>
+                        {{ form.sale_date }}
+                        {% if form.sale_date.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.sale_date.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Mode de paiement</label>
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.payment_method.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="row-2">
+                    <div class="field-group">
+                        <label class="field-label">Client</label>
+                        {{ form.customer }}
+                        {% if form.customer.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.customer.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Trader assigné</label>
+                        {{ form.assigned_trader }}
+                        {% if form.assigned_trader.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.assigned_trader.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="row-2">
+                    <div class="field-group">
+                        <label class="field-label">Acompte versé (DA)</label>
+                        {{ form.down_payment }}
+                        {% if form.down_payment.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.down_payment.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Taux de commission (%)</label>
+                        {{ form.commission_rate }}
+                        {% if form.commission_rate.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ form.commission_rate.errors.0 }}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="field-group" style="margin-bottom:0;">
+                    <label class="field-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-car-front me-2" style="color:#0284c7;"></i>Véhicules vendus</div>
+                <span id="lineCount" style="font-size:12px;color:var(--text-muted);">0 véhicule</span>
+            </div>
+            <div class="card-body">
+
+                <div id="lineItemsContainer">
+                {% for line_form in formset %}
+                    <div class="line-item-row{% if line_form.instance.pk and line_form.DELETE.value %} marked-delete{% endif %}" data-index="{{ forloop.counter0 }}">
+                        {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+
+                        <div class="line-row-header">
+                            <div class="line-row-num">Véhicule {{ forloop.counter }}</div>
+                            <button type="button" class="remove-line-btn" title="Supprimer cette ligne">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+
+                        <!-- DELETE checkbox (hidden, toggled by JS) -->
+                        <div style="display:none;">{{ line_form.DELETE }}</div>
+
+                        <div class="row-2">
+                            <div class="field-group">
+                                <label class="field-label">Véhicule</label>
+                                {{ line_form.vehicle }}
+                                {% if line_form.vehicle.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ line_form.vehicle.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Prix de vente (DA)</label>
+                                {{ line_form.sale_price }}
+                                {% if line_form.sale_price.errors %}<div class="field-error"><i class="bi bi-x-circle"></i>{{ line_form.sale_price.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="field-group" style="margin-bottom:0;">
+                            <label class="field-label">Notes ligne</label>
+                            {{ line_form.notes }}
+                        </div>
+
+                        <!-- Per-line margin badge -->
+                        <div class="margin-badge hidden" id="marginBadge_{{ forloop.counter0 }}"></div>
+
+                        {% if line_form.non_field_errors %}
+                        <div class="field-error" style="margin-top:8px;"><i class="bi bi-x-circle"></i>{{ line_form.non_field_errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+
+                <!-- Add line button -->
+                <button type="button" class="add-line-btn" id="addLineBtn">
+                    <i class="bi bi-plus-circle"></i> Ajouter un véhicule
+                </button>
+
+                <!-- Running total -->
+                <div style="margin-top:16px;padding:14px 16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.07em;">Total de la vente</span>
+                    <span id="runningTotal" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);">0 DA</span>
+                </div>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:18px;color:#dc2626;font-size:13px;">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn-primary" style="min-height:44px;">
+                <i class="bi bi-check-circle"></i>
+                {% if sale %}Enregistrer les modifications{% else %}Créer la vente{% endif %}
+            </button>
+            <a href="{% if sale %}{% url 'sales:detail' sale.pk %}{% else %}{% url 'sales:list' %}{% endif %}"
+               class="btn-ghost" style="min-height:44px;">Annuler</a>
+        </div>
+    </div>
+
+    <!-- RIGHT: summary -->
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title"><i class="bi bi-calculator me-2" style="color:#7c3aed;"></i>Récapitulatif</div>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="info-label">Nb véhicules</span>
+                    <span class="info-value" id="summaryCount">0</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Total TTC</span>
+                    <span class="info-value" id="summaryTotal" style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:var(--accent);">0 DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Coût total (estimé)</span>
+                    <span class="info-value" id="summaryCost">— DA</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Marge brute (estimée)</span>
+                    <span class="info-value" id="summaryMargin">— DA</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.75;">
+                    <p style="margin-bottom:8px;"><i class="bi bi-info-circle me-1" style="color:var(--accent);"></i>
+                        Ajoutez autant de véhicules que nécessaire. Chaque ligne correspond à un véhicule du stock.
+                    </p>
+                    <p style="margin:0;"><i class="bi bi-shield-check me-1" style="color:#16a34a;"></i>
+                        Seuls les véhicules <strong>disponibles</strong> ou <strong>réservés</strong> peuvent être sélectionnés.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</form>
+
+<!-- Empty row template (cloned by JS) -->
+<template id="emptyLineTemplate">
+    <div class="line-item-row" data-index="__prefix__">
+        <input type="hidden" name="line_items-__prefix__-id" value="">
+        <input type="hidden" name="line_items-__prefix__-sale" value="">
+        <div class="line-row-header">
+            <div class="line-row-num">Véhicule __NUM__</div>
+            <button type="button" class="remove-line-btn" title="Supprimer cette ligne">
+                <i class="bi bi-trash3"></i>
+            </button>
+        </div>
+        <div style="display:none;">
+            <input type="checkbox" name="line_items-__prefix__-DELETE" id="id_line_items-__prefix__-DELETE">
+        </div>
+        <div class="row-2">
+            <div class="field-group">
+                <label class="field-label">Véhicule</label>
+                <select name="line_items-__prefix__-vehicle" class="field-input vehicle-select" id="id_line_items-__prefix__-vehicle">
+                    __VEHICLE_OPTIONS__
+                </select>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Prix de vente (DA)</label>
+                <input type="number" name="line_items-__prefix__-sale_price" step="1" class="field-input line-price" placeholder="0" id="id_line_items-__prefix__-sale_price">
+            </div>
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">Notes ligne</label>
+            <input type="text" name="line_items-__prefix__-notes" class="field-input" placeholder="Notes (optionnel)…" id="id_line_items-__prefix__-notes">
+        </div>
+        <div class="margin-badge hidden" id="marginBadge___prefix__"></div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    /* ── Management form ── */
+    const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
+    let totalForms = parseInt(totalFormsInput.value);
+
+    /* ── Vehicle option cache: { id: {label, landed_cost} } ── */
+    const vehicleData = {};
+    // Build from first select
+    const firstSel = document.querySelector('.vehicle-select');
+    if (firstSel) {
+        [...firstSel.options].forEach(o => {
+            if (o.value) vehicleData[o.value] = {
+                label: o.textContent,
+                landed_cost: parseFloat(o.dataset.landedCost || 0),
+            };
+        });
+    }
+
+    // Build vehicle options HTML
+    function buildVehicleOptions() {
+        if (!firstSel) return '';
+        return [...firstSel.options].map(o =>
+            `<option value="${o.value}" data-landed-cost="${o.dataset.landedCost||0}">${o.textContent}</option>`
+        ).join('');
+    }
+
+    /* ── Recalculate totals ── */
+    function recalculate() {
+        let total = 0, totalCost = 0, count = 0;
+        document.querySelectorAll('.line-item-row:not(.marked-delete)').forEach((row, i) => {
+            const vSel  = row.querySelector('.vehicle-select');
+            const pInp  = row.querySelector('.line-price');
+            const badge = row.querySelector('.margin-badge');
+            const num   = row.querySelector('.line-row-num');
+            if (num) num.textContent = `Véhicule ${count + 1}`;
+
+            const price     = parseFloat(pInp?.value || 0);
+            const vId       = vSel?.value;
+            const lc        = vId ? parseFloat(vSel.options[vSel.selectedIndex]?.dataset.landedCost || 0) : 0;
+            const margin    = price - lc;
+            const marginPct = lc > 0 ? (margin / lc * 100) : 0;
+            const fmt       = v => new Intl.NumberFormat('fr-DZ').format(Math.round(v));
+
+            if (badge) {
+                if (price && vId) {
+                    badge.className = `margin-badge ${margin >= 0 ? 'pos' : 'neg'}`;
+                    badge.innerHTML = `<i class="bi bi-${margin >= 0 ? 'trending-up' : 'trending-down'}"></i>
+                        Marge : ${fmt(margin)} DA (${marginPct.toFixed(1)}%)`;
+                } else {
+                    badge.className = 'margin-badge hidden';
+                }
+            }
+
+            total     += price;
+            totalCost += lc;
+            if (price || vId) count++;
+        });
+
+        const fmt = v => new Intl.NumberFormat('fr-DZ').format(Math.round(v));
+        document.getElementById('runningTotal').textContent = fmt(total) + ' DA';
+        document.getElementById('summaryTotal').textContent = fmt(total) + ' DA';
+        document.getElementById('summaryCount').textContent = count + ' véhicule' + (count !== 1 ? 's' : '');
+        document.getElementById('lineCount').textContent    = count + ' véhicule' + (count !== 1 ? 's' : '');
+
+        if (totalCost > 0) {
+            const margin = total - totalCost;
+            document.getElementById('summaryCost').textContent   = fmt(totalCost) + ' DA';
+            document.getElementById('summaryMargin').textContent = fmt(margin) + ' DA';
+            document.getElementById('summaryMargin').style.color = margin >= 0 ? '#16a34a' : '#dc2626';
+        }
+    }
+
+    /* ── Delegate events on container ── */
+    const container = document.getElementById('lineItemsContainer');
+
+    container.addEventListener('change', e => {
+        if (e.target.classList.contains('vehicle-select') || e.target.classList.contains('line-price')) {
+            recalculate();
+        }
+    });
+    container.addEventListener('input', e => {
+        if (e.target.classList.contains('line-price')) recalculate();
+    });
+
+    /* ── Remove line ── */
+    container.addEventListener('click', e => {
+        const btn = e.target.closest('.remove-line-btn');
+        if (!btn) return;
+        const row = btn.closest('.line-item-row');
+        const pkInput = row.querySelector('input[name$="-id"]');
+        if (pkInput && pkInput.value) {
+            // Existing record: mark for deletion
+            const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (del) del.checked = true;
+            row.classList.add('marked-delete');
+        } else {
+            // New unsaved row: remove from DOM
+            row.remove();
+            totalForms--;
+            totalFormsInput.value = totalForms;
+        }
+        recalculate();
+    });
+
+    /* ── Add line ── */
+    document.getElementById('addLineBtn').addEventListener('click', () => {
+        const tmpl = document.getElementById('emptyLineTemplate');
+        let html = tmpl.innerHTML
+            .replaceAll('__prefix__', totalForms)
+            .replace('__NUM__', document.querySelectorAll('.line-item-row:not(.marked-delete)').length + 1)
+            .replace('__VEHICLE_OPTIONS__', buildVehicleOptions());
+
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        container.appendChild(div.firstElementChild);
+
+        totalForms++;
+        totalFormsInput.value = totalForms;
+        recalculate();
+    });
+
+    // Initial calc
+    recalculate();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}System Status{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block page_title %}System Settings{% endblock %}
+{% block page_sub_text %}Status &amp; configuration overview{% endblock %}
+
+{% block extra_css %}
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* Settings nav grid */
+.settings-nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.settings-nav-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 16px;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .18s, transform .18s, box-shadow .18s;
+}
+.settings-nav-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent-dim), transparent 60%);
+    opacity: 0;
+    transition: opacity .18s;
+}
+.settings-nav-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,.3);
+}
+.settings-nav-card:hover::before { opacity: 1; }
+
+.settings-nav-icon {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    display: grid; place-items: center;
+    font-size: 17px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.settings-nav-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+    position: relative;
+}
+
+.settings-nav-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    position: relative;
+}
+
+.settings-nav-arrow {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform .18s, color .18s;
+}
+.settings-nav-card:hover .settings-nav-arrow {
+    transform: translate(2px, -2px);
+    color: var(--accent);
+}
+
+/* Status cards */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.status-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+}
+
+.status-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.status-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -.02em;
+}
+
+.status-sub {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+/* Rate cards */
+.rate-pair-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+}
+
+.rate-value-big {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -.02em;
+}
+
+/* Activity log list */
+.log-list { display: flex; flex-direction: column; }
+
+.log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+}
+.log-item:last-child { border-bottom: none; }
+.log-item:hover { background: var(--bg-hover); }
+
+.log-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.log-dot.info     { background: #7dd3fc; }
+.log-dot.warning  { background: #fbbf24; }
+.log-dot.error    { background: #f87171; box-shadow: 0 0 6px rgba(239,68,68,.5); }
+.log-dot.critical { background: #f87171; box-shadow: 0 0 8px rgba(239,68,68,.7); }
+
+.log-msg {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    flex: 1;
+}
+.log-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Shared card styles */
+.panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.panel-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.panel-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+.section-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+    margin-top: 4px;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.pill-success { background: rgba(34,197,94,.12);  color: #4ade80; }
+.pill-warning { background: rgba(240,165,0,.15);  color: #fbbf24; }
+.pill-info    { background: rgba(56,189,248,.12); color: #7dd3fc; }
+.pill-neutral { background: var(--bg-hover);       color: var(--text-secondary); }
+
+/* Config summary row */
+.config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.config-row:last-child { border-bottom: none; }
+.config-row-label { color: var(--text-muted); font-size: 12px; }
+.config-row-value { color: var(--text-primary); font-weight: 500; }
+
+/* Fade in animations */
+.fade-in { animation: fadeIn .35s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0ms; }
+.fade-in:nth-child(2) { animation-delay: 50ms; }
+.fade-in:nth-child(3) { animation-delay: 100ms; }
+.fade-in:nth-child(4) { animation-delay: 150ms; }
+.fade-in:nth-child(5) { animation-delay: 200ms; }
+.fade-in:nth-child(6) { animation-delay: 250ms; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr !important; } }
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-in">
+    <div>
+        <div class="section-eyebrow">Administration / System</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin-top:2px;">System Status</h1>
+    </div>
+</div>
+
+<!-- Quick nav to settings sections -->
+<div class="section-eyebrow fade-in">Quick Access</div>
+<div class="settings-nav-grid fade-in">
+
+    <a href="{% url 'system_settings:configuration' %}" class="settings-nav-card">
+        <div class="settings-nav-icon" style="background:rgba(240,165,0,.15);color:var(--accent);"><i class="bi bi-sliders"></i></div>
+        <div class="settings-nav-title">Configuration</div>
+        <div class="settings-nav-desc">Company info, default rates, notifications</div>
+        <i class="bi bi-arrow-up-right settings-nav-arrow"></i>
+    </a>
+
+    <a href="{% url 'system_settings:exchange_rates' %}" class="settings-nav-card">
+        <div class="settings-nav-icon" style="background:rgba(56,189,248,.12);color:#7dd3fc;"><i class="bi bi-currency-dollar"></i></div>
+        <div class="settings-nav-title">Exchange Rates</div>
+        <div class="settings-nav-desc">USD/CNY to DA historical rates</div>
+        <i class="bi bi-arrow-up-right settings-nav-arrow"></i>
+    </a>
+
+    <a href="{% url 'system_settings:tax_rates' %}" class="settings-nav-card">
+        <div class="settings-nav-icon" style="background:rgba(240,165,0,.12);color:#fbbf24;"><i class="bi bi-percent"></i></div>
+        <div class="settings-nav-title">Tax Rates</div>
+        <div class="settings-nav-desc">TVA, customs tariff history</div>
+        <i class="bi bi-arrow-up-right settings-nav-arrow"></i>
+    </a>
+
+    <a href="{% url 'system_settings:user_preferences' %}" class="settings-nav-card">
+        <div class="settings-nav-icon" style="background:rgba(167,139,250,.12);color:#c4b5fd;"><i class="bi bi-person-gear"></i></div>
+        <div class="settings-nav-title">Preferences</div>
+        <div class="settings-nav-desc">Your display &amp; notification settings</div>
+        <i class="bi bi-arrow-up-right settings-nav-arrow"></i>
+    </a>
+
+    <a href="{% url 'system_settings:system_logs' %}" class="settings-nav-card">
+        <div class="settings-nav-icon" style="background:rgba(239,68,68,.12);color:#f87171;"><i class="bi bi-journal-text"></i></div>
+        <div class="settings-nav-title">System Logs</div>
+        <div class="settings-nav-desc">Activity audit trail &amp; error logs</div>
+        <i class="bi bi-arrow-up-right settings-nav-arrow"></i>
+    </a>
+
+</div>
+
+<!-- Status metrics -->
+<div class="section-eyebrow fade-in">Live Status</div>
+<div class="status-grid fade-in">
+
+    <div class="status-card">
+        <div class="status-label">Active Sessions</div>
+        <div class="status-value">{{ active_sessions }}</div>
+        <div class="status-sub">concurrent users</div>
+    </div>
+
+    {% if current_rates.USD %}
+    <div class="status-card" style="border-left: 2px solid var(--accent);">
+        <div class="status-label">USD → DA</div>
+        <div class="status-value" style="color:var(--accent);">{{ current_rates.USD.rate|floatformat:2 }}</div>
+        <div class="status-sub">{{ current_rates.USD.effective_date|date:"M j, Y" }}</div>
+    </div>
+    {% endif %}
+
+    {% if current_rates.CNY %}
+    <div class="status-card" style="border-left: 2px solid #7dd3fc;">
+        <div class="status-label">CNY → DA</div>
+        <div class="status-value" style="color:#7dd3fc;">{{ current_rates.CNY.rate|floatformat:2 }}</div>
+        <div class="status-sub">{{ current_rates.CNY.effective_date|date:"M j, Y" }}</div>
+    </div>
+    {% endif %}
+
+    {% if config %}
+    <div class="status-card">
+        <div class="status-label">Default TVA</div>
+        <div class="status-value">{{ config.default_tva_rate|floatformat:0 }}%</div>
+        <div class="status-sub">current system rate</div>
+    </div>
+
+    <div class="status-card">
+        <div class="status-label">Default Tariff</div>
+        <div class="status-value">{{ config.default_tariff_rate|floatformat:0 }}%</div>
+        <div class="status-sub">customs tariff rate</div>
+    </div>
+
+    <div class="status-card">
+        <div class="status-label">Commission</div>
+        <div class="status-value">{{ config.default_commission_rate|floatformat:0 }}%</div>
+        <div class="status-sub">default commission rate</div>
+    </div>
+    {% endif %}
+
+</div>
+
+<div class="row g-4">
+
+    <!-- Recent activity log -->
+    <div class="col-xl-7 fade-in">
+        <div class="panel">
+            <div class="panel-head">
+                <div>
+                    <div class="panel-title"><i class="bi bi-journal-text me-2" style="color:#f87171;"></i>Recent System Activity</div>
+                    <div class="panel-sub">Last 10 logged events</div>
+                </div>
+                <a href="{% url 'system_settings:system_logs' %}" style="font-size:12px;color:var(--accent);display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+                    View all <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="log-list">
+                {% for log in recent_logs %}
+                <div class="log-item">
+                    <div class="log-dot {{ log.level }}"></div>
+                    <div class="log-msg">
+                        <div style="font-weight:500;color:var(--text-primary);font-size:12.5px;">{{ log.message|truncatechars:80 }}</div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                            {% if log.user %}<i class="bi bi-person me-1"></i>{{ log.user.get_full_name|default:log.user.username }} ·{% endif %}
+                            <span style="background:var(--bg-hover);padding:1px 6px;border-radius:4px;font-size:10px;">{{ log.get_action_type_display }}</span>
+                        </div>
+                    </div>
+                    <div class="log-meta">{{ log.created_at|date:"M j, H:i" }}</div>
+                </div>
+                {% empty %}
+                <div style="padding:32px 20px;text-align:center;color:var(--text-muted);font-size:13px;">
+                    <i class="bi bi-journal-x" style="display:block;font-size:28px;margin-bottom:10px;color:var(--border-strong);"></i>
+                    No log entries yet.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Config summary -->
+    <div class="col-xl-5 fade-in">
+        {% if config %}
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div>
+                    <div class="panel-title"><i class="bi bi-building me-2" style="color:var(--accent);"></i>Company</div>
+                </div>
+                <a href="{% url 'system_settings:configuration' %}" style="font-size:12px;color:var(--accent);display:inline-flex;align-items:center;gap:4px;text-decoration:none;">
+                    Edit <i class="bi bi-pencil" style="font-size:11px;"></i>
+                </a>
+            </div>
+            <div>
+                <div class="config-row">
+                    <span class="config-row-label">Name</span>
+                    <span class="config-row-value">{{ config.company_name|truncatechars:28 }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">NIF</span>
+                    <span class="config-row-value" style="font-family:'Syne',sans-serif;font-size:13px;">{{ config.company_nif }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">Phone</span>
+                    <span class="config-row-value">{{ config.company_phone }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">Email</span>
+                    <span class="config-row-value">{{ config.company_email|truncatechars:26 }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">Reservation duration</span>
+                    <span class="config-row-value">{{ config.reservation_duration_days }} days</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">Invoice due</span>
+                    <span class="config-row-value">{{ config.invoice_due_days }} days</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-row-label">Email alerts</span>
+                    <span class="config-row-value">
+                        {% if config.enable_email_notifications %}
+                        <span class="pill pill-success"><i class="bi bi-check-circle"></i> Enabled</span>
+                        {% else %}
+                        <span class="pill pill-neutral">Disabled</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="panel" style="background:rgba(240,165,0,.05);border-color:rgba(240,165,0,.2);">
+            <div style="padding:16px 20px;">
+                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                    <i class="bi bi-shield-check"></i> Manager Access Only
+                </div>
+                <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
+                    Configuration, exchange rates, tax rates, and system logs are restricted to users with <strong style="color:var(--text-primary);">Manager</strong> role. User preferences are accessible to all authenticated users.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

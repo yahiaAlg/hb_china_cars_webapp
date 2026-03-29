@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Exporter un rapport{% endblock %}
+{% block nav_reports %}active{% endblock %}
+{% block page_title %}Exporter un rapport{% endblock %}
+{% block page_sub_text %}Choisissez le format et les options d'export{% endblock %}
+
+{% block extra_css %}
+.btn-primary-sm { background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;padding:10px 22px;border-radius:var(--radius-md);border:none;cursor:pointer;transition:opacity var(--transition);display:inline-flex;align-items:center;gap:7px;min-height:44px; }
+.btn-primary-sm:hover { opacity:.88; }
+.btn-ghost-sm { background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:13px;padding:9px 18px;border-radius:var(--radius-md);cursor:pointer;transition:all var(--transition);display:inline-flex;align-items:center;gap:7px;text-decoration:none;min-height:44px; }
+.btn-ghost-sm:hover { background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary); }
+.format-card { background:var(--bg-surface);border:2px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;cursor:pointer;transition:border-color .18s,box-shadow .18s;display:flex;align-items:center;gap:14px; }
+.format-card:hover { border-color:var(--border-strong);box-shadow:var(--shadow-sm); }
+.format-card input[type=radio] { display:none; }
+.format-card.selected { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+.format-icon { width:42px;height:42px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+.filter-label { font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px; }
+.filter-input { background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 14px;width:100%;min-height:44px; }
+.filter-input:focus { outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+.quick-link { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;text-decoration:none;display:flex;align-items:center;gap:10px;transition:all .18s; }
+.quick-link:hover { box-shadow:var(--shadow-sm);border-color:var(--border-strong); }
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+    <a href="{% url 'reports:dashboard' %}" style="font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.color='var(--text-secondary)';" onmouseout="this.style.color='var(--text-muted)';">
+        <i class="bi bi-arrow-left"></i> Tableau des rapports
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <!-- Bannière info -->
+        <div style="background:rgba(2,132,199,.07);border:1px solid rgba(2,132,199,.18);border-radius:var(--radius-md);padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+            <i class="bi bi-info-circle" style="color:#0284c7;font-size:16px;flex-shrink:0;"></i>
+            <div style="font-size:13px;color:var(--text-secondary);">L'export utilisera les données du <strong>dernier rapport consulté</strong>. Accédez d'abord au rapport souhaité pour affiner les filtres.</div>
+        </div>
+
+        <form method="post" action="{% url 'reports:export_report' %}">
+            {% csrf_token %}
+
+            <!-- Format -->
+            <div style="margin-bottom:22px;">
+                <div class="filter-label">Format d'export</div>
+                <div style="display:flex;flex-direction:column;gap:10px;" id="formatCards">
+                    <label class="format-card" id="card-excel" onclick="selectFormat('excel')">
+                        <input type="radio" name="format" value="excel" checked>
+                        <div class="format-icon" style="background:rgba(22,163,74,.12);color:#16a34a;"><i class="bi bi-file-earmark-spreadsheet-fill"></i></div>
+                        <div>
+                            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text-primary);">Excel (.xlsx)</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Tableau complet, filtrable &amp; modifiable dans Excel ou LibreOffice.</div>
+                        </div>
+                    </label>
+                    <label class="format-card" id="card-csv" onclick="selectFormat('csv')">
+                        <input type="radio" name="format" value="csv">
+                        <div class="format-icon" style="background:rgba(2,132,199,.10);color:#0284c7;"><i class="bi bi-filetype-csv"></i></div>
+                        <div>
+                            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text-primary);">CSV</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Format universel pour l'import dans d'autres outils ou bases de données.</div>
+                        </div>
+                    </label>
+                    <label class="format-card" id="card-pdf" onclick="selectFormat('pdf')">
+                        <input type="radio" name="format" value="pdf">
+                        <div class="format-icon" style="background:rgba(220,38,38,.10);color:#dc2626;"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                        <div>
+                            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text-primary);">PDF / HTML</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Rapport prêt à imprimer ou partager, avec graphiques optionnels.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Inclure graphiques (PDF seulement) -->
+            <div style="margin-bottom:22px;padding:14px 16px;background:var(--bg-raised);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;" id="chartsToggle">
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Inclure les graphiques</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Disponible uniquement pour l'export PDF.</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" name="include_charts" id="includeChartsToggle" style="accent-color:var(--accent);width:16px;height:16px;" disabled>
+                    <span id="chartsLabel" style="font-size:12px;color:var(--text-muted);">Non disponible</span>
+                </label>
+            </div>
+
+            <!-- Email optionnel -->
+            <div style="margin-bottom:28px;">
+                <label class="filter-label">Envoyer à (optionnel)</label>
+                <div style="position:relative;">
+                    <i class="bi bi-envelope" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px;pointer-events:none;"></i>
+                    <input type="email" name="email_to" class="filter-input" placeholder="destinataire@example.com" style="padding-left:38px;">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button type="submit" class="btn-primary-sm"><i class="bi bi-download"></i> Exporter maintenant</button>
+                <a href="{% url 'reports:dashboard' %}" class="btn-ghost-sm"><i class="bi bi-x"></i> Annuler</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Liens rapides -->
+    <div class="col-xl-5">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text-secondary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px;">Accès rapide aux rapports</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="{% url 'reports:profit_analysis' %}" class="quick-link">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(217,119,6,.12);color:#d97706;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;"><i class="bi bi-bar-chart-line-fill"></i></div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text-primary);">Analyse de rentabilité</div><div style="font-size:11px;color:var(--text-muted);">Marges, CA, décomposition des profits</div></div>
+                <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:12px;"></i>
+            </a>
+            <a href="{% url 'reports:sales_summary' %}" class="quick-link">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(2,132,199,.12);color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;"><i class="bi bi-receipt-cutoff"></i></div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text-primary);">Récapitulatif des ventes</div><div style="font-size:11px;color:var(--text-muted);">Tendances, clients, modes de paiement</div></div>
+                <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:12px;"></i>
+            </a>
+            <a href="{% url 'reports:inventory_status' %}" class="quick-link">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(22,163,74,.12);color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;"><i class="bi bi-boxes"></i></div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text-primary);">État du stock</div><div style="font-size:11px;color:var(--text-muted);">Valorisation, ancienneté, fournisseurs</div></div>
+                <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:12px;"></i>
+            </a>
+            <a href="{% url 'reports:payment_status' %}" class="quick-link">
+                <div style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(220,38,38,.10);color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;"><i class="bi bi-cash-coin"></i></div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text-primary);">Statut des paiements</div><div style="font-size:11px;color:var(--text-muted);">Impayés, retards, taux d'encaissement</div></div>
+                <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted);font-size:12px;"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectFormat(f) {
+    document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('card-'+f).classList.add('selected');
+    document.querySelector('input[value="'+f+'"]').checked = true;
+
+    const isPdf = f === 'pdf';
+    const toggle = document.getElementById('includeChartsToggle');
+    const label  = document.getElementById('chartsLabel');
+    toggle.disabled = !isPdf;
+    label.textContent = isPdf ? 'Inclure' : 'Non disponible';
+    label.style.color = isPdf ? 'var(--text-primary)' : 'var(--text-muted)';
+}
+// init
+document.getElementById('card-excel').classList.add('selected');
+</script>
+{% endblock %}

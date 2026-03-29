@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block page_title %}Ajouter une photo{% endblock %}
+{% block page_sub_text %}{{ vehicle.make }} {{ vehicle.model }} — {{ vehicle.vin_chassis }}{% endblock %}
+
+{% block extra_css %}
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #ffffff;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+    border: none; border-radius: var(--radius-md); padding: 10px 22px;
+    cursor: pointer; text-decoration: none; transition: opacity .18s, transform .12s;
+    min-height: 44px;
+}
+.btn-primary:hover { opacity: .88; color: #ffffff; }
+.btn-primary:active { transform: scale(.99); }
+
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 18px;
+    cursor: pointer; text-decoration: none; transition: all var(--transition);
+    min-height: 44px;
+}
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+/* ── Zone de téléversement ── */
+.upload-zone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .18s, background .18s;
+    position: relative;
+    background: var(--bg-raised);
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+.upload-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon {
+    font-size: 36px;
+    color: var(--text-muted);
+    display: block; margin-bottom: 12px;
+    transition: color .18s;
+    pointer-events: none;
+}
+.upload-zone:hover .upload-icon,
+.upload-zone.drag-over .upload-icon { color: var(--accent); }
+
+.upload-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 4px;
+    pointer-events: none;
+}
+.upload-sub { font-size: 12.5px; color: var(--text-muted); pointer-events: none; }
+
+/* ── Aperçu ── */
+.preview-wrap {
+    display: none; margin-top: 16px;
+    border-radius: var(--radius-md); overflow: hidden;
+    border: 1px solid var(--border);
+    max-height: 260px;
+    box-shadow: var(--shadow-sm);
+}
+.preview-wrap img { width: 100%; height: 260px; object-fit: cover; display: block; }
+
+/* ── Carte de formulaire ── */
+.form-card {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.form-card-head {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-surface);
+}
+.form-card-icon {
+    width: 34px; height: 34px; border-radius: var(--radius-sm);
+    display: grid; place-items: center; font-size: 15px;
+    background: var(--accent-dim); color: var(--accent); flex-shrink: 0;
+}
+.form-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.form-card-body  { padding: 22px; }
+
+/* ── Champs de saisie ── */
+.field-wrap  { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.field-label { font-size: 11.5px; font-weight: 500; color: var(--text-secondary); letter-spacing: .02em; }
+.field-error { font-size: 11.5px; color: var(--danger); display: flex; align-items: center; gap: 4px; }
+
+.form-input, .form-textarea {
+    background: var(--bg-raised); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif; font-size: 13.5px;
+    padding: 10px 13px; width: 100%; min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-input:focus, .form-textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-muted); }
+.form-textarea { resize: vertical; }
+
+/* ── Ligne de case à cocher ── */
+.check-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px; background: var(--bg-raised);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: border-color var(--transition), background var(--transition);
+    min-height: 44px;
+}
+.check-row:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.form-check-input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+
+/* ── Grille de photos existantes ── */
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+.photo-thumb {
+    aspect-ratio: 4/3; border-radius: var(--radius-sm);
+    overflow: hidden; border: 1px solid var(--border); position: relative;
+    transition: border-color var(--transition);
+}
+.photo-thumb:hover { border-color: var(--border-strong); }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb.primary::after {
+    content: '★';
+    position: absolute; bottom: 3px; right: 4px;
+    color: var(--accent); font-size: 11px;
+    text-shadow: 0 1px 2px rgba(255,255,255,.8);
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .3s ease both; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .form-card-body { padding: 16px; }
+    .form-card-head { padding: 12px 16px; }
+    .upload-zone { padding: 28px 16px; }
+    .preview-wrap img { height: 200px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Fil d'Ariane -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn-ghost" style="padding:7px 12px;min-height:40px;">
+        <i class="bi bi-arrow-left"></i> Retour au véhicule
+    </a>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+    <span style="font-size:13px;color:var(--text-secondary);">{{ vehicle.make }} {{ vehicle.model }}</span>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+    <span style="font-size:13px;color:var(--text-secondary);">Ajouter une photo</span>
+</div>
+
+<div class="row g-4">
+
+    <!-- Formulaire de téléversement -->
+    <div class="col-xl-8">
+        <form method="post" enctype="multipart/form-data" class="form-card fade-in">
+            {% csrf_token %}
+            <div class="form-card-head">
+                <div class="form-card-icon"><i class="bi bi-camera"></i></div>
+                <div>
+                    <div class="form-card-title">Téléverser une photo du véhicule</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">JPG, PNG ou WebP — 10 Mo maximum</div>
+                </div>
+            </div>
+            <div class="form-card-body">
+
+                <!-- Zone de dépôt -->
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" name="photo" id="photoInput" accept="image/*" required>
+                    <i class="bi bi-cloud-upload upload-icon"></i>
+                    <div class="upload-title">Cliquez ou déposez une image ici</div>
+                    <div class="upload-sub">Formats acceptés : JPG, PNG, WebP</div>
+                </div>
+
+                <!-- Aperçu -->
+                <div class="preview-wrap" id="previewWrap">
+                    <img id="previewImg" src="" alt="Aperçu">
+                </div>
+                <div id="previewName" style="display:none;margin-top:8px;font-size:12px;color:var(--text-muted);text-align:center;"></div>
+
+                <!-- Légende -->
+                <div class="field-wrap" style="margin-top:20px;">
+                    <label class="field-label" for="{{ form.caption.id_for_label }}">Légende</label>
+                    <input type="text" name="caption" id="{{ form.caption.id_for_label }}"
+                        class="form-input" placeholder="ex. Vue avant, Intérieur, Compartiment moteur"
+                        value="{{ form.caption.value|default:'' }}">
+                    {% if form.caption.errors %}
+                    <div class="field-error"><i class="bi bi-x-circle"></i> {{ form.caption.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Photo principale -->
+                <div class="field-wrap">
+                    <label class="check-row" for="{{ form.is_primary.id_for_label }}">
+                        <input type="checkbox" name="is_primary" id="{{ form.is_primary.id_for_label }}"
+                            class="form-check-input" {% if form.is_primary.value %}checked{% endif %}>
+                        <div>
+                            <div style="font-size:13.5px;color:var(--text-secondary);">Définir comme photo principale</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Remplacera toute photo principale existante</div>
+                        </div>
+                    </label>
+                </div>
+
+                {% if form.non_field_errors %}
+                <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.22);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:#dc2626;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                    <i class="bi bi-exclamation-circle"></i> {{ form.non_field_errors|join:" " }}
+                </div>
+                {% endif %}
+
+                <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Téléverser la photo
+                    </button>
+                    <a href="{% url 'inventory:detail' vehicle.pk %}" class="btn-ghost">Annuler</a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- Barre latérale droite -->
+    <div class="col-xl-4">
+
+        <!-- Résumé du véhicule -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow-sm);" class="fade-in">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                <div style="width:38px;height:38px;border-radius:var(--radius-sm);background:rgba(2,132,199,.10);color:#0284c7;display:grid;place-items:center;font-size:17px;flex-shrink:0;">
+                    <i class="bi bi-car-front-fill"></i>
+                </div>
+                <div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text-primary);">
+                        {{ vehicle.make }} {{ vehicle.model }}
+                    </div>
+                    <div style="font-size:11.5px;color:var(--text-muted);">{{ vehicle.year }} · {{ vehicle.color }}</div>
+                </div>
+            </div>
+            <div style="font-family:monospace;font-size:11.5px;color:var(--text-muted);letter-spacing:.07em;padding:6px 10px;background:var(--bg-raised);border-radius:var(--radius-sm);border:1px solid var(--border);">
+                {{ vehicle.vin_chassis }}
+            </div>
+        </div>
+
+        <!-- Photos existantes -->
+        {% with vehicle.photos.all as photos %}
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);" class="fade-in">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);">
+                <div style="font-family:'Syne',sans-serif;font-size:13.5px;font-weight:700;color:var(--text-primary);">
+                    <i class="bi bi-images me-2" style="color:var(--accent);"></i>Photos existantes
+                </div>
+                <span class="pill pill-neutral">{{ photos.count }}</span>
+            </div>
+            <div style="padding:14px;">
+                {% if photos %}
+                <div class="photo-grid">
+                    {% for photo in photos %}
+                    <div class="photo-thumb {% if photo.is_primary %}primary{% endif %}">
+                        <img src="{{ photo.photo.url }}" alt="{{ photo.caption }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:20px 0;color:var(--text-muted);font-size:13px;">
+                    <i class="bi bi-image" style="font-size:24px;display:block;margin-bottom:8px;color:var(--border-strong);"></i>
+                    Aucune photo pour l'instant.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+
+        <!-- Conseils de téléversement -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-md);padding:14px 16px;margin-top:16px;box-shadow:var(--shadow-sm);" class="fade-in">
+            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12.5px;color:var(--text-primary);margin-bottom:8px;">
+                <i class="bi bi-lightbulb me-1" style="color:var(--accent);"></i> Conseils photo
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
+                <div style="margin-bottom:5px;"><i class="bi bi-check2 me-1" style="color:#16a34a;"></i>Utilisez un éclairage naturel pour des couleurs fidèles</div>
+                <div style="margin-bottom:5px;"><i class="bi bi-check2 me-1" style="color:#16a34a;"></i>Photographiez les 4 angles extérieurs + l'intérieur</div>
+                <div><i class="bi bi-check2 me-1" style="color:#16a34a;"></i>Résolution minimale recommandée : 800×600 px</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const photoInput = document.getElementById('photoInput');
+    const previewWrap = document.getElementById('previewWrap');
+    const previewImg  = document.getElementById('previewImg');
+    const previewName = document.getElementById('previewName');
+    const uploadZone  = document.getElementById('uploadZone');
+
+    photoInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewImg.src = e.target.result;
+            previewWrap.style.display = 'block';
+            previewName.style.display = 'block';
+            previewName.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' Ko)';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Retour visuel du glisser-déposer
+    uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', ()  => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop',      ()  => uploadZone.classList.remove('drag-over'));
+</script>
+{% endblock %}

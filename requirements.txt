@@ -1,0 +1,14 @@
+Django
+django-import-export
+Pillow
+python-decouple
+django-crispy-forms
+crispy-bootstrap4
+faker
+python-dateutil
+
+# Production server
+gunicorn
+
+# Static files serving (no Nginx needed)
+whitenoise

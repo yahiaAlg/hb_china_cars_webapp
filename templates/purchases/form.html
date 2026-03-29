@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{% if purchase %}Conteneur · {{ purchase.line_items.count }} véhicule(s){% else %}Saisir les véhicules du conteneur{% endif %}{% endblock %}
+
+{% block extra_css %}
+.btn-primary{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;border:none;border-radius:var(--radius-md);padding:10px 22px;cursor:pointer;text-decoration:none;transition:opacity .18s,transform .12s;min-height:44px}
+.btn-primary:hover{opacity:.88;color:#fff}
+.btn-ghost{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--text-secondary);font-family:'DM Sans',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 18px;cursor:pointer;text-decoration:none;transition:all var(--transition);min-height:44px}
+.btn-ghost:hover{background:var(--bg-hover);border-color:var(--border-strong);color:var(--text-primary)}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text-muted);transition:all var(--transition)}
+.btn-icon:hover{background:var(--bg-hover);color:var(--text-primary)}
+.btn-icon.danger:hover{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.3);color:#dc2626}
+
+.form-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.form-card-head{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-surface)}
+.form-card-icon{width:34px;height:34px;border-radius:var(--radius-sm);display:grid;place-items:center;font-size:15px;background:var(--accent-dim);color:var(--accent);flex-shrink:0}
+.form-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary)}
+.form-card-sub{font-size:11.5px;color:var(--text-muted);margin-top:1px}
+.form-card-body{padding:22px}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.form-row.four{grid-template-columns:repeat(4,1fr)}
+.form-row.single{grid-template-columns:1fr}
+@media(max-width:900px){.form-row,.form-row.three,.form-row.four{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.form-row,.form-row.three,.form-row.four{grid-template-columns:1fr}}
+
+.field-wrap{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:11.5px;font-weight:500;color:var(--text-secondary);letter-spacing:.02em}
+.field-label .req{color:var(--accent)}
+.field-input,.field-select{width:100%;padding:9px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;color:var(--text-primary);transition:border-color .15s,box-shadow .15s;font-family:'DM Sans',sans-serif}
+.field-input:focus,.field-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.field-textarea{resize:vertical;min-height:72px}
+.field-hint{font-size:11px;color:var(--text-muted)}
+.field-error{font-size:11.5px;color:#dc2626}
+
+/* ── Totals sidebar ── */
+.sidebar-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.sidebar-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.summary-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.summary-row:last-child{border-bottom:none;font-weight:700;font-size:14px;color:var(--accent)}
+.summary-label{color:var(--text-secondary)}
+.summary-value{font-family:'Syne',sans-serif;font-weight:600;color:var(--text-primary)}
+
+/* ── Line items table ── */
+.li-table{width:100%;border-collapse:collapse}
+.li-table th{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
+.li-row td{padding:6px 4px;vertical-align:top}
+.li-row td input,.li-row td select{width:100%;padding:7px 9px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text-primary);font-family:'DM Sans',sans-serif}
+.li-row td input:focus,.li-row td select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+.li-row td input.da-preview{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600;cursor:default}
+.li-row-deleted{opacity:.4;background:rgba(220,38,38,.04)}
+.li-num{font-family:monospace;font-size:12px;color:var(--text-muted);width:28px;text-align:center;padding-top:14px !important}
+.li-actions{width:40px;text-align:center}
+.add-row-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--accent);background:var(--accent-dim);border:1px dashed var(--accent);border-radius:var(--radius-sm);padding:7px 14px;cursor:pointer;transition:all .15s;margin-top:12px}
+.add-row-btn:hover{background:var(--accent);color:#fff}
+.col-make{min-width:90px}
+.col-model{min-width:90px}
+.col-year{min-width:70px}
+.col-color{min-width:80px}
+.col-engine{min-width:110px}
+.col-vin{min-width:120px}
+.col-fob{min-width:110px}
+.col-da{min-width:110px}
+.col-notes{min-width:130px}
+
+.info-banner{background:var(--accent-dim);border:1px solid rgba(var(--accent-rgb),.2);border-radius:var(--radius-md);padding:12px 16px;font-size:12.5px;color:var(--accent);margin-bottom:20px;display:flex;align-items:flex-start;gap:10px}
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1280px;margin:0 auto;padding:0 4px">
+  <div style="margin-bottom:18px">
+    <a href="{% if purchase %}{% url 'purchases:detail' purchase.pk %}{% else %}{% url 'purchases:list' %}{% endif %}" class="btn-ghost">
+      ← {% if purchase %}Retour à l'achat{% else %}Retour aux achats{% endif %}
+    </a>
+  </div>
+
+  <div class="info-banner">
+    <span>🚢</span>
+    <div>
+      <strong>Achat par conteneur</strong> — Chaque ligne représente un véhicule.
+      Le fret et les droits de douane seront saisis séparément et répartis automatiquement entre les véhicules.
+      Le VIN peut être renseigné ultérieurement à la réception.
+    </div>
+  </div>
+
+  <form method="post" id="purchase-form">
+    {% csrf_token %}
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start">
+
+      <!-- Left column -->
+      <div>
+
+        <!-- Container info -->
+        <div class="form-card">
+          <div class="form-card-head">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="form-card-icon">🗂️</div>
+              <div>
+                <div class="form-card-title">Informations du Conteneur</div>
+                <div class="form-card-sub">Fournisseur, devise et taux de change pour l'ensemble du lot</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-card-body">
+            <div class="form-row three">
+              <div class="field-wrap">
+                <label class="field-label">Date d'achat <span class="req">*</span></label>
+                {{ form.purchase_date }}
+                {% if form.purchase_date.errors %}<div class="field-error">{{ form.purchase_date.errors|join:", " }}</div>{% endif %}
+              </div>
+              <div class="field-wrap">
+                <label class="field-label">Fournisseur <span class="req">*</span></label>
+                {{ form.supplier }}
+                {% if form.supplier.errors %}<div class="field-error">{{ form.supplier.errors|join:", " }}</div>{% endif %}
+              </div>
+              <div class="field-wrap">
+                <label class="field-label">Devise <span class="req">*</span></label>
+                {{ form.currency }}
+                {% if form.currency.errors %}<div class="field-error">{{ form.currency.errors|join:", " }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field-wrap">
+                <label class="field-label">Taux de change → DA <span class="req">*</span></label>
+                <input type="number" step="0.000001" name="{{ form.exchange_rate_to_da.html_name }}"
+                  id="id_exchange_rate_to_da" class="field-input"
+                  value="{{ form.exchange_rate_to_da.value|default:'' }}" placeholder="ex. 131.000000">
+                <div class="field-hint">1 unité devise → X DA</div>
+                {% if form.exchange_rate_to_da.errors %}<div class="field-error">{{ form.exchange_rate_to_da.errors|join:", " }}</div>{% endif %}
+              </div>
+              <div class="field-wrap">
+                <label class="field-label">Notes</label>
+                <textarea name="{{ form.notes.html_name }}" class="field-input field-textarea" rows="2" placeholder="Remarques sur ce lot...">{{ form.notes.value|default:'' }}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="form-card">
+          <div class="form-card-head">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="form-card-icon">🚗</div>
+              <div>
+                <div class="form-card-title">Véhicules du Conteneur</div>
+                <div class="form-card-sub">Saisir un véhicule par ligne — minimum 1, maximum illimité</div>
+              </div>
+            </div>
+            <span id="li-count-badge" style="background:var(--accent-dim);color:var(--accent);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700">
+              0 véhicule(s)
+            </span>
+          </div>
+          <div class="form-card-body" style="overflow-x:auto;padding:16px">
+
+            <!-- Django formset management form -->
+            {{ formset.management_form }}
+
+            <table class="li-table" id="li-table">
+              <thead>
+                <tr>
+                  <th style="width:32px">#</th>
+                  <th class="col-make">Marque <span style="color:var(--accent)">*</span></th>
+                  <th class="col-model">Modèle <span style="color:var(--accent)">*</span></th>
+                  <th class="col-year">Année <span style="color:var(--accent)">*</span></th>
+                  <th class="col-color">Couleur <span style="color:var(--accent)">*</span></th>
+                  <th class="col-engine">Motorisation</th>
+                  <th class="col-vin">VIN / Châssis</th>
+                  <th class="col-fob">Prix FOB <span style="color:var(--accent)">*</span></th>
+                  <th class="col-da">FOB (DA)</th>
+                  <th class="col-notes">Notes</th>
+                  <th class="li-actions"></th>
+                </tr>
+              </thead>
+              <tbody id="li-tbody">
+                {% for li_form in formset %}
+                <tr class="li-row {% if li_form.DELETE.value %}li-row-deleted{% endif %}" data-form-index="{{ forloop.counter0 }}">
+                  <td class="li-num">{{ forloop.counter }}</td>
+                  <td class="col-make">
+                    {{ li_form.make }}
+                    {{ li_form.id }}
+                    {% if li_form.make.errors %}<div class="field-error" style="font-size:10.5px">{{ li_form.make.errors|join:", " }}</div>{% endif %}
+                  </td>
+                  <td class="col-model">
+                    {{ li_form.model }}
+                    {% if li_form.model.errors %}<div class="field-error" style="font-size:10.5px">{{ li_form.model.errors|join:", " }}</div>{% endif %}
+                  </td>
+                  <td class="col-year">{{ li_form.year }}</td>
+                  <td class="col-color">{{ li_form.color }}</td>
+                  <td class="col-engine">{{ li_form.engine_type }}</td>
+                  <td class="col-vin">{{ li_form.vin_chassis }}</td>
+                  <td class="col-fob">
+                    {{ li_form.fob_price }}
+                    {% if li_form.fob_price.errors %}<div class="field-error" style="font-size:10.5px">{{ li_form.fob_price.errors|join:", " }}</div>{% endif %}
+                  </td>
+                  <td class="col-da">
+                    <input type="text" class="da-preview" readonly placeholder="—" tabindex="-1">
+                  </td>
+                  <td class="col-notes">{{ li_form.notes }}</td>
+                  <td class="li-actions">
+                    <div style="display:flex;align-items:center;gap:4px;padding-top:6px">
+                      {% if li_form.DELETE %}
+                        <div style="display:none">{{ li_form.DELETE }}</div>
+                        {% if li_form.instance.pk %}
+                          <button type="button" class="btn-icon danger delete-row-btn" title="Supprimer">✕</button>
+                        {% else %}
+                          <button type="button" class="btn-icon danger remove-row-btn" title="Retirer">✕</button>
+                        {% endif %}
+                      {% else %}
+                        <button type="button" class="btn-icon danger remove-row-btn" title="Retirer">✕</button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <button type="button" class="add-row-btn" id="add-row-btn">
+              + Ajouter un véhicule
+            </button>
+
+            <div id="formset-errors" style="margin-top:10px">
+              {% if formset.non_form_errors %}
+                <div class="field-error">{{ formset.non_form_errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left column -->
+
+      <!-- Right sidebar -->
+      <div style="position:sticky;top:80px">
+
+        <!-- Live totals -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">🧮 Résumé du Lot</div>
+          <div class="summary-row">
+            <span class="summary-label">Nombre de véhicules</span>
+            <span class="summary-value" id="s-count">0</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Total FOB (devise)</span>
+            <span class="summary-value" id="s-fob-dev">0,00</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label" id="s-currency-label">Total FOB (DA)</span>
+            <span class="summary-value accent" id="s-fob-da">0 DA</span>
+          </div>
+        </div>
+
+        <!-- Workflow reminder -->
+        <div class="sidebar-card">
+          <div class="sidebar-title">📋 Étapes suivantes</div>
+          <ol style="margin:0;padding-left:18px;font-size:12.5px;color:var(--text-secondary);line-height:1.9">
+            <li><strong>Enregistrer l'achat</strong> ← vous êtes ici</li>
+            <li>Ajouter les <strong>frais de transport</strong></li>
+            <li>Déposer la <strong>déclaration en douane</strong></li>
+            <li>Marquer comme <strong>dédouané</strong> → stock disponible</li>
+          </ol>
+        </div>
+
+        <!-- Info box -->
+        <div class="sidebar-card" style="background:rgba(234,88,12,.05);border-color:rgba(234,88,12,.2)">
+          <div class="sidebar-title" style="color:#ea580c">ℹ️ Répartition des coûts</div>
+          <p style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.7">
+            Le fret et les droits de douane sont saisis une fois pour le conteneur entier,
+            puis <strong>répartis équitablement</strong> entre tous les véhicules du lot
+            pour calculer le coût de revient unitaire.
+          </p>
+        </div>
+
+        <!-- Submit -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <button type="submit" class="btn-primary" style="width:100%;justify-content:center">
+            ✓ Enregistrer l'achat
+          </button>
+          <a href="{% if purchase %}{% url 'purchases:detail' purchase.pk %}{% else %}{% url 'purchases:list' %}{% endif %}"
+             class="btn-ghost" style="width:100%;justify-content:center;box-sizing:border-box">
+            Annuler
+          </a>
+        </div>
+
+      </div><!-- /sidebar -->
+
+    </div><!-- /grid -->
+  </form>
+</div>
+
+<!-- Row template (hidden) — cloned by JS for new rows -->
+<template id="li-row-template">
+  <tr class="li-row" data-form-index="__prefix__">
+    <td class="li-num new-row-num">—</td>
+    <td class="col-make">
+      <input type="text"  name="line_items-__prefix__-make"        class="field-input" placeholder="ex. BYD">
+      <input type="hidden" name="line_items-__prefix__-id"          value="">
+      <input type="hidden" name="line_items-__prefix__-DELETE"      value="">
+    </td>
+    <td class="col-model"> <input type="text"   name="line_items-__prefix__-model"       class="field-input" placeholder="ex. Atto 3"></td>
+    <td class="col-year">  <input type="number" name="line_items-__prefix__-year"        class="field-input" placeholder="2025" min="2000" max="2030" style="width:72px"></td>
+    <td class="col-color"> <input type="text"   name="line_items-__prefix__-color"       class="field-input" placeholder="ex. Blanc"></td>
+    <td class="col-engine"><input type="text"   name="line_items-__prefix__-engine_type" class="field-input" placeholder="Électrique…"></td>
+    <td class="col-vin">   <input type="text"   name="line_items-__prefix__-vin_chassis" class="field-input" placeholder="Optionnel"></td>
+    <td class="col-fob">   <input type="number" name="line_items-__prefix__-fob_price"   class="field-input" placeholder="0.00" step="0.01" min="0"></td>
+    <td class="col-da">    <input type="text" class="da-preview" readonly placeholder="—" tabindex="-1"></td>
+    <td class="col-notes"> <input type="text"   name="line_items-__prefix__-notes"       class="field-input" placeholder="Notes…"></td>
+    <td class="li-actions" style="padding-top:6px;text-align:center">
+      <button type="button" class="btn-icon danger remove-row-btn" title="Retirer">✕</button>
+    </td>
+  </tr>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const tbody       = document.getElementById('li-tbody');
+  const addBtn      = document.getElementById('add-row-btn');
+  const tmpl        = document.getElementById('li-row-template');
+  const totalForms  = document.getElementById('id_line_items-TOTAL_FORMS');
+  const rateInput   = document.getElementById('id_exchange_rate_to_da');
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function getRate() {
+    return parseFloat(rateInput.value) || 0;
+  }
+
+  function fmt(n) {
+    return n.toLocaleString('fr-DZ', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function fmtDA(n) {
+    return fmt(n) + ' DA';
+  }
+
+  function visibleRows() {
+    return [...tbody.querySelectorAll('tr.li-row')].filter(r => !r.classList.contains('li-row-deleted'));
+  }
+
+  function renumberRows() {
+    visibleRows().forEach((r, i) => {
+      const cell = r.querySelector('.li-num');
+      if (cell) cell.textContent = i + 1;
+    });
+  }
+
+  function recalcDA(row) {
+    const fobInput  = row.querySelector('input[name$="-fob_price"]');
+    const daPreview = row.querySelector('.da-preview');
+    if (!fobInput || !daPreview) return 0;
+    const fob = parseFloat(fobInput.value) || 0;
+    const da  = fob * getRate();
+    daPreview.value = da > 0 ? fmt(da) : '';
+    return fob;
+  }
+
+  function recalcAll() {
+    const rows = visibleRows();
+    let totalFob = 0;
+    rows.forEach(r => { totalFob += recalcDA(r); });
+    const rate = getRate();
+
+    document.getElementById('s-count').textContent   = rows.length;
+    document.getElementById('s-fob-dev').textContent = fmt(totalFob);
+    document.getElementById('s-fob-da').textContent  = fmtDA(totalFob * rate);
+    document.getElementById('li-count-badge').textContent = rows.length + ' véhicule' + (rows.length !== 1 ? 's' : '');
+  }
+
+  // ── Add row ──────────────────────────────────────────────────────────────
+
+  addBtn.addEventListener('click', function () {
+    const idx    = parseInt(totalForms.value, 10);
+    const clone  = tmpl.content.cloneNode(true);
+    const newRow = clone.querySelector('tr');
+
+    // Replace __prefix__ in all name / id attributes
+    newRow.innerHTML = newRow.innerHTML.replaceAll('__prefix__', idx);
+    newRow.dataset.formIndex = idx;
+
+    tbody.appendChild(newRow);
+    totalForms.value = idx + 1;
+
+    // Wire up events on the new row
+    wireRow(newRow);
+    renumberRows();
+    recalcAll();
+
+    // Focus first input
+    const first = newRow.querySelector('input[type="text"]');
+    if (first) first.focus();
+  });
+
+  // ── Remove row (new unsaved row) ─────────────────────────────────────────
+
+  tbody.addEventListener('click', function (e) {
+    // Remove unsaved row entirely
+    if (e.target.closest('.remove-row-btn')) {
+      const row = e.target.closest('tr.li-row');
+      if (!row) return;
+      row.remove();
+      totalForms.value = parseInt(totalForms.value, 10) - 1;
+      renumberRows();
+      recalcAll();
+    }
+    // Mark existing (saved) row as deleted via hidden DELETE checkbox
+    if (e.target.closest('.delete-row-btn')) {
+      const row = e.target.closest('tr.li-row');
+      if (!row) return;
+      const delInput = row.querySelector('input[name$="-DELETE"]');
+      if (delInput) {
+        delInput.value   = 'on';
+        delInput.checked = true;
+      }
+      row.classList.add('li-row-deleted');
+      renumberRows();
+      recalcAll();
+    }
+  });
+
+  // ── Wire input events on a row ────────────────────────────────────────────
+
+  function wireRow(row) {
+    const fobInput = row.querySelector('input[name$="-fob_price"]');
+    if (fobInput) {
+      fobInput.addEventListener('input', recalcAll);
+    }
+  }
+
+  // Wire existing rows
+  [...tbody.querySelectorAll('tr.li-row')].forEach(wireRow);
+
+  // Exchange rate change
+  rateInput.addEventListener('input', recalcAll);
+
+  // Initial render
+  recalcAll();
+})();
+</script>
+{% endblock %}

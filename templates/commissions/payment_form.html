@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Enregistrer un Paiement{% endblock %}
+{% block nav_commissions %}active{% endblock %}
+
+{% block page_title %}Enregistrer le Paiement{% endblock %}
+{% block page_sub_text %}Enregistrement du versement de commission{% endblock %}
+
+{% block extra_css %}
+.form-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 640px;
+    box-shadow: var(--shadow-sm);
+}
+.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+.field-input {
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 11px 14px;
+    min-height: 44px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.field-input.error { border-color: rgba(220,38,38,.5); }
+.field-input option { background: var(--bg-surface); }
+.field-error {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.field-help {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+.summary-panel {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 24px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+.summary-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.method-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.method-option { display: none; }
+.method-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 10px;
+    background: var(--bg-raised);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+    min-height: 44px;
+}
+.method-label:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+.method-option:checked + .method-label {
+    border-color: #16a34a;
+    background: rgba(22,163,74,.07);
+}
+.method-icon {
+    font-size: 20px;
+    color: var(--text-muted);
+}
+.method-option:checked + .method-label .method-icon { color: #16a34a; }
+.method-name {
+    font-size: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+.method-option:checked + .method-label .method-name { color: #16a34a; }
+.amount-display {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #16a34a;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.btn-success {
+    background: rgba(22,163,74,.12);
+    border: 1px solid rgba(22,163,74,.35);
+    color: #16a34a;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 28px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition), transform .12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-success:hover { background: rgba(22,163,74,.22); }
+.btn-success:active { transform: scale(.99); }
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 22px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+.btn-ghost:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px;">
+    <a href="{% url 'commissions:overview' %}" class="section-link">
+        <i class="bi bi-arrow-left me-1"></i> Retour à l'aperçu
+    </a>
+</div>
+
+<div class="form-card">
+
+    <div style="margin-bottom:24px;">
+        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px;">Versement de Commission</div>
+        <h1 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.025em;color:var(--text-primary);margin:0;">Enregistrer le Paiement</h1>
+    </div>
+
+    <!-- Contexte du récapitulatif -->
+    {% if summary %}
+    <div class="summary-panel">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+            <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--accent);flex-shrink:0;">
+                {{ summary.trader.get_full_name|slice:":1"|default:summary.trader.username|slice:":1"|upper }}
+            </div>
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text-primary);">
+                    {{ summary.trader.get_full_name|default:summary.trader.username }}
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);">{{ summary.period }}</div>
+            </div>
+            <div style="margin-left:auto;">
+                <span class="pill pill-warning"><i class="bi bi-hourglass-split"></i> {{ summary.get_payout_status_display }}</span>
+            </div>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Ventes</span>
+            <span style="color:var(--text-secondary);">{{ summary.sales_count }} transactions</span>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Marge totale</span>
+            <span style="color:var(--text-secondary);">{{ summary.total_margin|floatformat:0 }} DA</span>
+        </div>
+        <div class="summary-row">
+            <span style="color:var(--text-muted);">Commission due</span>
+            <div class="amount-display">{{ summary.total_commission|floatformat:0 }} DA</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div style="background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:20px;font-size:13px;color:#dc2626;">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Date + Montant -->
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+                <label class="field-label" for="{{ form.payment_date.id_for_label }}">Date de paiement</label>
+                <input type="date"
+                       id="{{ form.payment_date.id_for_label }}"
+                       name="{{ form.payment_date.html_name }}"
+                       value="{{ form.payment_date.value|default:'' }}"
+                       class="field-input {% if form.payment_date.errors %}error{% endif %}">
+                {% if form.payment_date.errors %}
+                <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.payment_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+            <div class="col-sm-6">
+                <label class="field-label" for="{{ form.amount_paid.id_for_label }}">Montant payé (DA)</label>
+                <div style="position:relative;">
+                    <input type="number"
+                           id="{{ form.amount_paid.id_for_label }}"
+                           name="{{ form.amount_paid.html_name }}"
+                           value="{{ form.amount_paid.value|default:'' }}"
+                           step="0.01" min="0"
+                           class="field-input {% if form.amount_paid.errors %}error{% endif %}"
+                           placeholder="0.00"
+                           style="padding-right:50px;">
+                    <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;">DA</span>
+                </div>
+                {% if form.amount_paid.errors %}
+                <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.amount_paid.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mode de paiement -->
+        <div style="margin-bottom:20px;">
+            <label class="field-label">Mode de paiement</label>
+            <div class="method-grid">
+                <div>
+                    <input type="radio" name="{{ form.payment_method.html_name }}" value="bank_transfer" id="method_bank" class="method-option"
+                           {% if form.payment_method.value == 'bank_transfer' %}checked{% endif %}>
+                    <label for="method_bank" class="method-label">
+                        <i class="bi bi-bank method-icon"></i>
+                        <div class="method-name">Virement bancaire</div>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="{{ form.payment_method.html_name }}" value="cash" id="method_cash" class="method-option"
+                           {% if form.payment_method.value == 'cash' %}checked{% endif %}>
+                    <label for="method_cash" class="method-label">
+                        <i class="bi bi-cash method-icon"></i>
+                        <div class="method-name">Espèces</div>
+                    </label>
+                </div>
+                <div>
+                    <input type="radio" name="{{ form.payment_method.html_name }}" value="check" id="method_check" class="method-option"
+                           {% if form.payment_method.value == 'check' %}checked{% endif %}>
+                    <label for="method_check" class="method-label">
+                        <i class="bi bi-file-text method-icon"></i>
+                        <div class="method-name">Chèque</div>
+                    </label>
+                </div>
+            </div>
+            {% if form.payment_method.errors %}
+            <div class="field-error"><i class="bi bi-exclamation-circle"></i> {{ form.payment_method.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Référence bancaire -->
+        <div style="margin-bottom:18px;">
+            <label class="field-label" for="{{ form.bank_reference.id_for_label }}">Référence bancaire / chèque</label>
+            <input type="text"
+                   id="{{ form.bank_reference.id_for_label }}"
+                   name="{{ form.bank_reference.html_name }}"
+                   value="{{ form.bank_reference.value|default:'' }}"
+                   class="field-input"
+                   placeholder="Numéro de référence ou de chèque (facultatif)">
+            <div class="field-help">Requis pour les virements bancaires et les paiements par chèque</div>
+        </div>
+
+        <!-- Notes -->
+        <div style="margin-bottom:28px;">
+            <label class="field-label" for="{{ form.notes.id_for_label }}">Notes</label>
+            <textarea id="{{ form.notes.id_for_label }}"
+                      name="{{ form.notes.html_name }}"
+                      rows="3"
+                      class="field-input"
+                      placeholder="Informations complémentaires sur le paiement…">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+
+        <!-- Notice de confirmation -->
+        <div style="background:rgba(22,163,74,.05);border:1px solid rgba(22,163,74,.2);border-radius:var(--radius-md);padding:12px 16px;margin-bottom:24px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-check-circle" style="color:#16a34a;flex-shrink:0;"></i>
+            L'enregistrement de ce paiement marquera la commission comme <strong style="color:#16a34a;">Payée</strong> et mettra à jour le statut de versement de façon permanente.
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button type="submit" class="btn-success">
+                <i class="bi bi-check-circle"></i> Confirmer le paiement
+            </button>
+            <a href="{% url 'commissions:overview' %}" class="btn-ghost">Annuler</a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}

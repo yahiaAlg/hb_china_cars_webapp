@@ -1,0 +1,811 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_sub_text %}{{ current_date|date:"l, N j, Y" }}{% endblock %}
+
+{% block extra_css %}
+/* ── Mise en page ── */
+.dash-grid { display: grid; gap: 20px; }
+
+/* ── Étiquette de section ── */
+.section-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+    margin-top: 8px;
+}
+
+/* ── Carte métrique ── */
+.metric-card { cursor: default; }
+
+.metric-mini-chart {
+    height: 40px;
+    margin-top: 12px;
+    opacity: .6;
+}
+
+/* ── Carte graphique ── */
+.chart-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-card-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--bg-surface);
+}
+
+.chart-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.chart-card-subtitle {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+.chart-card-body { padding: 16px 20px 20px; }
+
+.chart-wrap { position: relative; }
+
+/* ── Légende ── */
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Pipeline véhicules ── */
+.pipeline-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.pipeline-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 14px 14px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+.pipeline-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.pipeline-count {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.pipeline-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-top: 2px;
+}
+
+.pipeline-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-bottom: 6px;
+}
+
+/* ── Panneau d'alertes ── */
+.alerts-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.alerts-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.alerts-body { padding: 4px 20px; }
+
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+}
+.alert-item:last-child { border-bottom: none; }
+
+.alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+.alert-dot.high   { background: var(--danger);  box-shadow: 0 0 7px rgba(220,38,38,.35); }
+.alert-dot.medium { background: var(--warning); }
+.alert-dot.low    { background: var(--info); }
+
+.alert-type { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+.alert-msg  { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
+
+.no-alerts {
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* ── Tableau des ventes récentes ── */
+.table-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.table-card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--bg-surface);
+}
+
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Encart commission (trader) ── */
+.commission-box {
+    background: linear-gradient(135deg, rgba(217,119,6,.08) 0%, rgba(217,119,6,.03) 100%);
+    border: 1px solid rgba(217,119,6,.25);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+.commission-box .metric-value { color: var(--accent); }
+
+/* ── Animations d'entrée ── */
+.fade-in {
+    animation: fadeIn .35s ease both;
+}
+.fade-in:nth-child(1) { animation-delay: 0ms;   }
+.fade-in:nth-child(2) { animation-delay: 50ms;  }
+.fade-in:nth-child(3) { animation-delay: 100ms; }
+.fade-in:nth-child(4) { animation-delay: 150ms; }
+.fade-in:nth-child(5) { animation-delay: 200ms; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 1200px) {
+    .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 768px) {
+    .pipeline-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .chart-card-body { padding: 12px 14px 16px; }
+    .chart-card-head { padding: 14px 16px 12px; }
+    .alerts-head, .table-card-head { padding: 12px 16px; }
+    .alerts-body { padding: 2px 16px; }
+    .commission-box { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+    .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+    .metric-value { font-size: 22px; }
+    .metric-value.sm { font-size: 18px; }
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════
+     LIGNE 1 : CARTES DE MÉTRIQUES CLÉS
+════════════════════════════════════════════ -->
+<div class="section-eyebrow">Indicateurs clés — Mois en cours</div>
+
+<div class="row g-3 mb-4">
+
+    <!-- Valeur du stock -->
+    <div class="col-xl-3 col-md-6 fade-in">
+        <div class="metric-card">
+            <div class="metric-icon" style="background:rgba(2,132,199,.10);color:#0284c7;">
+                <i class="bi bi-boxes"></i>
+            </div>
+            <div class="metric-label">Valeur du stock</div>
+            <div class="metric-value">
+                {{ total_inventory_value|floatformat:0|default:"0" }} <span style="font-size:14px;color:var(--text-muted)">DA</span>
+            </div>
+            {% if inventory_change_pct > 0 %}
+            <span class="metric-delta up"><i class="bi bi-arrow-up-right"></i>{{ inventory_change_pct|floatformat:1 }}% vs mois dernier</span>
+            {% elif inventory_change_pct < 0 %}
+            <span class="metric-delta down"><i class="bi bi-arrow-down-right"></i>{{ inventory_change_pct|floatformat:1 }}% vs mois dernier</span>
+            {% else %}
+            <span class="metric-delta neutral"><i class="bi bi-dash"></i> Aucun changement</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Chiffre d'affaires mensuel -->
+    <div class="col-xl-3 col-md-6 fade-in">
+        <div class="metric-card">
+            <div class="metric-icon" style="background:rgba(22,163,74,.10);color:#16a34a;">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="metric-label">Chiffre d'affaires mensuel</div>
+            <div class="metric-value sm">
+                {{ monthly_revenue|floatformat:0|default:"0" }} <span style="font-size:14px;color:var(--text-muted)">DA</span>
+            </div>
+            {% if revenue_change_pct > 0 %}
+            <span class="metric-delta up"><i class="bi bi-arrow-up-right"></i>{{ revenue_change_pct|floatformat:1 }}%</span>
+            {% elif revenue_change_pct < 0 %}
+            <span class="metric-delta down"><i class="bi bi-arrow-down-right"></i>{{ revenue_change_pct|floatformat:1 }}%</span>
+            {% else %}
+            <span class="metric-delta neutral"><i class="bi bi-dash"></i> Aucun changement</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Marge mensuelle -->
+    <div class="col-xl-3 col-md-6 fade-in">
+        <div class="metric-card">
+            <div class="metric-icon" style="background:rgba(217,119,6,.12);color:#d97706;">
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+            <div class="metric-label">Marge mensuelle</div>
+            <div class="metric-value sm">
+                {{ monthly_margin|floatformat:0|default:"0" }} <span style="font-size:14px;color:var(--text-muted)">DA</span>
+            </div>
+            <span class="metric-delta {% if margin_percentage >= 10 %}up{% else %}neutral{% endif %}">
+                <i class="bi bi-percent"></i> {{ margin_percentage|floatformat:1 }}% taux de marge
+            </span>
+        </div>
+    </div>
+
+    <!-- Impayés -->
+    <div class="col-xl-3 col-md-6 fade-in">
+        <div class="metric-card">
+            <div class="metric-icon" style="background:rgba(220,38,38,.10);color:#dc2626;">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="metric-label">Impayés</div>
+            <div class="metric-value sm">
+                {{ total_outstanding|floatformat:0|default:"0" }} <span style="font-size:14px;color:var(--text-muted)">DA</span>
+            </div>
+            <span class="metric-delta {% if overdue_count > 0 %}down{% else %}neutral{% endif %}">
+                {% if overdue_count > 0 %}
+                <i class="bi bi-exclamation-circle"></i> {{ overdue_count }} en retard
+                {% else %}
+                <i class="bi bi-check-circle"></i> {{ outstanding_count }} facture{{ outstanding_count|pluralize }}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Commission trader (spécifique au rôle) -->
+{% if user_role == 'trader' %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4 fade-in">
+        <div class="commission-box">
+            <div class="metric-icon" style="background:var(--accent-dim);color:var(--accent);margin-bottom:12px;">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="metric-label">Votre commission (ce mois)</div>
+            <div class="metric-value">
+                {{ user_commission|floatformat:0|default:"0" }} <span style="font-size:14px;color:var(--accent);opacity:.7">DA</span>
+            </div>
+            <a href="/commissions/my-commission/" class="section-link mt-2 d-inline-flex" style="font-size:12px;">
+                Voir les détails <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4 fade-in">
+        <div class="metric-card">
+            <div class="metric-icon" style="background:rgba(22,163,74,.10);color:#16a34a;">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div class="metric-label">Mes ventes ce mois</div>
+            <div class="metric-value">{{ monthly_sales_count }}</div>
+            <span class="metric-delta neutral">transaction{{ monthly_sales_count|pluralize }}</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══════════════════════════════════════════
+     LIGNE 2 : PIPELINE DES VÉHICULES
+════════════════════════════════════════════ -->
+<div class="section-eyebrow">Pipeline des véhicules</div>
+
+<div class="mb-4">
+    <div class="pipeline-grid">
+        <div class="pipeline-item">
+            <div class="pipeline-dot" style="background:#0284c7;"></div>
+            <div class="pipeline-count">{{ vehicles_in_transit|default:0 }}</div>
+            <div class="pipeline-label">En transit</div>
+        </div>
+        <div class="pipeline-item">
+            <div class="pipeline-dot" style="background:#d97706;"></div>
+            <div class="pipeline-count">{{ vehicles_in_customs|default:0 }}</div>
+            <div class="pipeline-label">En douane</div>
+        </div>
+        <div class="pipeline-item">
+            <div class="pipeline-dot" style="background:#16a34a;"></div>
+            <div class="pipeline-count">{{ vehicles_in_stock|default:0 }}</div>
+            <div class="pipeline-label">Disponibles</div>
+        </div>
+        <div class="pipeline-item">
+            <div class="pipeline-dot" style="background:#7c3aed;"></div>
+            <div class="pipeline-count">{{ vehicles_reserved|default:0 }}</div>
+            <div class="pipeline-label">Réservés</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LIGNE 3 : GRAPHIQUE DE TENDANCE + ALERTES
+════════════════════════════════════════════ -->
+<div class="section-eyebrow">Analytiques</div>
+
+<div class="row g-3 mb-4 two-col" style="--bs-gutter-x:20px;">
+
+    <!-- Graphique de tendance du CA -->
+    <div class="col-xl-8">
+        <div class="chart-card fade-in">
+            <div class="chart-card-head">
+                <div>
+                    <div class="chart-card-title">Tendance du chiffre d'affaires</div>
+                    <div class="chart-card-subtitle">CA mensuel sur les 12 derniers mois (en millions DA)</div>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#d97706;"></div>Revenu</div>
+                </div>
+            </div>
+            <div class="chart-card-body">
+                <div class="chart-wrap" style="height:220px;">
+                    <canvas id="salesTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panneau d'alertes -->
+    <div class="col-xl-4">
+        <div class="alerts-panel h-100 fade-in">
+            <div class="alerts-head">
+                <div>
+                    <div class="chart-card-title">Alertes</div>
+                    <div class="chart-card-subtitle">Problèmes récents à examiner</div>
+                </div>
+                {% if alerts_list %}
+                <span class="pill pill-danger">{{ alerts_list|length }}</span>
+                {% endif %}
+            </div>
+            <div class="alerts-body">
+                {% if alerts_list %}
+                    {% for alert in alerts_list %}
+                    <div class="alert-item">
+                        <div class="alert-dot {{ alert.priority }}"></div>
+                        <div>
+                            <div class="alert-type">{{ alert.type }}</div>
+                            <div class="alert-msg">{{ alert.message }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-alerts">
+                        <i class="bi bi-check-circle d-block mb-2" style="font-size:22px;color:var(--success);"></i>
+                        Aucune alerte active
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     LIGNE 4 : PERFORMANCE TRADERS + RÉSUMÉ
+════════════════════════════════════════════ -->
+{% if user_role != 'trader' %}
+<div class="row g-3 mb-4 two-col">
+
+    <!-- Graphique en barres — Performance traders -->
+    <div class="col-xl-5">
+        <div class="chart-card fade-in">
+            <div class="chart-card-head">
+                <div>
+                    <div class="chart-card-title">Performance des traders</div>
+                    <div class="chart-card-subtitle">Chiffre d'affaires ce mois par trader (M DA)</div>
+                </div>
+            </div>
+            <div class="chart-card-body">
+                <div class="chart-wrap" style="height:200px;">
+                    <canvas id="traderChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique en donut — Répartition des ventes -->
+    <div class="col-xl-3">
+        <div class="chart-card fade-in">
+            <div class="chart-card-head">
+                <div>
+                    <div class="chart-card-title">Répartition des ventes</div>
+                    <div class="chart-card-subtitle">Nombre par trader</div>
+                </div>
+            </div>
+            <div class="chart-card-body">
+                <div class="chart-wrap" style="height:200px;">
+                    <canvas id="salesSplitChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Récapitulatif du mois -->
+    <div class="col-xl-4">
+        <div class="chart-card h-100 fade-in">
+            <div class="chart-card-head">
+                <div>
+                    <div class="chart-card-title">Récapitulatif du mois</div>
+                    <div class="chart-card-subtitle">Statistiques rapides</div>
+                </div>
+            </div>
+            <div class="chart-card-body">
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:12.5px;color:var(--text-secondary);">
+                            <i class="bi bi-receipt me-1" style="color:var(--accent);"></i> Nombre de ventes
+                        </span>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">
+                            {{ monthly_sales_count }}
+                        </span>
+                    </div>
+                    <div class="divider"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:12.5px;color:var(--text-secondary);">
+                            <i class="bi bi-people me-1" style="color:#0284c7;"></i> Véhicules en stock
+                        </span>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">
+                            {{ vehicles_in_stock }}
+                        </span>
+                    </div>
+                    <div class="divider"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:12.5px;color:var(--text-secondary);">
+                            <i class="bi bi-hourglass me-1" style="color:#dc2626;"></i> Factures impayées
+                        </span>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">
+                            {{ outstanding_count }}
+                        </span>
+                    </div>
+                    <div class="divider"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:12.5px;color:var(--text-secondary);">
+                            <i class="bi bi-truck me-1" style="color:#ea580c;"></i> En douane
+                        </span>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">
+                            {{ vehicles_in_customs }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+<!-- ══════════════════════════════════════════
+     LIGNE 5 : TABLEAU DES VENTES RÉCENTES
+════════════════════════════════════════════ -->
+{% if recent_sales %}
+<div class="section-eyebrow">Transactions récentes</div>
+
+<div class="table-card fade-in mb-2">
+    <div class="table-card-head">
+        <div>
+            <div class="chart-card-title">Ventes récentes</div>
+            <div class="chart-card-subtitle">Dernières transactions finalisées</div>
+        </div>
+        <a href="/sales/" class="section-link">
+            Tout voir <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="table-scroll">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Véhicule</th>
+                    <th>Client</th>
+                    <th>Trader</th>
+                    <th>Date</th>
+                    <th style="text-align:right;">Prix de vente</th>
+                    <th style="text-align:right;">Marge</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in recent_sales %}
+                <tr onclick="location.href='/sales/{{ sale.pk }}/'" style="cursor:pointer;">
+                    <td style="color:var(--text-primary);font-weight:500;">
+                        {{ sale.vehicle.make|default:"—" }} {{ sale.vehicle.model|default:"" }}
+                        <div style="font-size:11px;color:var(--text-muted);">
+                            {{ sale.vehicle.vin|default:"Aucun NIV"|truncatechars:12 }}
+                        </div>
+                    </td>
+                    <td>{{ sale.customer.name|default:"—" }}</td>
+                    <td>{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username|default:"—" }}</td>
+                    <td>{{ sale.sale_date|date:"j M Y" }}</td>
+                    <td style="text-align:right;font-weight:500;color:var(--text-primary);">
+                        {{ sale.sale_price|floatformat:0 }} DA
+                    </td>
+                    <td style="text-align:right;">
+                        <span class="pill {% if sale.margin_amount > 0 %}pill-success{% else %}pill-danger{% endif %}">
+                            {{ sale.margin_amount|floatformat:0 }} DA
+                        </span>
+                    </td>
+                    <td>
+                        {% if sale.is_finalized %}
+                        <span class="pill pill-success"><i class="bi bi-check-circle"></i> Finalisé</span>
+                        {% else %}
+                        <span class="pill pill-warning">Brouillon</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Données depuis le contexte Django ──
+const salesTrendLabels = {{ sales_trend_labels|safe }};
+const salesTrendData   = {{ sales_trend_data|safe }};
+const traderNames      = {{ trader_names|safe }};
+const traderRevenues   = {{ trader_revenues|safe }};
+const traderCounts     = {{ trader_sales_counts|safe }};
+
+// ── Palette de couleurs — thème clair ──
+const ACCENT   = '#d97706';
+const ACCENT20 = 'rgba(217,119,6,0.18)';
+const ACCENT10 = 'rgba(217,119,6,0.08)';
+
+const COLORS = [
+    '#d97706','#0284c7','#16a34a','#7c3aed',
+    '#ea580c','#0d9488','#db2777','#4f46e5','#dc2626'
+];
+
+// ── Options communes Chart.js ──
+const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: '#ffffff',
+            borderColor: 'rgba(0,0,0,.12)',
+            borderWidth: 1,
+            titleColor: '#111827',
+            bodyColor: '#4b5563',
+            padding: 10,
+            cornerRadius: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,.1)',
+        }
+    },
+    scales: {
+        x: {
+            grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+            ticks: { color: '#9ca3af', font: { size: 10.5 } },
+        },
+        y: {
+            grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+            ticks: { color: '#9ca3af', font: { size: 10.5 } },
+        }
+    }
+};
+
+// ────────────────────────────────────────────
+// 1. TENDANCE DES VENTES — Graphique en aires
+// ────────────────────────────────────────────
+const trendCtx = document.getElementById('salesTrendChart');
+if (trendCtx) {
+    const gradient = trendCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    gradient.addColorStop(0, 'rgba(217,119,6,0.20)');
+    gradient.addColorStop(1, 'rgba(217,119,6,0)');
+
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: salesTrendLabels,
+            datasets: [{
+                label: 'Revenu (M DA)',
+                data: salesTrendData,
+                borderColor: ACCENT,
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: ACCENT,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1.5,
+                pointHoverRadius: 5,
+                fill: true,
+                tension: 0.45,
+            }]
+        },
+        options: {
+            ...defaultOptions,
+            plugins: {
+                ...defaultOptions.plugins,
+                tooltip: {
+                    ...defaultOptions.plugins.tooltip,
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y.toFixed(2)} M DA`
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ────────────────────────────────────────────
+// 2. PERFORMANCE TRADERS — Barres horizontales
+// ────────────────────────────────────────────
+const traderCtx = document.getElementById('traderChart');
+if (traderCtx && traderNames.length > 0) {
+    new Chart(traderCtx, {
+        type: 'bar',
+        data: {
+            labels: traderNames,
+            datasets: [{
+                label: 'Revenu (M DA)',
+                data: traderRevenues,
+                backgroundColor: COLORS.slice(0, traderNames.length).map(c => c + '22'),
+                borderColor: COLORS.slice(0, traderNames.length),
+                borderWidth: 1.5,
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            ...defaultOptions,
+            indexAxis: 'y',
+            plugins: {
+                ...defaultOptions.plugins,
+                tooltip: {
+                    ...defaultOptions.plugins.tooltip,
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.x.toFixed(2)} M DA`
+                    }
+                }
+            },
+            scales: {
+                x: defaultOptions.scales.x,
+                y: {
+                    ...defaultOptions.scales.y,
+                    ticks: { color: '#4b5563', font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+// ────────────────────────────────────────────
+// 3. RÉPARTITION DES VENTES — Donut
+// ────────────────────────────────────────────
+const splitCtx = document.getElementById('salesSplitChart');
+if (splitCtx && traderNames.length > 0) {
+    new Chart(splitCtx, {
+        type: 'doughnut',
+        data: {
+            labels: traderNames,
+            datasets: [{
+                data: traderCounts,
+                backgroundColor: COLORS.slice(0, traderNames.length).map(c => c + '28'),
+                borderColor: COLORS.slice(0, traderNames.length),
+                borderWidth: 2,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: '#4b5563',
+                        boxWidth: 8,
+                        boxHeight: 8,
+                        usePointStyle: true,
+                        pointStyleWidth: 8,
+                        font: { size: 10.5 },
+                        padding: 12,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    borderColor: 'rgba(0,0,0,.12)',
+                    borderWidth: 1,
+                    titleColor: '#111827',
+                    bodyColor: '#4b5563',
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: ctx => ` ${ctx.label} : ${ctx.parsed} vente${ctx.parsed > 1 ? 's' : ''}`
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
