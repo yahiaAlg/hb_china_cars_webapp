@@ -31,33 +31,9 @@ class InvoiceInline(admin.StackedInline):
 # ── Sale ──────────────────────────────────────────────────────────────────────
 
 
-class SaleResource(resources.ModelResource):
-    vehicles = fields.Field(column_name="vehicles")
-    total_sale_price = fields.Field(column_name="total_sale_price")
-
-    class Meta:
-        model = Sale
-        fields = (
-            "sale_number",
-            "sale_date",
-            "customer__name",
-            "assigned_trader__username",
-            "commission_rate",
-            "commission_amount",
-            "is_finalized",
-        )
-        export_order = fields
-
-    def dehydrate_vehicles(self, sale):
-        return sale.vehicles_display
-
-    def dehydrate_total_sale_price(self, sale):
-        return float(sale.sale_price)
-
-
 @admin.register(Sale)
 class SaleAdmin(ImportExportModelAdmin):
-    resource_class = SaleResource
+
     list_display = (
         "sale_number",
         "sale_date",

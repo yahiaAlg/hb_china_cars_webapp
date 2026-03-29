@@ -299,7 +299,7 @@
         {% for sale in sales_list %}
         <tr>
           <td style="color:var(--text-muted);white-space:nowrap;">{{ sale.sale_date|date:"j M Y" }}</td>
-          <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">{{ sale.vehicle.make }} {{ sale.vehicle.model }}</td>
+          <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">{{ sale.vehicles_display }}</td>
           <td>{{ sale.customer.name }}</td>
           <td style="color:var(--text-secondary);">{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</td>
           <td style="white-space:nowrap;">{{ sale.sale_price|floatformat:0 }} DA</td>

@@ -277,7 +277,7 @@
             </span>
           </td>
           <td style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);white-space:nowrap;">{{ v.landed_cost|floatformat:0 }} DA</td>
-          <td style="color:var(--text-muted);">{% if v.vehicle_purchase %}{{ v.vehicle_purchase.supplier.name }}{% else %}—{% endif %}</td>
+          <td style="color:var(--text-muted);">{% if v.purchase_line_item %}{{ v.purchase_line_item.purchase.supplier.name }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

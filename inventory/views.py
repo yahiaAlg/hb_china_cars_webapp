@@ -370,8 +370,8 @@ def generate_automatic_alerts():
 
     delayed_customs = Vehicle.objects.filter(
         status="at_customs",
-        vehicle_purchase__customs_declaration__declaration_date__lt=customs_threshold,
-        vehicle_purchase__customs_declaration__is_cleared=False,
+        purchase_line_item__purchase__customs_declaration__declaration_date__lt=customs_threshold,
+        purchase_line_item__purchase__customs_declaration__is_cleared=False,
     )
 
     for vehicle in delayed_customs:

@@ -195,7 +195,7 @@
         <tr>
           <td style="color:var(--text-muted);white-space:nowrap;">{{ sale.sale_date|date:"j M Y" }}</td>
           <td style="font-weight:600;color:var(--text-primary);white-space:nowrap;">
-            <i class="bi bi-car-front" style="color:var(--text-muted);margin-right:5px;"></i>{{ sale.vehicle.make }} {{ sale.vehicle.model }}
+            <i class="bi bi-car-front" style="color:var(--text-muted);margin-right:5px;"></i>{{ sale.vehicles_display }}
           </td>
           <td style="color:var(--text-secondary);">{{ sale.customer.name }}</td>
           <td style="color:var(--text-muted);">{{ sale.assigned_trader.get_full_name|default:sale.assigned_trader.username }}</td>
