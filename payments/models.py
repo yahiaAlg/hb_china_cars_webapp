@@ -64,25 +64,27 @@ class Payment(BaseModel):
                 {"payment_date": "La date de paiement ne peut pas être dans le futur."}
             )
 
-        if self.invoice and self.amount:
-            remaining_balance = self.invoice.balance_due
-            if self.pk:
-                # Add back this payment's original amount to get the true remaining balance
-                try:
-                    original = Payment.objects.get(pk=self.pk)
-                    remaining_balance += original.amount
-                except Payment.DoesNotExist:
-                    pass
-
-            if self.amount > remaining_balance:
-                raise ValidationError(
-                    {
-                        "amount": (
-                            f"Le montant ne peut pas dépasser le solde dû "
-                            f"({remaining_balance:,.2f} DA)."
-                        )
-                    }
-                )
+        if self.invoice_id and self.amount:
+            try:
+                invoice = Invoice.objects.get(pk=self.invoice_id)
+                remaining_balance = invoice.balance_due
+                if self.pk:
+                    try:
+                        original = Payment.objects.get(pk=self.pk)
+                        remaining_balance += original.amount
+                    except Payment.DoesNotExist:
+                        pass
+                if self.amount > remaining_balance:
+                    raise ValidationError(
+                        {
+                            "amount": (
+                                f"Le montant ne peut pas dépasser le solde dû "
+                                f"({remaining_balance:,.2f} DA)."
+                            )
+                        }
+                    )
+            except Invoice.DoesNotExist:
+                pass
 
     def save(self, *args, **kwargs):
         if not self.payment_number:
@@ -122,7 +124,7 @@ class Payment(BaseModel):
         )["total"] or Decimal("0")
 
         invoice.amount_paid = total_payments
-        invoice.balance_due = invoice.total_ttc - total_payments
+        invoice.balance_due = invoice.total_a_payer - total_payments
 
         if invoice.balance_due <= 0:
             invoice.status = "paid"

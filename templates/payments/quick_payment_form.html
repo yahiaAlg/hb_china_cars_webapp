@@ -190,11 +190,14 @@
                     <select name="{{ form.payment_method.html_name }}"
                         class="field-select {% if form.payment_method.errors %}is-invalid{% endif %}">
                         <option value="">— Sélectionner —</option>
-                        <option value="cash" {% if form.payment_method.value == 'cash' %}selected{% endif %}>💵 Espèces</option>
-                        <option value="bank_transfer" {% if form.payment_method.value == 'bank_transfer' %}selected{% endif %}>🏦 Virement bancaire</option>
-                        <option value="check" {% if form.payment_method.value == 'check' %}selected{% endif %}>📄 Chèque</option>
-                        <option value="card" {% if form.payment_method.value == 'card' %}selected{% endif %}>💳 Carte</option>
-                        <option value="other" {% if form.payment_method.value == 'other' %}selected{% endif %}>Autre</option>
+                        {% with m=form.payment_method.value %}
+                        <option value="cash" {% if m == 'cash' %}selected{% endif %}>💵 Espèces</option>
+                        <option value="bank_transfer" {% if m == 'bank_transfer' %}selected{% endif %}>🏦 Virement bancaire</option>
+                        <option value="check" {% if m == 'check' %}selected{% endif %}>📄 Chèque</option>
+                        <option value="card" {% if m == 'card' %}selected{% endif %}>💳 Carte</option>
+                        <option value="installment" {% if m == 'installment' %}selected{% endif %}>📅 Versement échelonné</option>
+                        <option value="other" {% if m == 'other' %}selected{% endif %}>Autre</option>
+                        {% endwith %}
                     </select>
                     {% if form.payment_method.errors %}
                     <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ form.payment_method.errors.0 }}</div>
@@ -242,4 +245,16 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const amountInput = document.getElementById('id_amount');
+    const maxBalance  = {{ invoice.balance_due|stringformat:".2f" }};
+    if (amountInput && (!amountInput.value || parseFloat(amountInput.value) === 0)) {
+        amountInput.value = maxBalance;
+    }
+})();
+</script>
 {% endblock %}

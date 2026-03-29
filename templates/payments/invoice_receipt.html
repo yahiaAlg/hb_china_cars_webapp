@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Reçu — {{ invoice.invoice_number }}{% endblock %}
+{% block nav_payments %}active{% endblock %}
+
+{% block page_title %}Reçu de paiement{% endblock %}
+{% block page_sub_text %}{{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+.print-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.receipt-doc {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+/* Header */
+.receipt-head {
+    padding: 28px 36px 24px;
+    border-bottom: 3px solid var(--accent);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+    background: var(--accent-dim);
+}
+.receipt-brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.receipt-brand-sub {
+    font-size: 11px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .08em;
+}
+.receipt-brand-address {
+    font-size: 12px; color: var(--text-secondary);
+    margin-top: 10px; line-height: 1.6;
+}
+.receipt-badge {
+    text-align: right;
+}
+.receipt-badge-label {
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: .12em; color: var(--text-muted);
+    margin-bottom: 3px;
+}
+.receipt-badge-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--accent);
+}
+.receipt-badge-date {
+    font-size: 12px; color: var(--text-secondary); margin-top: 4px;
+}
+
+/* Paid stamp */
+.paid-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(22,163,74,.12);
+    border: 2px solid #16a34a;
+    border-radius: 6px;
+    color: #16a34a;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+/* Parties */
+.receipt-parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+}
+.party-block {
+    padding: 18px 28px;
+    border-right: 1px solid var(--border);
+}
+.party-block:last-child { border-right: none; }
+.party-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent); font-weight: 600; margin-bottom: 6px;
+}
+.party-name {
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 3px;
+}
+.party-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Sale items summary */
+.receipt-items {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+}
+.items-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 12px;
+}
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.item-row:last-child { border-bottom: none; }
+.item-desc { color: var(--text-primary); font-weight: 500; }
+.item-desc-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.item-price {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; color: var(--text-primary);
+    white-space: nowrap;
+}
+
+/* Financial breakdown */
+.receipt-totals {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-raised);
+}
+.totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+}
+.totals-row:last-child { border-bottom: none; }
+.tl { color: var(--text-muted); }
+.tr { color: var(--text-primary); font-weight: 500; }
+.totals-final {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--accent-dim);
+}
+.totals-final-label {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+    color: var(--text-primary);
+}
+.totals-final-value {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+    color: #16a34a;
+}
+
+/* Payments table */
+.receipt-payments { padding: 22px 28px; border-bottom: 1px solid var(--border); }
+.pay-table { width: 100%; border-collapse: collapse; }
+.pay-table thead th {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-muted); font-weight: 600;
+    padding: 0 0 10px; border-bottom: 1px solid var(--border);
+}
+.pay-table thead th:last-child { text-align: right; }
+.pay-table tbody td {
+    padding: 10px 0;
+    font-size: 12.5px; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+}
+.pay-table tbody tr:last-child td { border-bottom: none; }
+.pay-table tbody td:last-child { text-align: right; font-weight: 600; color: #16a34a; }
+
+/* Footer */
+.receipt-footer {
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-wrap: wrap; gap: 6px;
+}
+.receipt-footer-thanks {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--accent);
+}
+
+@media print {
+    @page { size: A4 portrait; margin: 8mm 10mm; }
+
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
+    body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; font-size: 11px !important; }
+    .main-content { margin-left: 0 !important; }
+    .topbar, .sidebar, .sidebar-backdrop, .print-actions { display: none !important; }
+    .page-body { padding: 0 !important; margin: 0 !important; }
+
+    .receipt-doc {
+        background: #fff !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0 !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+    }
+
+    .receipt-head { padding: 8px 14px 7px !important; }
+    .receipt-brand-name { font-size: 13px !important; }
+    .receipt-brand-sub { font-size: 9px !important; }
+    .receipt-brand-address { font-size: 9px !important; margin-top: 4px !important; line-height: 1.4 !important; }
+    .receipt-badge-label { font-size: 8px !important; }
+    .receipt-badge-number { font-size: 14px !important; }
+    .receipt-badge-date { font-size: 9px !important; }
+    .paid-stamp { font-size: 9px !important; padding: 3px 8px !important; margin-top: 4px !important; }
+
+    .party-block { padding: 7px 12px !important; }
+    .party-eyebrow { font-size: 8px !important; margin-bottom: 3px !important; }
+    .party-name { font-size: 11px !important; }
+    .party-detail { font-size: 9px !important; line-height: 1.4 !important; }
+
+    .receipt-items { padding: 8px 14px !important; }
+    .items-eyebrow { font-size: 8px !important; margin-bottom: 6px !important; }
+    .item-row { padding: 5px 0 !important; }
+    .item-desc { font-size: 11px !important; }
+    .item-desc-sub { font-size: 9px !important; }
+    .item-price { font-size: 11px !important; }
+
+    .receipt-totals { padding: 6px 14px !important; }
+    .totals-row { padding: 4px 0 !important; font-size: 10px !important; }
+    .totals-final { padding: 7px 14px !important; }
+    .totals-final-label { font-size: 12px !important; }
+    .totals-final-value { font-size: 14px !important; }
+
+    .receipt-payments { padding: 8px 14px !important; }
+    .pay-table thead th { font-size: 8px !important; padding-bottom: 5px !important; }
+    .pay-table tbody td { font-size: 10px !important; padding: 4px 0 !important; }
+
+    .receipt-footer { padding: 6px 14px !important; font-size: 9px !important; }
+    .receipt-footer-thanks { font-size: 10px !important; }
+}
+{% endblock %}
+
+{% block content %}
+
+<div class="print-actions">
+    <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn-ghost" style="min-height:44px;">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+    <button onclick="window.print()" class="btn-primary" style="min-height:44px;">
+        <i class="bi bi-printer"></i> Imprimer le reçu
+    </button>
+</div>
+
+<div class="receipt-doc" id="receiptDoc">
+
+    <!-- En-tête -->
+    <div class="receipt-head">
+        <div>
+            <div class="receipt-brand-name">{{ config.company_name }}</div>
+            <div class="receipt-brand-sub">Bureau de Commerce Automobile</div>
+            <div class="receipt-brand-address">
+                {{ config.company_address }}<br>
+                {% if config.company_phone %}{{ config.company_phone }}<br>{% endif %}
+                {{ config.company_email }}
+            </div>
+        </div>
+        <div class="receipt-badge">
+            <div class="receipt-badge-label">Reçu de paiement</div>
+            <div class="receipt-badge-number">{{ invoice.invoice_number }}</div>
+            <div class="receipt-badge-date">{{ invoice.invoice_date|date:"j M Y" }}</div>
+            <div>
+                {% if invoice.status == 'paid' %}
+                <div class="paid-stamp"><i class="bi bi-check-circle-fill"></i> PAYÉE</div>
+                {% else %}
+                <div class="paid-stamp" style="border-color:#d97706;color:#d97706;background:rgba(217,119,6,.10);">
+                    <i class="bi bi-clock"></i> PARTIEL
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Parties -->
+    <div class="receipt-parties">
+        <div class="party-block">
+            <div class="party-eyebrow">Facturé à</div>
+            <div class="party-name">{{ invoice.customer.name }}</div>
+            <div class="party-detail">
+                {% if invoice.customer.customer_type == 'company' %}
+                    Société{% if invoice.customer.nif %} · NIF : {{ invoice.customer.nif }}{% endif %}<br>
+                {% endif %}
+                {% if invoice.customer.phone %}{{ invoice.customer.phone }}<br>{% endif %}
+                {% if invoice.customer.wilaya %}{{ invoice.customer.get_wilaya_display }}, Algérie{% endif %}
+            </div>
+        </div>
+        <div class="party-block">
+            <div class="party-eyebrow">Référence vente</div>
+            <div class="party-name">{{ invoice.sale.sale_number }}</div>
+            <div class="party-detail">
+                {% for item in invoice.sale.line_items.all %}
+                {{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}{% if item.vehicle.vin_chassis %} · {{ item.vehicle.vin_chassis }}{% endif %}<br>
+                {% endfor %}
+                Trader : {{ invoice.sale.assigned_trader.get_full_name|default:invoice.sale.assigned_trader.username }}<br>
+                Mode : {{ invoice.sale.get_payment_method_display }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Véhicules vendus -->
+    <div class="receipt-items">
+        <div class="items-eyebrow">Articles facturés</div>
+        {% for item in invoice.sale.line_items.all %}
+        <div class="item-row">
+            <div>
+                <div class="item-desc">{{ item.vehicle.make }} {{ item.vehicle.model }} {{ item.vehicle.year }}</div>
+                <div class="item-desc-sub">
+                    {% if item.vehicle.color %}{{ item.vehicle.color }} · {% endif %}
+                    NIV : {{ item.vehicle.vin_chassis|default:"—" }}
+                </div>
+            </div>
+            <div class="item-price">{{ item.sale_price|floatformat:0 }} DA</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Décomposition financière -->
+    <div class="receipt-totals">
+        <div class="totals-row">
+            <span class="tl">Sous-total HT</span>
+            <span class="tr">{{ invoice.subtotal_ht|floatformat:2 }} DA</span>
+        </div>
+        <div class="totals-row">
+            <span class="tl">TVA ({{ invoice.tva_rate|floatformat:2 }}%)</span>
+            <span class="tr">{{ invoice.tva_amount|floatformat:2 }} DA</span>
+        </div>
+        <div class="totals-row">
+            <span class="tl">Total TTC</span>
+            <span class="tr" style="font-weight:700;">{{ invoice.total_ttc|floatformat:0 }} DA</span>
+        </div>
+        {% if invoice.timbre_fiscal > 0 %}
+        <div class="totals-row">
+            <span class="tl" style="color:#d97706;">Timbre fiscal (2% · Espèces)</span>
+            <span class="tr" style="color:#d97706;">{{ invoice.timbre_fiscal|floatformat:2 }} DA</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="totals-final">
+        <span class="totals-final-label">Montant total à payer</span>
+        <span class="totals-final-value">{{ invoice.total_a_payer|floatformat:0 }} DA</span>
+    </div>
+
+    <!-- Historique des paiements -->
+    <div class="receipt-payments">
+        <div class="items-eyebrow">Paiements reçus</div>
+        <table class="pay-table">
+            <thead>
+                <tr>
+                    <th>N° Paiement</th>
+                    <th>Date</th>
+                    <th>Méthode</th>
+                    <th>Référence</th>
+                    <th style="text-align:right;">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pay in payments %}
+                <tr>
+                    <td>{{ pay.payment_number }}</td>
+                    <td>{{ pay.payment_date|date:"j M Y" }}</td>
+                    <td>{{ pay.get_payment_method_display }}</td>
+                    <td>{{ pay.bank_reference|default:"—" }}</td>
+                    <td>{{ pay.amount|floatformat:0 }} DA</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center;color:var(--text-muted);padding:14px 0;">
+                        Aucun paiement enregistré.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Résumé solde -->
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.20);border-radius:var(--radius-md);padding:12px 14px;text-align:center;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#16a34a;opacity:.8;margin-bottom:4px;">Total payé</div>
+                <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#16a34a;">{{ invoice.amount_paid|floatformat:0 }} DA</div>
+            </div>
+            <div style="background:{% if invoice.balance_due <= 0 %}rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.20){% else %}rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20){% endif %};border-radius:var(--radius-md);padding:12px 14px;text-align:center;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:{% if invoice.balance_due <= 0 %}#16a34a{% else %}#dc2626{% endif %};opacity:.8;margin-bottom:4px;">Solde restant</div>
+                <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:{% if invoice.balance_due <= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+                    {% if invoice.balance_due <= 0 %}0{% else %}{{ invoice.balance_due|floatformat:0 }}{% endif %} DA
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="receipt-footer">
+        <span class="receipt-footer-thanks">Merci pour votre confiance !</span>
+        <span>Généré le {% now "j M Y" %} · {{ config.company_name }}</span>
+    </div>
+
+</div>
+{% endblock %}

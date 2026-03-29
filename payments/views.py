@@ -257,9 +257,24 @@ def quick_payment(request, invoice_id):
                 request,
                 f"Paiement {payment.payment_number} de {payment.amount:,.2f} DA enregistré avec succès.",
             )
+            # Refresh invoice to check if fully paid
+            invoice.refresh_from_db()
+            if invoice.status == "paid":
+                return redirect("payments:invoice_receipt", invoice_id=invoice.pk)
             return redirect("payments:detail", pk=payment.pk)
     else:
-        form = QuickPaymentForm(invoice=invoice)
+        # Map sale payment method to payment method choices
+        sale_method = invoice.sale.payment_method if invoice.sale_id else None
+        method_map = {
+            "cash": "cash",
+            "bank_transfer": "bank_transfer",
+            "check": "check",
+            "installment": "installment",
+        }
+        initial_method = method_map.get(sale_method, "")
+        form = QuickPaymentForm(
+            invoice=invoice, initial={"payment_method": initial_method}
+        )
 
     return render(
         request,
@@ -411,7 +426,39 @@ def installment_payment(request, installment_id):
 
 
 @login_required
+def invoice_receipt(request, invoice_id):
+    invoice = get_object_or_404(
+        Invoice.objects.select_related(
+            "customer", "sale__assigned_trader"
+        ).prefetch_related("sale__line_items__vehicle", "payments"),
+        pk=invoice_id,
+    )
+
+    if hasattr(request.user, "userprofile"):
+        if request.user.userprofile.is_trader:
+            if invoice.sale.assigned_trader != request.user:
+                messages.error(request, "Accès non autorisé.")
+                return redirect("payments:list")
+
+    from system_settings.models import SystemConfiguration
+
+    return render(
+        request,
+        "payments/invoice_receipt.html",
+        {
+            "invoice": invoice,
+            "config": SystemConfiguration.get_current(),
+            "payments": invoice.payments.filter(is_confirmed=True).order_by(
+                "payment_date"
+            ),
+        },
+    )
+
+
+@login_required
 def ajax_invoice_balance(request):
+    from django.http import JsonResponse
+
     invoice_id = request.GET.get("invoice_id")
     if not invoice_id:
         return JsonResponse({"error": "Invoice ID required"})
