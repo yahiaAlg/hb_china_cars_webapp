@@ -8,24 +8,9 @@ from django.db.models import Q
 
 
 class VehicleSelect(forms.Select):
-    """Renders <option data-landed-cost="..."> so the JS markup calculator works."""
+    """Plain select widget — landed costs are fetched via AJAX on vehicle change."""
 
-    def create_option(self, name, value, label, selected, index, **kwargs):
-        option = super().create_option(name, value, label, selected, index, **kwargs)
-        if value:
-            try:
-                from inventory.models import Vehicle
-
-                v = (
-                    Vehicle.objects.select_related("purchase_line_item")
-                    .filter(pk=value)
-                    .first()
-                )
-                lc = v.landed_cost if v else 0
-                option["attrs"]["data-landed-cost"] = str(lc)
-            except Exception:
-                option["attrs"]["data-landed-cost"] = "0"
-        return option
+    pass
 
 
 class SaleForm(forms.ModelForm):

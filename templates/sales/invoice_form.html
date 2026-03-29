@@ -275,8 +275,26 @@ document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]), sele
     el.classList.add('field-input');
 });
 
-/* Use parseFloat on a quoted string to be safe against locale formatting */
-const salePrice = parseFloat('{{ sale.sale_price }}') || 0;
+/* ── Pre-populate dates if empty ── */
+(function() {
+    const invoiceDateEl = document.getElementById('{{ form.invoice_date.auto_id }}');
+    const dueDateEl     = document.getElementById('{{ form.due_date.auto_id }}');
+    const pad = n => String(n).padStart(2, '0');
+    const toInputVal = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    const today = new Date();
+    if (invoiceDateEl && !invoiceDateEl.value) {
+        invoiceDateEl.value = toInputVal(today);
+    }
+    if (dueDateEl && !dueDateEl.value) {
+        const due = new Date(today);
+        due.setDate(due.getDate() + 30);
+        dueDateEl.value = toInputVal(due);
+    }
+})();
+
+/* Strip any locale thousand-separators before parsing */
+const salePrice = parseFloat('{{ sale.sale_price|floatformat:2 }}'.replace(/\s/g, '').replace(',', '.')) || 0;
 const tvaInput  = document.getElementById('{{ form.tva_rate.auto_id }}');
 
 function updateTaxPreview() {

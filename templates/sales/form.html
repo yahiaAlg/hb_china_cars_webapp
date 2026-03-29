@@ -273,7 +273,7 @@ select.field-input {
 
                 <div id="lineItemsContainer">
                 {% for line_form in formset %}
-                    <div class="line-item-row{% if line_form.instance.pk and line_form.DELETE.value %} marked-delete{% endif %}" data-index="{{ forloop.counter0 }}">
+                    <div class="line-item-row{% if line_form.instance.pk and line_form.DELETE.value %} marked-delete{% endif %}" data-index="{{ forloop.counter0 }}"{% if line_form.instance.pk %} data-vehicle-id="{{ line_form.instance.vehicle.pk }}" data-landed-cost="{{ line_form.instance.vehicle.landed_cost|floatformat:2 }}"{% endif %}>
                         {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
 
                         <div class="line-row-header">
@@ -481,17 +481,15 @@ select.field-input {
     let totalForms = parseInt(totalFormsInput.value);
 
     /* ─── 3. Vehicle landed-cost cache ─── */
+    /* Only store confirmed non-zero values; zero may mean "not yet fetched" */
     const vehicleLCCache = {};
     const firstSel = document.querySelector('.vehicle-select');
 
-    /* Pre-populate cache from data-landed-cost attributes rendered by VehicleSelect */
-    document.querySelectorAll('.vehicle-select option[data-landed-cost]').forEach(opt => {
-        if (opt.value) vehicleLCCache[opt.value] = parseFloat(opt.dataset.landedCost) || 0;
-    });
+    /* Do NOT pre-populate from option attributes — they can be 0 for vehicles
+       without a purchase line item, which would prevent the AJAX fetch. */
 
     function buildVehicleOptions() {
         if (!firstSel) return '';
-        /* Exclude vehicles already selected in other rows */
         const selectedIds = new Set(
             [...document.querySelectorAll('.vehicle-select')]
                 .map(s => s.value).filter(v => v)
@@ -509,15 +507,21 @@ select.field-input {
     function getLandedCost(row) {
         const sel = row.querySelector('.vehicle-select');
         if (!sel || !sel.value) return 0;
-        return vehicleLCCache[sel.value] || 0;
+        /* Only return from cache if we have a confirmed fetched value */
+        return vehicleLCCache[sel.value] !== undefined ? vehicleLCCache[sel.value] : 0;
     }
 
     function fetchLandedCost(vehicleId, callback) {
         if (!vehicleId) { callback(0); return; }
+        /* Only short-circuit if we have a previously FETCHED value (stored via this fn) */
         if (vehicleLCCache[vehicleId] !== undefined) { callback(vehicleLCCache[vehicleId]); return; }
         fetch(`/sales/ajax/vehicle-details/?vehicle_id=${vehicleId}`)
             .then(r => r.json())
-            .then(d => { const lc = d.success ? d.vehicle.landed_cost : 0; vehicleLCCache[vehicleId] = lc; callback(lc); })
+            .then(d => {
+                const lc = (d.success && d.vehicle) ? d.vehicle.landed_cost : 0;
+                vehicleLCCache[vehicleId] = lc;
+                callback(lc);
+            })
             .catch(() => { vehicleLCCache[vehicleId] = 0; callback(0); });
     }
 
@@ -576,8 +580,8 @@ select.field-input {
         document.getElementById('summaryCount').textContent = countTxt;
         document.getElementById('lineCount').textContent    = countTxt;
 
-        const summaryCost     = document.getElementById('summaryCost');
-        const summaryMargin   = document.getElementById('summaryMargin');
+        const summaryCost       = document.getElementById('summaryCost');
+        const summaryMargin     = document.getElementById('summaryMargin');
         const summaryCommission = document.getElementById('summaryCommission');
 
         if (totalCost > 0) {
@@ -587,7 +591,6 @@ select.field-input {
                 summaryMargin.textContent = fmt(margin) + ' DA';
                 summaryMargin.style.color = margin >= 0 ? '#16a34a' : '#dc2626';
             }
-            /* Commission estimate = margin × rate */
             const commRate = parseFloat(document.getElementById('id_commission_rate')?.value || 0);
             if (summaryCommission) {
                 if (commRate > 0 && margin > 0) {
@@ -599,6 +602,11 @@ select.field-input {
                     summaryCommission.style.color = '#7c3aed';
                 }
             }
+        } else {
+            /* FIX: reset sidebar stats when no cost data available */
+            if (summaryCost)       summaryCost.textContent       = '— DA';
+            if (summaryMargin)     summaryMargin.textContent     = '— DA';
+            if (summaryCommission) summaryCommission.textContent = '— DA';
         }
     }
 
@@ -610,7 +618,6 @@ select.field-input {
         if (!row) return;
         if (e.target.classList.contains('vehicle-select')) {
             if (!e.target.value) {
-                /* Vehicle deselected — clear price, cost display, and margin badge */
                 const priceInp = row.querySelector('.line-price');
                 const lcInp    = row.querySelector('.landed-cost-display');
                 const badge    = row.querySelector('.margin-badge');
@@ -690,14 +697,48 @@ select.field-input {
         recalculate();
     });
 
-    /* ─── 10. Init existing rows ─── */
-    document.querySelectorAll('.line-item-row').forEach(row => {
+    /* ─── 10. Init existing rows ───
+       Always AJAX-fetch the landed cost for any pre-selected vehicle.
+       We cannot rely on data-landed-cost option attributes because VehicleSelect
+       may return 0 for vehicles with no purchase line item, poisoning the cache.
+       The row's data-landed-cost (server-rendered) is trustworthy for edit mode,
+       but for new forms the vehicle may be pre-selected by the browser without
+       a change event firing, so we always fetch to be safe.
+    ─── */
+    const existingRows = [...document.querySelectorAll('.line-item-row')];
+    let pendingFetches = 0;
+
+    function onAllResolved() {
+        existingRows.forEach(row => {
+            updateLCDisplay(row);
+            applyMarkup(row);
+        });
+        recalculate();
+    }
+
+    existingRows.forEach(row => {
         const sel = row.querySelector('.vehicle-select');
-        if (sel && sel.value) {
-            fetchLandedCost(sel.value, () => { updateLCDisplay(row); applyMarkup(row); recalculate(); });
+        if (!sel || !sel.value) return;
+
+        const vid = sel.value;
+
+        /* For edit mode: row has server-rendered data-landed-cost — seed cache
+           directly (reliable DB value), no fetch needed */
+        if (row.dataset.vehicleId && row.dataset.landedCost !== undefined) {
+            vehicleLCCache[String(row.dataset.vehicleId)] = parseFloat(row.dataset.landedCost) || 0;
+            return;
         }
+
+        /* For new forms or rows without server data: always fetch */
+        pendingFetches++;
+        fetchLandedCost(vid, lc => {
+            vehicleLCCache[vid] = lc;
+            pendingFetches--;
+            if (pendingFetches === 0) onAllResolved();
+        });
     });
-    recalculate();
+
+    if (pendingFetches === 0) onAllResolved();
 
 })();
 
@@ -740,10 +781,9 @@ select.field-input {
             .catch(() => setCommission(null, null));
     }
 
-    /* Trader dropdown change */
     traderSel.addEventListener('change', () => fetchCommission(traderSel.value));
 
-    /* Page load — populate for the pre-selected trader (current user) */
+    /* Page load — populate for the pre-selected trader */
     if (traderSel.value) fetchCommission(traderSel.value);
 })();
 </script>
