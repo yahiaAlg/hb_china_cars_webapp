@@ -44,7 +44,6 @@ def supplier_list(request):
     # Add annotations for purchase statistics
     suppliers = suppliers.annotate(
         purchase_count=Count("purchase"),
-        total_purchase_value=Sum("purchase__purchase_price_da"),
     )
 
     # Pagination
