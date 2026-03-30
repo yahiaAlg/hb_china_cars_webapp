@@ -3,7 +3,11 @@ Django settings for car_trading project.
 """
 
 import os
+import dotenv
 from pathlib import Path
+
+dotenv.load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -84,13 +88,24 @@ WSGI_APPLICATION = "car_trading.wsgi.application"
 # ---------------------------------------------------------------------------
 # DATABASE  —  SQLite
 # ---------------------------------------------------------------------------
+# DATABASES = {
+#    "default": {
+#        "ENGINE": "django.db.backends.sqlite3",
+#        "NAME": BASE_DIR / "db.sqlite3",
+#    }
+# }
+# for mysql, use with a db named bureau_db and a user named root with no password (for development only):
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.environ.get("DB_NAME", "bureau_db"),
+        "USER": os.environ.get("DB_USER", "root"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", "3306"),
     }
 }
-
 # ---------------------------------------------------------------------------
 # PASSWORD VALIDATION
 # ---------------------------------------------------------------------------

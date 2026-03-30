@@ -2,9 +2,11 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+import pymysql
 
-if __name__ == '__main__':
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'car_trading.settings')
+pymysql.install_as_MySQLdb()
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "car_trading.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
