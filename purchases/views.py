@@ -5,12 +5,21 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils import timezone
-from .models import Purchase, PurchaseLineItem, FreightCost, CustomsDeclaration
+from .models import (
+    Purchase,
+    PurchaseLineItem,
+    FreightCost,
+    CustomsDeclaration,
+    LineItemFreightCost,
+    LineItemCustomsDeclaration,
+)
 from .forms import (
     PurchaseForm,
     PurchaseLineItemFormSet,
     FreightCostForm,
     CustomsDeclarationForm,
+    LineItemFreightCostForm,
+    LineItemCustomsDeclarationForm,
     PurchaseSearchForm,
 )
 from core.decorators import finance_required
@@ -63,14 +72,6 @@ def purchase_list(request):
 
 @finance_required
 def purchase_create(request):
-    """Create a new container shipment.
-
-    Guided flow entry point: accepts ?supplier=<pk> from the supplier creation
-    step and pre-selects that supplier in the form.
-
-    On success → redirects to freight cost entry (step 3 of guided flow).
-    """
-    # ── Pre-fill supplier from guided flow ──────────────────────────────────
     initial = {}
     preselected_supplier_pk = request.GET.get("supplier")
     if preselected_supplier_pk:
@@ -102,7 +103,15 @@ def purchase_create(request):
                 f"ajouté{'s' if n != 1 else ''} en transit. "
                 f"Ajoutez maintenant les frais de transport.",
             )
-            # ── Guided flow step 3: freight form ──
+            # Guided flow: per-vehicle mode goes to first line item freight
+            if purchase.is_per_vehicle_mode:
+                first_item = purchase.line_items.order_by("line_number").first()
+                if first_item:
+                    return redirect(
+                        "purchases:line_item_add_freight",
+                        purchase_pk=purchase.pk,
+                        item_pk=first_item.pk,
+                    )
             return redirect("purchases:add_freight", pk=purchase.pk)
     else:
         form = PurchaseForm(initial=initial)
@@ -115,7 +124,6 @@ def purchase_create(request):
             "form": form,
             "formset": formset,
             "title": "Nouvel Achat de Véhicule",
-            # Pass supplier pk so template can keep it in a hidden field / back-link
             "preselected_supplier_pk": preselected_supplier_pk,
         },
     )
@@ -175,9 +183,42 @@ def purchase_edit(request, pk):
 def purchase_delete(request, pk):
     purchase = get_object_or_404(Purchase, pk=pk)
     if request.method == "POST":
+        from inventory.models import Vehicle
+
+        # ── Step 1: Delete all vehicles for this purchase in one query.
+        # Vehicle.purchase_line_item is on_delete=PROTECT, so vehicles must go first.
+        # Using a queryset delete bypasses the reverse-accessor issues that can
+        # silently swallow errors when iterating item by item.
+        Vehicle.objects.filter(purchase_line_item__purchase=purchase).delete()
+
+        # ── Step 2: Delete per-vehicle freight & customs (in case they don't cascade).
+        for item in purchase.line_items.all():
+            try:
+                item.customs_declaration.delete()
+            except Exception:
+                pass
+            try:
+                item.freight_cost.delete()
+            except Exception:
+                pass
+
+        # ── Step 3: Delete container-level freight & customs.
+        try:
+            purchase.customs_declaration.delete()
+        except Exception:
+            pass
+        try:
+            purchase.freight_cost.delete()
+        except Exception:
+            pass
+
+        # ── Step 4: Now safe — no more PROTECT references.
+        purchase.line_items.all().delete()
         purchase.delete()
+
         messages.success(request, "Achat supprimé avec succès.")
         return redirect("purchases:list")
+
     return render(request, "purchases/confirm_delete.html", {"purchase": purchase})
 
 
@@ -186,7 +227,11 @@ def purchase_detail(request, pk):
     purchase = get_object_or_404(
         Purchase.objects.select_related(
             "supplier", "currency", "freight_cost", "customs_declaration"
-        ).prefetch_related("line_items__vehicle"),
+        ).prefetch_related(
+            "line_items__vehicle",
+            "line_items__freight_cost",
+            "line_items__customs_declaration",
+        ),
         pk=pk,
     )
     freight_cost = getattr(purchase, "freight_cost", None)
@@ -230,12 +275,31 @@ def purchase_detail(request, pk):
     )
 
 
+# ── Container-level freight ────────────────────────────────────────────────────
+
+
 @finance_required
 def purchase_add_freight(request, pk):
-    """Add freight costs.  On success → customs entry (guided flow step 4)."""
     purchase = get_object_or_404(Purchase, pk=pk)
+
+    # Guard: per-vehicle mode should not use container freight form
+    if purchase.is_per_vehicle_mode:
+        messages.info(
+            request,
+            "Ce lot est en mode par véhicule. "
+            "Veuillez saisir les frais de transport pour chaque véhicule individuellement.",
+        )
+        first_item = purchase.line_items.order_by("line_number").first()
+        if first_item:
+            return redirect(
+                "purchases:line_item_add_freight",
+                purchase_pk=purchase.pk,
+                item_pk=first_item.pk,
+            )
+        return redirect("purchases:detail", pk=pk)
+
     if hasattr(purchase, "freight_cost"):
-        messages.warning(request, "Les frais de transport sont déjà enregistrés.")
+        messages.warning(request, "Les frais de transport existent déjà.")
         return redirect("purchases:detail", pk=pk)
 
     if request.method == "POST":
@@ -248,10 +312,9 @@ def purchase_add_freight(request, pk):
             messages.success(
                 request,
                 "Frais de transport enregistrés. "
-                "Saisissez maintenant la déclaration en douane.",
+                "Ajoutez maintenant la déclaration douanière.",
             )
-            # ── Guided flow step 4: customs form ──
-            return redirect("purchases:add_customs", pk=pk)
+            return redirect("purchases:add_customs", pk=purchase.pk)
     else:
         form = FreightCostForm()
 
@@ -293,18 +356,123 @@ def purchase_edit_freight(request, pk):
     )
 
 
+# ── Per-vehicle freight ────────────────────────────────────────────────────────
+
+
+@finance_required
+def line_item_add_freight(request, purchase_pk, item_pk):
+    purchase = get_object_or_404(Purchase, pk=purchase_pk)
+    line_item = get_object_or_404(PurchaseLineItem, pk=item_pk, purchase=purchase)
+
+    # Guard: container mode should not use per-vehicle freight form
+    if not purchase.is_per_vehicle_mode:
+        messages.info(
+            request,
+            "Ce lot est en mode conteneur. "
+            "Veuillez saisir les frais de transport pour l'ensemble du lot.",
+        )
+        return redirect("purchases:add_freight", pk=purchase_pk)
+
+    if hasattr(line_item, "freight_cost"):
+        messages.warning(
+            request, "Les frais de transport existent déjà pour ce véhicule."
+        )
+        return redirect("purchases:detail", pk=purchase_pk)
+
+    if request.method == "POST":
+        form = LineItemFreightCostForm(request.POST)
+        if form.is_valid():
+            fc = form.save(commit=False)
+            fc.line_item = line_item
+            fc.created_by = request.user
+            fc.save()
+            messages.success(
+                request,
+                f"Frais de transport enregistrés pour "
+                f"{line_item.make} {line_item.model} #{line_item.line_number}.",
+            )
+            return _redirect_after_line_item_freight(purchase, line_item)
+    else:
+        form = LineItemFreightCostForm()
+
+    return render(
+        request,
+        "purchases/line_item_freight_form.html",
+        {
+            "form": form,
+            "purchase": purchase,
+            "line_item": line_item,
+            "all_line_items": purchase.line_items.prefetch_related(
+                "freight_cost", "customs_declaration"
+            ).all(),
+            "title": f"Frais de Transport — {line_item.make} {line_item.model} #{line_item.line_number}",
+        },
+    )
+
+
+@finance_required
+def line_item_edit_freight(request, purchase_pk, item_pk):
+    purchase = get_object_or_404(Purchase, pk=purchase_pk)
+    line_item = get_object_or_404(PurchaseLineItem, pk=item_pk, purchase=purchase)
+    freight_cost = get_object_or_404(LineItemFreightCost, line_item=line_item)
+
+    if request.method == "POST":
+        form = LineItemFreightCostForm(request.POST, instance=freight_cost)
+        if form.is_valid():
+            fc = form.save(commit=False)
+            fc.updated_by = request.user
+            fc.save()
+            messages.success(
+                request,
+                f"Frais de transport modifiés pour "
+                f"{line_item.make} {line_item.model} #{line_item.line_number}.",
+            )
+            return redirect("purchases:detail", pk=purchase_pk)
+    else:
+        form = LineItemFreightCostForm(instance=freight_cost)
+
+    return render(
+        request,
+        "purchases/line_item_freight_form.html",
+        {
+            "form": form,
+            "purchase": purchase,
+            "line_item": line_item,
+            "freight_cost": freight_cost,
+            "all_line_items": purchase.line_items.prefetch_related(
+                "freight_cost", "customs_declaration"
+            ).all(),
+            "title": f"Modifier Frais de Transport — {line_item.make} {line_item.model} #{line_item.line_number}",
+        },
+    )
+
+
+# ── Container-level customs ────────────────────────────────────────────────────
+
+
 @finance_required
 def purchase_add_customs(request, pk):
-    """Add customs declaration.
-    On success → first vehicle's detail page (guided flow step 5).
-    """
     purchase = get_object_or_404(Purchase, pk=pk)
+
+    # Guard: per-vehicle mode should not use container customs form
+    if purchase.is_per_vehicle_mode:
+        messages.info(
+            request,
+            "Ce lot est en mode par véhicule. "
+            "Veuillez saisir la douane pour chaque véhicule individuellement.",
+        )
+        first_item = purchase.line_items.order_by("line_number").first()
+        if first_item:
+            return redirect(
+                "purchases:line_item_add_customs",
+                purchase_pk=purchase.pk,
+                item_pk=first_item.pk,
+            )
+        return redirect("purchases:detail", pk=pk)
+
     if hasattr(purchase, "customs_declaration"):
         messages.warning(request, "La déclaration douanière existe déjà.")
         return redirect("purchases:detail", pk=pk)
-    if not hasattr(purchase, "freight_cost"):
-        messages.error(request, "Veuillez d'abord enregistrer les frais de transport.")
-        return redirect("purchases:add_freight", pk=pk)
 
     if request.method == "POST":
         form = CustomsDeclarationForm(request.POST, purchase=purchase)
@@ -312,18 +480,22 @@ def purchase_add_customs(request, pk):
             customs = form.save(commit=False)
             customs.purchase = purchase
             customs.created_by = request.user
-            customs.cif_value_da = customs.calculate_cif_value()
             customs.save()
-            messages.success(
-                request,
-                "Déclaration douanière enregistrée. "
-                "Vérifiez les détails de chaque véhicule ci-dessous.",
-            )
-            # ── Guided flow step 5: first vehicle's detail page ──
-            first_vehicle = _get_first_vehicle(purchase)
-            if first_vehicle:
-                return redirect("inventory:detail", pk=first_vehicle.pk)
-            return redirect("purchases:detail", pk=pk)
+            if customs.is_cleared:
+                count = 0
+                for item in purchase.line_items.all():
+                    if hasattr(item, "vehicle"):
+                        item.vehicle.status = "available"
+                        item.vehicle.save()
+                        count += 1
+                messages.success(
+                    request,
+                    f"Déclaration enregistrée et dédouanée — "
+                    f"{count} véhicule(s) ajouté(s) au stock.",
+                )
+            else:
+                messages.success(request, "Déclaration douanière enregistrée.")
+            return redirect("purchases:detail", pk=purchase.pk)
     else:
         form = CustomsDeclarationForm(purchase=purchase)
 
@@ -342,17 +514,16 @@ def purchase_add_customs(request, pk):
 def purchase_edit_customs(request, pk):
     purchase = get_object_or_404(Purchase, pk=pk)
     customs = get_object_or_404(CustomsDeclaration, purchase=purchase)
+
     if request.method == "POST":
         form = CustomsDeclarationForm(request.POST, instance=customs, purchase=purchase)
         if form.is_valid():
             customs = form.save(commit=False)
             customs.updated_by = request.user
-            customs.cif_value_da = customs.calculate_cif_value()
             customs.save()
             messages.success(request, "Déclaration douanière modifiée avec succès.")
             return redirect("purchases:detail", pk=pk)
     else:
-        customs.cif_value_da = customs.calculate_cif_value()
         form = CustomsDeclarationForm(instance=customs, purchase=purchase)
 
     return render(
@@ -365,6 +536,112 @@ def purchase_edit_customs(request, pk):
             "title": f"Modifier Déclaration Douanière — {purchase}",
         },
     )
+
+
+# ── Per-vehicle customs ────────────────────────────────────────────────────────
+
+
+@finance_required
+def line_item_add_customs(request, purchase_pk, item_pk):
+    purchase = get_object_or_404(Purchase, pk=purchase_pk)
+    line_item = get_object_or_404(PurchaseLineItem, pk=item_pk, purchase=purchase)
+
+    # Guard: container mode should not use per-vehicle customs form
+    if not purchase.is_per_vehicle_mode:
+        messages.info(
+            request,
+            "Ce lot est en mode conteneur. "
+            "Veuillez saisir la douane pour l'ensemble du lot.",
+        )
+        return redirect("purchases:add_customs", pk=purchase_pk)
+
+    if hasattr(line_item, "customs_declaration"):
+        messages.warning(
+            request, "La déclaration douanière existe déjà pour ce véhicule."
+        )
+        return redirect("purchases:detail", pk=purchase_pk)
+
+    if request.method == "POST":
+        form = LineItemCustomsDeclarationForm(request.POST, line_item=line_item)
+        if form.is_valid():
+            customs = form.save(commit=False)
+            customs.line_item = line_item
+            customs.created_by = request.user
+            customs.save()
+            if customs.is_cleared and hasattr(line_item, "vehicle"):
+                line_item.vehicle.status = "available"
+                line_item.vehicle.save()
+                messages.success(
+                    request,
+                    f"Déclaration enregistrée — "
+                    f"{line_item.make} {line_item.model} #{line_item.line_number} "
+                    f"dédouané et ajouté au stock.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Déclaration douanière enregistrée pour "
+                    f"{line_item.make} {line_item.model} #{line_item.line_number}.",
+                )
+            return _redirect_after_line_item_customs(purchase, line_item, request.user)
+    else:
+        form = LineItemCustomsDeclarationForm(line_item=line_item)
+
+    return render(
+        request,
+        "purchases/line_item_customs_form.html",
+        {
+            "form": form,
+            "purchase": purchase,
+            "line_item": line_item,
+            "all_line_items": purchase.line_items.prefetch_related(
+                "freight_cost", "customs_declaration"
+            ).all(),
+            "title": f"Déclaration Douanière — {line_item.make} {line_item.model} #{line_item.line_number}",
+        },
+    )
+
+
+@finance_required
+def line_item_edit_customs(request, purchase_pk, item_pk):
+    purchase = get_object_or_404(Purchase, pk=purchase_pk)
+    line_item = get_object_or_404(PurchaseLineItem, pk=item_pk, purchase=purchase)
+    customs = get_object_or_404(LineItemCustomsDeclaration, line_item=line_item)
+
+    if request.method == "POST":
+        form = LineItemCustomsDeclarationForm(
+            request.POST, instance=customs, line_item=line_item
+        )
+        if form.is_valid():
+            customs = form.save(commit=False)
+            customs.updated_by = request.user
+            customs.save()
+            messages.success(
+                request,
+                f"Déclaration modifiée pour "
+                f"{line_item.make} {line_item.model} #{line_item.line_number}.",
+            )
+            return redirect("purchases:detail", pk=purchase_pk)
+    else:
+        form = LineItemCustomsDeclarationForm(instance=customs, line_item=line_item)
+
+    return render(
+        request,
+        "purchases/line_item_customs_form.html",
+        {
+            "form": form,
+            "purchase": purchase,
+            "line_item": line_item,
+            "customs": customs,
+            "all_line_items": purchase.line_items.prefetch_related(
+                "freight_cost", "customs_declaration"
+            ).all(),
+            "title": f"Modifier Déclaration Douanière — {line_item.make} {line_item.model} #{line_item.line_number}",
+        },
+    )
+
+
+# ── Shared AJAX + actions ──────────────────────────────────────────────────────
 
 
 @login_required
@@ -388,6 +665,7 @@ def ajax_calculate_customs(request):
 
 @finance_required
 def customs_mark_cleared(request, pk):
+    """Mark a container-level customs declaration as cleared."""
     if request.method == "POST":
         customs = get_object_or_404(CustomsDeclaration, pk=pk)
         customs.is_cleared = True
@@ -404,6 +682,34 @@ def customs_mark_cleared(request, pk):
             {
                 "success": True,
                 "message": f"{count} véhicule(s) dédouané(s) et ajouté(s) au stock.",
+                "clearance_date": customs.clearance_date.strftime("%d/%m/%Y"),
+            }
+        )
+    return JsonResponse({"success": False, "message": "Méthode non autorisée."})
+
+
+@finance_required
+def line_item_customs_mark_cleared(request, pk):
+    """Mark a per-vehicle customs declaration as cleared."""
+    if request.method == "POST":
+        customs = get_object_or_404(LineItemCustomsDeclaration, pk=pk)
+        customs.is_cleared = True
+        customs.clearance_date = timezone.now().date()
+        customs.updated_by = request.user
+        customs.save()
+
+        # Update the linked vehicle status
+        line_item = customs.line_item
+        msg = f"Véhicule {line_item.make} {line_item.model} #{line_item.line_number} dédouané."
+        if hasattr(line_item, "vehicle"):
+            line_item.vehicle.status = "available"
+            line_item.vehicle.save()
+            msg += " Ajouté au stock."
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": msg,
                 "clearance_date": customs.clearance_date.strftime("%d/%m/%Y"),
             }
         )
@@ -448,7 +754,6 @@ def purchase_mark_arrived(request, pk):
 
 
 def _get_first_vehicle(purchase):
-    """Return the Vehicle linked to the first PurchaseLineItem of a purchase."""
     first_item = purchase.line_items.order_by("line_number").first()
     if first_item and hasattr(first_item, "vehicle"):
         return first_item.vehicle
@@ -464,7 +769,11 @@ def _create_vehicle_from_line_item(item, user):
         and purchase.customs_declaration.is_cleared
     ):
         status = "available"
+    elif hasattr(item, "customs_declaration") and item.customs_declaration.is_cleared:
+        status = "available"
     elif hasattr(purchase, "customs_declaration") or hasattr(purchase, "freight_cost"):
+        status = "at_customs"
+    elif hasattr(item, "customs_declaration") or hasattr(item, "freight_cost"):
         status = "at_customs"
     else:
         status = "in_transit"
@@ -486,3 +795,62 @@ def _create_vehicles_from_purchase(purchase, user):
     for item in purchase.line_items.all():
         if not hasattr(item, "vehicle"):
             _create_vehicle_from_line_item(item, user)
+
+
+def _redirect_after_line_item_freight(purchase, current_item):
+    """
+    After saving per-vehicle freight, redirect to:
+    1. Next vehicle in the container that still needs freight, or
+    2. First vehicle needing customs (if all freight done), or
+    3. Purchase detail.
+    """
+    items_without_freight = (
+        purchase.line_items.filter(freight_cost__isnull=True)
+        .exclude(pk=current_item.pk)
+        .order_by("line_number")
+    )
+    next_item = items_without_freight.first()
+    if next_item:
+        return redirect(
+            "purchases:line_item_add_freight",
+            purchase_pk=purchase.pk,
+            item_pk=next_item.pk,
+        )
+    # All freight done — move to customs for the first vehicle
+    items_without_customs = purchase.line_items.filter(
+        customs_declaration__isnull=True
+    ).order_by("line_number")
+    first_customs = items_without_customs.first()
+    if first_customs:
+        return redirect(
+            "purchases:line_item_add_customs",
+            purchase_pk=purchase.pk,
+            item_pk=first_customs.pk,
+        )
+    return redirect("purchases:detail", pk=purchase.pk)
+
+
+def _redirect_after_line_item_customs(purchase, current_item, user):
+    """
+    After saving per-vehicle customs, redirect to:
+    1. Next vehicle needing customs, or
+    2. First vehicle's detail page (if all complete), or
+    3. Purchase detail.
+    """
+    items_without_customs = (
+        purchase.line_items.filter(customs_declaration__isnull=True)
+        .exclude(pk=current_item.pk)
+        .order_by("line_number")
+    )
+    next_item = items_without_customs.first()
+    if next_item:
+        return redirect(
+            "purchases:line_item_add_customs",
+            purchase_pk=purchase.pk,
+            item_pk=next_item.pk,
+        )
+    # All complete — navigate to first vehicle detail
+    first_vehicle = _get_first_vehicle(purchase)
+    if first_vehicle:
+        return redirect("inventory:detail", pk=first_vehicle.pk)
+    return redirect("purchases:detail", pk=purchase.pk)

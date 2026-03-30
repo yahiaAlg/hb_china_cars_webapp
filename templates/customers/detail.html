@@ -330,6 +330,54 @@
     <!-- DROITE -->
     <div class="col-xl-4">
 
+        <!-- Liens rapides vers les ventes -->
+        <div class="panel fade-in" style="margin-bottom:16px;">
+            <div class="panel-head">
+                <div class="panel-title"><i class="bi bi-lightning-charge me-2" style="color:var(--accent);"></i>Ventes du client</div>
+                {% if total_purchases %}
+                <span style="font-size:11.5px;color:var(--text-muted);">{{ total_purchases }} vente{{ total_purchases|pluralize }}</span>
+                {% endif %}
+            </div>
+            <div class="panel-body">
+                {% if sales_history %}
+                <!-- Last 3 sales preview -->
+                <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:14px;">
+                    {% for sale in sales_history|slice:":3" %}
+                    <a href="{% url 'sales:detail' sale.pk %}"
+                       style="display:flex;align-items:center;justify-content:space-between;gap:8px;
+                              padding:9px 8px;border-radius:var(--radius-md);text-decoration:none;
+                              transition:background var(--transition);"
+                       onmouseover="this.style.background='var(--bg-hover)'"
+                       onmouseout="this.style.background='transparent'">
+                        <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                            <div style="width:28px;height:28px;border-radius:var(--radius-sm);flex-shrink:0;display:grid;place-items:center;font-size:12px;
+                                {% if sale.is_finalized %}background:rgba(22,163,74,.10);color:#16a34a;
+                                {% else %}background:rgba(217,119,6,.10);color:#d97706;{% endif %}">
+                                <i class="bi {% if sale.is_finalized %}bi-check-circle{% else %}bi-clock{% endif %}"></i>
+                            </div>
+                            <div style="min-width:0;">
+                                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">{{ sale.sale_number }}</div>
+                                <div style="font-size:10.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">{{ sale.vehicles_display }}</div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0;">
+                            <div style="font-size:12px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text-primary);">{{ sale.sale_price|floatformat:0 }} <span style="font-size:10px;font-weight:400;color:var(--text-muted);">DA</span></div>
+                            <div style="font-size:10px;color:var(--text-muted);">{{ sale.sale_date|date:"j M Y" }}</div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- CTA: filtered sales list -->
+                <a href="{% url 'sales:list' %}?customer={{ customer.pk }}"
+                   class="btn-primary" style="width:100%;justify-content:center;font-size:13px;padding:9px;">
+                    <i class="bi bi-arrow-up-right-square"></i>
+                    Voir toutes les ventes
+                </a>
+            </div>
+        </div>
+
         <!-- Ajouter une note -->
         <div class="panel fade-in" style="margin-bottom:16px;">
             <div class="panel-head">

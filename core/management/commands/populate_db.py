@@ -16,7 +16,14 @@ from system_settings.models import (
 from customers.models import Customer, CustomerNote
 from suppliers.models import Supplier
 from inventory.models import Vehicle, VehiclePhoto, StockAlert
-from purchases.models import Purchase, PurchaseLineItem, FreightCost, CustomsDeclaration
+from purchases.models import (
+    Purchase,
+    PurchaseLineItem,
+    FreightCost,
+    CustomsDeclaration,
+    LineItemFreightCost,
+    LineItemCustomsDeclaration,
+)
 from sales.models import Sale, SaleLineItem, Invoice
 from payments.models import Payment, PaymentReminder, PaymentPlan, Installment
 from commissions.models import (
@@ -103,6 +110,8 @@ class Command(BaseCommand):
         VehiclePhoto.objects.all().delete()
         StockAlert.objects.all().delete()
         Vehicle.objects.all().delete()
+        LineItemCustomsDeclaration.objects.all().delete()
+        LineItemFreightCost.objects.all().delete()
         CustomsDeclaration.objects.all().delete()
         FreightCost.objects.all().delete()
         PurchaseLineItem.objects.all().delete()
@@ -534,6 +543,7 @@ class Command(BaseCommand):
                 supplier=supplier,
                 currency=supplier.currency,
                 exchange_rate_to_da=exchange_rate,
+                cost_mode="container",
                 notes="",
                 created_by=admin_user,
             )
@@ -556,7 +566,6 @@ class Command(BaseCommand):
                 ),
                 vin_chassis=f"VIN{random.randint(1000000000, 9999999999)}",
                 fob_price=fob_price,
-                fob_price_da=(fob_price * exchange_rate).quantize(Decimal("0.01")),
                 notes="",
                 created_by=admin_user,
             )
@@ -581,9 +590,7 @@ class Command(BaseCommand):
             )
 
             # Customs
-            cif_value = purchase.purchase_price_da + (
-                freight_cost_usd * Decimal("135.50")
-            )
+            cif_value = purchase.total_fob_da + (freight_cost_usd * Decimal("135.50"))
             tariff_rate = Decimal("25.00")
             import_duty = cif_value * (tariff_rate / Decimal("100"))
             tva_rate = Decimal("19.00")

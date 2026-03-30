@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}System Configuration{% endblock %}
+{% block title %}Configuration Système{% endblock %}
 {% block nav_settings %}active{% endblock %}
 
-{% block page_title %}System Configuration{% endblock %}
-{% block page_sub_text %}Company info, rates &amp; notification settings{% endblock %}
+{% block page_title %}Configuration Système{% endblock %}
+{% block page_sub_text %}Informations entreprise, taux et paramètres{% endblock %}
 
 {% block extra_css %}
 .back-link {
@@ -30,34 +30,23 @@
     overflow: hidden;
     margin-bottom: 20px;
 }
-
 .form-card-head {
     padding: 16px 20px;
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; gap: 10px;
 }
-
 .form-card-title {
     font-family: 'Syne', sans-serif;
     font-size: 14px; font-weight: 700; color: var(--text-primary);
 }
-
 .form-card-body { padding: 20px; }
 
-.section-label {
-    font-size: 10.5px; font-weight: 600; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--text-muted);
-    margin-bottom: 14px; margin-top: 4px;
-}
-
 .field { margin-bottom: 16px; }
-
 .field label {
     font-size: 11px; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--text-muted);
     display: block; margin-bottom: 7px;
 }
-
 .field-required::after { content: ' *'; color: var(--accent); }
 
 .form-control {
@@ -75,11 +64,12 @@
 .form-control::placeholder { color: var(--text-muted); }
 textarea.form-control { resize: vertical; min-height: 80px; }
 
-.field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field-group   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field-group-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 @media (max-width: 640px) { .field-group, .field-group-3 { grid-template-columns: 1fr; } }
 
 .form-error { font-size: 11.5px; color: #f87171; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+.field-hint  { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
 
 /* Toggle row */
 .toggle-field {
@@ -93,12 +83,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     transition: border-color var(--transition);
 }
 .toggle-field:hover { border-color: var(--border-strong); }
-
-.toggle-label-text {
-    font-size: 13px; color: var(--text-secondary);
-    display: flex; align-items: center; gap: 8px;
-}
-
+.toggle-label-text { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
 .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .toggle-track {
@@ -114,8 +99,6 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 .toggle-switch input:checked + .toggle-track { background: var(--accent-dim); border: 1px solid var(--accent); }
 .toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
-
-.divider { height: 1px; background: var(--border); margin: 20px 0; }
 
 .submit-row { display: flex; align-items: center; gap: 10px; padding-top: 4px; }
 
@@ -138,6 +121,33 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 .btn-ghost-x:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
 
+/* Logo upload */
+.logo-upload-area {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px;
+    background: var(--bg-raised);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+}
+.logo-preview {
+    width: 80px; height: 56px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+}
+.logo-placeholder {
+    width: 80px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-hover);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 22px;
+}
+.logo-upload-info { flex: 1; }
+.logo-upload-info strong { font-size: 13px; color: var(--text-primary); display: block; margin-bottom: 3px; }
+.logo-upload-info span  { font-size: 11.5px; color: var(--text-muted); }
+
 /* Sidebar */
 .sidebar-card {
     background: var(--bg-surface); border: 1px solid var(--border);
@@ -148,7 +158,6 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     color: var(--text-primary); margin-bottom: 12px;
     display: flex; align-items: center; gap: 8px;
 }
-
 .rate-preview-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
@@ -160,6 +169,15 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     color: var(--accent); letter-spacing: -.01em;
 }
 
+.optional-tag {
+    display: inline-flex; align-items: center;
+    font-size: 9.5px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--text-muted);
+    background: var(--bg-hover); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; margin-left: 6px;
+    vertical-align: middle;
+}
+
 .fade-in { animation: fadeIn .35s ease both; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 {% endblock %}
@@ -167,14 +185,14 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 {% block content %}
 
 <a href="{% url 'system_settings:system_status' %}" class="back-link fade-in">
-    <i class="bi bi-arrow-left"></i> Back to System Status
+    <i class="bi bi-arrow-left"></i> Retour au statut système
 </a>
 
 <div class="config-layout fade-in">
 
     <!-- Form -->
     <div>
-        <form method="post" id="configForm">
+        <form method="post" id="configForm" enctype="multipart/form-data">
             {% csrf_token %}
 
             {% if form.non_field_errors %}
@@ -184,29 +202,55 @@ textarea.form-control { resize: vertical; min-height: 80px; }
             </div>
             {% endif %}
 
-            <!-- Company Information -->
+            <!-- ── Company Information ─────────────────────────────────── -->
             <div class="form-card">
                 <div class="form-card-head">
-                    <div class="form-card-title"><i class="bi bi-building" style="color:var(--accent);"></i> Company Information</div>
+                    <div class="form-card-title"><i class="bi bi-building" style="color:var(--accent);"></i> Informations de l'Entreprise</div>
                 </div>
                 <div class="form-card-body">
+
+                    <!-- Logo -->
                     <div class="field">
-                        <label class="field-required">Company Name</label>
+                        <label>Logo de l'entreprise <span class="optional-tag">Optionnel</span></label>
+                        <div class="logo-upload-area">
+                            {% if config.company_logo %}
+                            <img src="{{ config.company_logo.url }}" alt="Logo" class="logo-preview" id="logoPreviewImg">
+                            {% else %}
+                            <div class="logo-placeholder" id="logoPlaceholder"><i class="bi bi-image"></i></div>
+                            <img src="" alt="" class="logo-preview" id="logoPreviewImg" style="display:none;">
+                            {% endif %}
+                            <div class="logo-upload-info">
+                                <strong>Choisir un fichier</strong>
+                                <span>PNG transparent recommandé · Max 2 Mo · Affiché sur les factures imprimées</span>
+                                <div style="margin-top:10px;">
+                                    <input type="file" name="company_logo" id="id_company_logo" accept="image/*"
+                                           style="font-size:12.5px;color:var(--text-secondary);">
+                                    {% if config.company_logo %}
+                                    <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                                        <span style="font-size:11.5px;color:var(--text-muted);">Fichier actuel : <a href="{{ config.company_logo.url }}" target="_blank" style="color:var(--accent);">{{ config.company_logo.name|slice:"15:" }}</a></span>
+                                        <label style="font-size:11.5px;color:#f87171;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                                            <input type="checkbox" name="company_logo-clear" id="company_logo-clear_id"> Supprimer
+                                        </label>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% for e in form.company_logo.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field">
+                        <label class="field-required">Nom de l'entreprise</label>
                         <input type="text" name="company_name" value="{{ form.company_name.value|default:'' }}" class="form-control">
                         {% for e in form.company_name.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                     </div>
                     <div class="field">
-                        <label>NIF (Tax ID)</label>
-                        <input type="text" name="company_nif" value="{{ form.company_nif.value|default:'' }}" class="form-control" placeholder="123456789012345">
-                        {% for e in form.company_nif.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
-                    </div>
-                    <div class="field">
-                        <label>Address</label>
-                        <textarea name="company_address" class="form-control" rows="2" placeholder="Company address…">{{ form.company_address.value|default:'' }}</textarea>
+                        <label>Adresse</label>
+                        <textarea name="company_address" class="form-control" rows="2" placeholder="Adresse de l'entreprise…">{{ form.company_address.value|default:'' }}</textarea>
                     </div>
                     <div class="field-group">
                         <div class="field">
-                            <label>Phone</label>
+                            <label>Téléphone</label>
                             <input type="text" name="company_phone" value="{{ form.company_phone.value|default:'' }}" class="form-control" placeholder="+213 21 XX XX XX">
                         </div>
                         <div class="field">
@@ -217,25 +261,81 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </div>
             </div>
 
-            <!-- Default Rates -->
+            <!-- ── Legal / Fiscal Identification ──────────────────────── -->
             <div class="form-card">
                 <div class="form-card-head">
-                    <div class="form-card-title"><i class="bi bi-percent" style="color:#fbbf24;"></i> Default Rates</div>
+                    <div class="form-card-title"><i class="bi bi-file-earmark-text" style="color:#60a5fa;"></i> Numéros d'Identification Légale</div>
                 </div>
                 <div class="form-card-body">
                     <div class="field-group-3">
                         <div class="field">
-                            <label class="field-required">TVA Rate (%)</label>
+                            <label>Numéro RC <span class="optional-tag">Optionnel</span></label>
+                            <input type="text" name="company_rc" value="{{ form.company_rc.value|default:'' }}" class="form-control" placeholder="21B0094443-00/19">
+                            <div class="field-hint">Registre du Commerce</div>
+                            {% for e in form.company_rc.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="field">
+                            <label>NIF</label>
+                            <input type="text" name="company_nif" value="{{ form.company_nif.value|default:'' }}" class="form-control" placeholder="002119009444326">
+                            <div class="field-hint">N° d'Identification Fiscale</div>
+                            {% for e in form.company_nif.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="field">
+                            <label>NIS <span class="optional-tag">Optionnel</span></label>
+                            <input type="text" name="company_nis" value="{{ form.company_nis.value|default:'' }}" class="form-control" placeholder="197847060093220">
+                            <div class="field-hint">N° d'Identification Statistique</div>
+                            {% for e in form.company_nis.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Bank Details ────────────────────────────────────────── -->
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title"><i class="bi bi-bank" style="color:#34d399;"></i> Coordonnées Bancaires <span class="optional-tag" style="margin-left:8px;">Optionnel</span></div>
+                </div>
+                <div class="form-card-body">
+                    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 16px;">Ces informations apparaîtront sur les factures imprimées si renseignées.</p>
+                    <div class="field-group">
+                        <div class="field">
+                            <label>Banque</label>
+                            <input type="text" name="bank_name" value="{{ form.bank_name.value|default:'' }}" class="form-control" placeholder="BNA, CPA, BEA…">
+                            {% for e in form.bank_name.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="field">
+                            <label>Numéro de compte</label>
+                            <input type="text" name="bank_account_number" value="{{ form.bank_account_number.value|default:'' }}" class="form-control" placeholder="00710XXXXXXXXX">
+                            {% for e in form.bank_account_number.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-bottom:0;">
+                        <label>RIB</label>
+                        <input type="text" name="bank_rib" value="{{ form.bank_rib.value|default:'' }}" class="form-control" placeholder="001-00711030001829-41">
+                        {% for e in form.bank_rib.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Default Rates ───────────────────────────────────────── -->
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title"><i class="bi bi-percent" style="color:#fbbf24;"></i> Taux par Défaut</div>
+                </div>
+                <div class="form-card-body">
+                    <div class="field-group-3">
+                        <div class="field">
+                            <label class="field-required">Taux TVA (%)</label>
                             <input type="number" name="default_tva_rate" value="{{ form.default_tva_rate.value|default:'' }}" step="0.01" min="0" max="100" class="form-control">
                             {% for e in form.default_tva_rate.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                         </div>
                         <div class="field">
-                            <label class="field-required">Tariff Rate (%)</label>
+                            <label class="field-required">Taux tarifaire (%)</label>
                             <input type="number" name="default_tariff_rate" value="{{ form.default_tariff_rate.value|default:'' }}" step="0.01" min="0" max="100" class="form-control">
                             {% for e in form.default_tariff_rate.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                         </div>
                         <div class="field">
-                            <label class="field-required">Commission Rate (%)</label>
+                            <label class="field-required">Taux commission (%)</label>
                             <input type="number" name="default_commission_rate" value="{{ form.default_commission_rate.value|default:'' }}" step="0.01" min="0" max="100" class="form-control">
                             {% for e in form.default_commission_rate.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                         </div>
@@ -243,20 +343,20 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </div>
             </div>
 
-            <!-- System Parameters -->
+            <!-- ── System Parameters ───────────────────────────────────── -->
             <div class="form-card">
                 <div class="form-card-head">
-                    <div class="form-card-title"><i class="bi bi-gear" style="color:#a5b4fc;"></i> System Parameters</div>
+                    <div class="form-card-title"><i class="bi bi-gear" style="color:#a5b4fc;"></i> Paramètres Système</div>
                 </div>
                 <div class="form-card-body">
                     <div class="field-group" style="margin-bottom:0;">
                         <div class="field">
-                            <label>Reservation Duration (days)</label>
+                            <label>Durée de réservation (jours)</label>
                             <input type="number" name="reservation_duration_days" value="{{ form.reservation_duration_days.value|default:'' }}" min="1" class="form-control">
                             {% for e in form.reservation_duration_days.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                         </div>
                         <div class="field">
-                            <label>Invoice Due (days)</label>
+                            <label>Échéance facture (jours)</label>
                             <input type="number" name="invoice_due_days" value="{{ form.invoice_due_days.value|default:'' }}" min="1" class="form-control">
                             {% for e in form.invoice_due_days.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                         </div>
@@ -264,7 +364,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </div>
             </div>
 
-            <!-- Notifications -->
+            <!-- ── Notifications ───────────────────────────────────────── -->
             <div class="form-card">
                 <div class="form-card-head">
                     <div class="form-card-title"><i class="bi bi-bell" style="color:#4ade80;"></i> Notifications</div>
@@ -273,7 +373,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                     <label class="toggle-field" for="id_enable_email_notifications">
                         <span class="toggle-label-text">
                             <i class="bi bi-envelope" style="color:var(--text-muted);"></i>
-                            Enable email notifications
+                            Activer les notifications email
                         </span>
                         <div class="toggle-switch">
                             <input type="checkbox" name="enable_email_notifications" id="id_enable_email_notifications" {% if form.enable_email_notifications.value %}checked{% endif %}>
@@ -283,7 +383,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                     <label class="toggle-field" for="id_enable_overdue_alerts">
                         <span class="toggle-label-text">
                             <i class="bi bi-exclamation-triangle" style="color:var(--text-muted);"></i>
-                            Enable overdue payment alerts
+                            Activer les alertes de retard
                         </span>
                         <div class="toggle-switch">
                             <input type="checkbox" name="enable_overdue_alerts" id="id_enable_overdue_alerts" {% if form.enable_overdue_alerts.value %}checked{% endif %}>
@@ -291,7 +391,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                         </div>
                     </label>
                     <div class="field" style="margin-top:14px;margin-bottom:0;">
-                        <label>Alert after (days overdue)</label>
+                        <label>Alerte après (jours de retard)</label>
                         <input type="number" name="overdue_alert_days" value="{{ form.overdue_alert_days.value|default:'' }}" min="1" class="form-control" style="max-width:200px;">
                         {% for e in form.overdue_alert_days.errors %}<div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>{% endfor %}
                     </div>
@@ -300,9 +400,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
             <div class="submit-row">
                 <button type="submit" class="btn-primary-x">
-                    <i class="bi bi-check-lg"></i> Save Configuration
+                    <i class="bi bi-check-lg"></i> Enregistrer la Configuration
                 </button>
-                <a href="{% url 'system_settings:system_status' %}" class="btn-ghost-x">Cancel</a>
+                <a href="{% url 'system_settings:system_status' %}" class="btn-ghost-x">Annuler</a>
             </div>
         </form>
     </div>
@@ -311,13 +411,13 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     <div>
         {% if config %}
         <div class="sidebar-card" style="border-left:3px solid var(--accent);">
-            <div class="sidebar-card-title"><i class="bi bi-percent" style="color:var(--accent);"></i>Current Rates</div>
+            <div class="sidebar-card-title"><i class="bi bi-percent" style="color:var(--accent);"></i> Taux actuels</div>
             <div class="rate-preview-row">
                 <span class="rate-preview-label">TVA</span>
                 <span class="rate-preview-value" id="previewTva">{{ config.default_tva_rate|floatformat:1 }}%</span>
             </div>
             <div class="rate-preview-row">
-                <span class="rate-preview-label">Customs Tariff</span>
+                <span class="rate-preview-label">Tarif douanier</span>
                 <span class="rate-preview-value" id="previewTariff">{{ config.default_tariff_rate|floatformat:1 }}%</span>
             </div>
             <div class="rate-preview-row">
@@ -325,26 +425,38 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <span class="rate-preview-value" id="previewComm">{{ config.default_commission_rate|floatformat:1 }}%</span>
             </div>
         </div>
+
+        {% if config.company_logo or config.company_rc or config.company_nis or config.bank_rib %}
+        <div class="sidebar-card" style="border-left:3px solid #34d399;">
+            <div class="sidebar-card-title"><i class="bi bi-check-circle" style="color:#34d399;"></i> Sur les factures</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-direction:column;gap:6px;">
+                {% if config.company_logo %}<span><i class="bi bi-image" style="color:#34d399;"></i> Logo affiché</span>{% endif %}
+                {% if config.company_rc %}<span><i class="bi bi-file-text" style="color:#60a5fa;"></i> RC : {{ config.company_rc }}</span>{% endif %}
+                {% if config.company_nis %}<span><i class="bi bi-file-text" style="color:#60a5fa;"></i> NIS : {{ config.company_nis }}</span>{% endif %}
+                {% if config.bank_rib %}<span><i class="bi bi-bank" style="color:#34d399;"></i> RIB : {{ config.bank_rib }}</span>{% endif %}
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         <div class="sidebar-card" style="background:rgba(239,68,68,.05);border-color:rgba(239,68,68,.2);">
-            <div class="sidebar-card-title" style="color:#f87171;"><i class="bi bi-exclamation-triangle"></i> Important Note</div>
+            <div class="sidebar-card-title" style="color:#f87171;"><i class="bi bi-exclamation-triangle"></i> Note importante</div>
             <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
-                Changes to default rates apply to <strong style="color:var(--text-primary);">new records only</strong>. Existing purchases, customs declarations, and commissions will retain their original rates.
+                Les modifications des taux par défaut s'appliquent uniquement aux <strong style="color:var(--text-primary);">nouveaux enregistrements</strong>. Les achats, déclarations douanières et commissions existants conserveront leurs taux d'origine.
             </p>
         </div>
 
         <div class="sidebar-card">
-            <div class="sidebar-card-title"><i class="bi bi-link-45deg" style="color:#a5b4fc;"></i>Related Settings</div>
+            <div class="sidebar-card-title"><i class="bi bi-link-45deg" style="color:#a5b4fc;"></i> Paramètres liés</div>
             <div style="display:flex;flex-direction:column;gap:8px;">
                 <a href="{% url 'system_settings:exchange_rates' %}" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;text-decoration:none;padding:6px 0;border-bottom:1px solid var(--border);transition:color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
-                    Exchange Rates <i class="bi bi-arrow-right" style="font-size:12px;"></i>
+                    Taux de change <i class="bi bi-arrow-right" style="font-size:12px;"></i>
                 </a>
                 <a href="{% url 'system_settings:tax_rates' %}" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;text-decoration:none;padding:6px 0;border-bottom:1px solid var(--border);transition:color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
-                    Tax Rate History <i class="bi bi-arrow-right" style="font-size:12px;"></i>
+                    Historique des taxes <i class="bi bi-arrow-right" style="font-size:12px;"></i>
                 </a>
                 <a href="{% url 'system_settings:system_logs' %}" style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;text-decoration:none;padding:6px 0;transition:color var(--transition);" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">
-                    System Logs <i class="bi bi-arrow-right" style="font-size:12px;"></i>
+                    Journaux système <i class="bi bi-arrow-right" style="font-size:12px;"></i>
                 </a>
             </div>
         </div>
@@ -369,5 +481,25 @@ function syncPreview(inputName, previewId, suffix) {
 syncPreview('default_tva_rate',        'previewTva',    '%');
 syncPreview('default_tariff_rate',     'previewTariff', '%');
 syncPreview('default_commission_rate', 'previewComm',   '%');
+
+// Logo live preview
+const logoInput = document.getElementById('id_company_logo');
+const logoImg   = document.getElementById('logoPreviewImg');
+const logoPlaceholder = document.getElementById('logoPlaceholder');
+if (logoInput) {
+    logoInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (logoImg) {
+                logoImg.src = e.target.result;
+                logoImg.style.display = '';
+            }
+            if (logoPlaceholder) logoPlaceholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    });
+}
 </script>
 {% endblock %}

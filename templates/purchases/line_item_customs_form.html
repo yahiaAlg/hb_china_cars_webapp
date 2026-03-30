@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{{ purchase.supplier.name }} · {{ purchase.purchase_date|date:"j M Y" }}{% endblock %}
+
+{% block extra_css %}
+.back-link { display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-bottom:20px;transition:color var(--transition);text-decoration:none;min-height:44px; }
+.back-link:hover { color:var(--accent); }
+.form-layout { display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start; }
+@media(max-width:900px){ .form-layout { grid-template-columns:1fr; } }
+.form-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm); }
+.form-card-head { padding:16px 20px;border-bottom:1px solid var(--border); }
+.form-card-title { font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary); }
+.form-card-body { padding:20px; }
+.form-section-label { font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;margin-top:4px; }
+.field { margin-bottom:16px; }
+.field label { font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:7px; }
+.field-required::after { content:' *';color:var(--accent); }
+.form-control { width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 13px;outline:none;transition:border-color var(--transition),box-shadow var(--transition);appearance:none;min-height:44px; }
+.form-control:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+.form-control[readonly] { background:var(--bg-base);color:var(--text-muted);cursor:not-allowed; }
+.field-group { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.field-group-3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px; }
+@media(max-width:640px){ .field-group,.field-group-3 { grid-template-columns:1fr; } }
+.form-error { font-size:11.5px;color:#dc2626;margin-top:5px;display:flex;align-items:center;gap:4px; }
+.check-row { display:flex;align-items:center;gap:10px;padding:10px 0; }
+.check-row input[type=checkbox] { width:18px;height:18px;accent-color:var(--accent);cursor:pointer; }
+.check-row label { font-size:13px;color:var(--text-primary);cursor:pointer;margin:0; }
+.total-preview { background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;margin-top:8px; }
+.total-row { display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:5px 0; }
+.total-row-label { color:var(--text-secondary); }
+.total-row-value { font-weight:600;color:var(--text-primary); }
+.total-row-grand .total-row-label { font-family:'Syne',sans-serif;font-weight:700;color:var(--text-primary); }
+.total-row-grand .total-row-value { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent); }
+.submit-row { display:flex;align-items:center;gap:10px;padding-top:8px;flex-wrap:wrap; }
+.btn-primary-x { display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:11px 22px;border:none;cursor:pointer;transition:opacity .18s,transform .12s;min-height:44px; }
+.btn-primary-x:hover { opacity:.88; }
+.btn-ghost-x { display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:14px;border-radius:var(--radius-md);padding:11px 22px;cursor:pointer;transition:all .15s;text-decoration:none;min-height:44px; }
+.btn-ghost-x:hover { border-color:var(--border-strong);color:var(--text-primary); }
+.sidebar-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow-sm); }
+.sidebar-card-title { font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px; }
+.sidebar-row { display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px; }
+.sidebar-row:last-child { border-bottom:none; }
+.sidebar-row-label { color:var(--text-muted); }
+.sidebar-row-value { color:var(--text-primary);font-weight:500; }
+.vehicle-steps { display:flex;flex-direction:column;gap:6px; }
+.vstep { display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-md);font-size:12.5px;border:1px solid transparent;transition:all .15s; }
+.vstep-current { border-color:var(--accent);background:var(--accent-dim);color:var(--accent);font-weight:600; }
+.vstep-done .vstep-dot { background:#22c55e; }
+.vstep-done { color:var(--text-muted); }
+.vstep-pending .vstep-dot { background:var(--border-strong); }
+.vstep-pending { color:var(--text-muted); }
+.vstep-current .vstep-dot { background:var(--accent); }
+.vstep-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.vstep-name { flex:1; }
+.vstep a { color:inherit;text-decoration:none; }
+.fade-in { animation:fadeIn .35s ease both; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+{% endblock %}
+
+{% block content %}
+
+<a href="{% url 'purchases:detail' purchase.pk %}" class="back-link fade-in">
+    <i class="bi bi-arrow-left"></i> Retour à l'achat
+</a>
+
+<div class="form-layout fade-in">
+
+    <!-- Form -->
+    <div>
+        <form method="post" id="customsForm">
+            {% csrf_token %}
+
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title">
+                        <i class="bi bi-shield-check me-2" style="color:#7c3aed;"></i>
+                        Déclaration Douanière —
+                        <strong>{{ line_item.make }} {{ line_item.model }} #{{ line_item.line_number }}</strong>
+                    </div>
+                </div>
+                <div class="form-card-body">
+
+                    {% if form.non_field_errors %}
+                    <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;color:#dc2626;">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Declaration info -->
+                    <div class="form-section-label">Déclaration</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Date de déclaration</label>
+                            <input type="date" name="declaration_date"
+                                   value="{{ form.declaration_date.value|default:'' }}"
+                                   class="form-control {% if form.declaration_date.errors %}border-danger{% endif %}">
+                            {% for e in form.declaration_date.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Numéro de déclaration</label>
+                            <input type="text" name="declaration_number"
+                                   value="{{ form.declaration_number.value|default:'' }}"
+                                   placeholder="ex. DEC-2026-001"
+                                   class="form-control {% if form.declaration_number.errors %}border-danger{% endif %}">
+                            {% for e in form.declaration_number.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+                    <!-- CIF -->
+                    <div class="form-section-label">Valeur CIF</div>
+                    <div class="field">
+                        <label>Valeur CIF (DA) <span style="font-weight:400;font-size:10px;text-transform:none;color:var(--text-muted);">— auto-calculée : FOB + Fret de ce véhicule</span></label>
+                        <input type="number" name="cif_value_da" id="cifValue"
+                               value="{{ form.cif_value_da.value|default:'' }}"
+                               data-fob="{{ line_item.fob_price_da|default:0|stringformat:'f' }}"
+                               data-fret="{% if line_item.has_own_freight %}{{ line_item.freight_cost.total_freight_cost_da|default:0|stringformat:'f' }}{% else %}0{% endif %}"
+                               step="0.01" readonly class="form-control">
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+                    <!-- Rates -->
+                    <div class="form-section-label">Taux & droits</div>
+                    <div class="check-row" style="margin-bottom:14px;">
+                        <input type="checkbox" name="auto_calculate" id="autoCalc"
+                               {% if form.auto_calculate.value %}checked{% endif %}>
+                        <label for="autoCalc">Calcul automatique des droits et TVA</label>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="field-required">Taux tarifaire (%)</label>
+                            <input type="number" name="customs_tariff_rate" id="tariffRate"
+                                   value="{{ form.customs_tariff_rate.value|default:'' }}"
+                                   step="0.01" min="0" max="100"
+                                   class="form-control {% if form.customs_tariff_rate.errors %}border-danger{% endif %}">
+                            {% for e in form.customs_tariff_rate.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Taux TVA (%)</label>
+                            <input type="number" name="tva_rate" id="tvaRate"
+                                   value="{{ form.tva_rate.value|default:'' }}"
+                                   step="0.01" min="0" max="100"
+                                   class="form-control {% if form.tva_rate.errors %}border-danger{% endif %}">
+                            {% for e in form.tva_rate.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="field-group-3">
+                        <div class="field">
+                            <label class="field-required">Droit d'importation (DA)</label>
+                            <input type="number" name="import_duty_da" id="importDuty"
+                                   value="{{ form.import_duty_da.value|default:'' }}"
+                                   step="0.01" min="0"
+                                   class="form-control {% if form.import_duty_da.errors %}border-danger{% endif %}">
+                        </div>
+                        <div class="field">
+                            <label class="field-required">TVA (DA)</label>
+                            <input type="number" name="tva_amount_da" id="tvaAmount"
+                                   value="{{ form.tva_amount_da.value|default:'' }}"
+                                   step="0.01" min="0"
+                                   class="form-control {% if form.tva_amount_da.errors %}border-danger{% endif %}">
+                        </div>
+                        <div class="field">
+                            <label>Autres frais (DA)</label>
+                            <input type="number" name="other_fees_da" id="otherFees"
+                                   value="{{ form.other_fees_da.value|default:'0' }}"
+                                   step="0.01" min="0" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- Live total -->
+                    <div class="total-preview">
+                        <div class="total-row">
+                            <span class="total-row-label">Droits d'importation</span>
+                            <span class="total-row-value" id="previewDuty">0 DA</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-row-label">TVA</span>
+                            <span class="total-row-value" id="previewTva">0 DA</span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-row-label">Autres frais</span>
+                            <span class="total-row-value" id="previewOther">0 DA</span>
+                        </div>
+                        <div style="height:1px;background:var(--border);margin:6px 0;"></div>
+                        <div class="total-row total-row-grand">
+                            <span class="total-row-label">Total douane</span>
+                            <span class="total-row-value" id="previewTotal">0 DA</span>
+                        </div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:20px 0;"></div>
+
+                    <!-- Clearance -->
+                    <div class="form-section-label">Dédouanement</div>
+                    <div class="check-row">
+                        <input type="checkbox" name="is_cleared" id="isCleared"
+                               {% if form.is_cleared.value %}checked{% endif %}
+                               onchange="toggleClearance(this.checked)">
+                        <label for="isCleared">Véhicule dédouané</label>
+                    </div>
+                    <div id="clearanceBlock" style="display:{% if form.is_cleared.value %}block{% else %}none{% endif %};">
+                        <div class="field" style="margin-top:10px;">
+                            <label>Date de dédouanement</label>
+                            <input type="date" name="clearance_date"
+                                   value="{{ form.clearance_date.value|default:'' }}"
+                                   class="form-control">
+                        </div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+
+                    <!-- Notes -->
+                    <div class="field">
+                        <label>Notes</label>
+                        <textarea name="notes" rows="2" class="form-control"
+                                  placeholder="Remarques (facultatif)">{{ form.notes.value|default:'' }}</textarea>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="btn-primary-x">
+                    <i class="bi bi-check-lg"></i> Enregistrer la déclaration
+                </button>
+                <a href="{% url 'purchases:detail' purchase.pk %}" class="btn-ghost-x">Annuler</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Vehicle info -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title">
+                <i class="bi bi-car-front" style="color:var(--accent);"></i>
+                Véhicule en cours
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Véhicule</span>
+                <span class="sidebar-row-value">{{ line_item.make }} {{ line_item.model }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Prix FOB</span>
+                <span class="sidebar-row-value">{{ line_item.fob_price_da|floatformat:0 }} DA</span>
+            </div>
+            {% if line_item.has_own_freight %}
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Fret</span>
+                <span class="sidebar-row-value">{{ line_item.freight_cost.total_freight_cost_da|floatformat:0 }} DA</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">CIF estimée</span>
+                <span class="sidebar-row-value" style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">
+                    {{ line_item.fob_price_da|add:line_item.freight_cost.total_freight_cost_da|floatformat:0 }} DA
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Customs progress -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title">
+                <i class="bi bi-list-check" style="color:#7c3aed;"></i>
+                Progression — Douane
+            </div>
+            <div class="vehicle-steps">
+                {% for item in all_line_items %}
+                <div class="vstep {% if item.pk == line_item.pk %}vstep-current{% elif item.has_own_customs %}vstep-done{% else %}vstep-pending{% endif %}">
+                    <div class="vstep-dot"></div>
+                    <span class="vstep-name">
+                        {% if item.pk == line_item.pk %}
+                            <strong>#{{ item.line_number }} {{ item.make }} {{ item.model }}</strong> ← en cours
+                        {% elif item.has_own_customs %}
+                            <a href="{% url 'purchases:line_item_edit_customs' purchase.pk item.pk %}">
+                                #{{ item.line_number }} {{ item.make }} {{ item.model }}
+                            </a>
+                            <i class="bi bi-check-circle-fill text-success ms-1" style="font-size:11px;"></i>
+                        {% else %}
+                            #{{ item.line_number }} {{ item.make }} {{ item.model }}
+                            {% if not item.has_own_freight %}
+                            <span style="font-size:10px;color:#ef4444;"> — fret manquant</span>
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fmt(n) {
+    return n.toLocaleString('fr-DZ', { maximumFractionDigits: 0 }) + ' DA';
+}
+
+function recalc() {
+    const auto   = document.getElementById('autoCalc').checked;
+    const cif    = parseFloat(document.getElementById('cifValue').value)    || 0;
+    const tariff = parseFloat(document.getElementById('tariffRate').value)  || 0;
+    const tvaR   = parseFloat(document.getElementById('tvaRate').value)     || 0;
+    const other  = parseFloat(document.getElementById('otherFees').value)   || 0;
+
+    let duty, tva;
+    if (auto) {
+        duty = cif * (tariff / 100);
+        tva  = (cif + duty) * (tvaR / 100);
+        document.getElementById('importDuty').value = duty.toFixed(2);
+        document.getElementById('tvaAmount').value  = tva.toFixed(2);
+    } else {
+        duty = parseFloat(document.getElementById('importDuty').value) || 0;
+        tva  = parseFloat(document.getElementById('tvaAmount').value)  || 0;
+    }
+
+    document.getElementById('previewDuty').textContent  = fmt(duty);
+    document.getElementById('previewTva').textContent   = fmt(tva);
+    document.getElementById('previewOther').textContent = fmt(other);
+    document.getElementById('previewTotal').textContent = fmt(duty + tva + other);
+}
+
+function toggleClearance(show) {
+    document.getElementById('clearanceBlock').style.display = show ? 'block' : 'none';
+}
+
+['tariffRate','tvaRate','importDuty','tvaAmount','otherFees','cifValue'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', recalc);
+});
+document.getElementById('autoCalc').addEventListener('change', recalc);
+
+// Prepopulate date fields with today if empty (new form only)
+(function () {
+    var today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    ['declaration_date', 'clearance_date'].forEach(function (name) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (el && !el.value) el.value = today;
+    });
+})();
+
+// Ensure CIF is populated — read locale-safe values from data attributes
+// set on the input element, avoiding Django's French number formatting
+// (e.g. "4 328 820,00") breaking JS numeric literals.
+(function () {
+    var cifEl = document.getElementById('cifValue');
+    if (!cifEl) return;
+    var current = parseFloat(cifEl.value);
+    if (!current || current === 0) {
+        var fob  = parseFloat(cifEl.dataset.fob)  || 0;
+        var fret = parseFloat(cifEl.dataset.fret) || 0;
+        cifEl.value = (fob + fret).toFixed(2);
+    }
+})();
+recalc();
+</script>
+{% endblock %}

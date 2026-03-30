@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub_text %}{{ purchase.supplier.name }} · {{ purchase.purchase_date|date:"j M Y" }}{% endblock %}
+
+{% block extra_css %}
+/* ── reuse same styles as freight_form.html ── */
+.back-link { display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-bottom:20px;transition:color var(--transition);text-decoration:none;min-height:44px; }
+.back-link:hover { color:var(--accent); }
+.form-layout { display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start; }
+@media(max-width:900px){ .form-layout { grid-template-columns:1fr; } }
+.form-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm); }
+.form-card-head { padding:16px 20px;border-bottom:1px solid var(--border); }
+.form-card-title { font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text-primary); }
+.form-card-body { padding:20px; }
+.form-section-label { font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;margin-top:4px; }
+.field { margin-bottom:16px; }
+.field label { font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:7px; }
+.field-required::after { content:' *';color:var(--accent); }
+.form-control { width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 13px;outline:none;transition:border-color var(--transition),box-shadow var(--transition);appearance:none;min-height:44px; }
+.form-control:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+.field-group { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+.field-group-3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px; }
+@media(max-width:640px){ .field-group,.field-group-3 { grid-template-columns:1fr; } }
+.form-error { font-size:11.5px;color:#dc2626;margin-top:5px;display:flex;align-items:center;gap:4px; }
+.method-toggle { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px; }
+.method-option { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all var(--transition);font-size:13px;color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;min-height:44px; }
+.method-option:hover { border-color:var(--border-strong);background:var(--bg-hover); }
+.method-option.selected { border-color:var(--accent);background:var(--accent-dim);color:var(--accent); }
+.method-option i { font-size:24px; }
+.total-preview { background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:8px; }
+.total-preview-label { font-size:12.5px;color:var(--text-secondary);display:flex;align-items:center;gap:6px; }
+.total-preview-value { font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent); }
+.submit-row { display:flex;align-items:center;gap:10px;padding-top:8px;flex-wrap:wrap; }
+.btn-primary-x { display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;border-radius:var(--radius-md);padding:11px 22px;border:none;cursor:pointer;transition:opacity .18s,transform .12s;min-height:44px; }
+.btn-primary-x:hover { opacity:.88; }
+.btn-ghost-x { display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-family:'Syne',sans-serif;font-weight:600;font-size:14px;border-radius:var(--radius-md);padding:11px 22px;cursor:pointer;transition:all .15s;text-decoration:none;min-height:44px; }
+.btn-ghost-x:hover { border-color:var(--border-strong);color:var(--text-primary); }
+.sidebar-card { background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow-sm); }
+.sidebar-card-title { font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px; }
+.sidebar-row { display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px; }
+.sidebar-row:last-child { border-bottom:none; }
+.sidebar-row-label { color:var(--text-muted); }
+.sidebar-row-value { color:var(--text-primary);font-weight:500; }
+/* ── Vehicle progress stepper ── */
+.vehicle-steps { display:flex;flex-direction:column;gap:6px; }
+.vstep { display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-md);font-size:12.5px;border:1px solid transparent;transition:all .15s; }
+.vstep-current { border-color:var(--accent);background:var(--accent-dim);color:var(--accent);font-weight:600; }
+.vstep-done { color:var(--text-muted); }
+.vstep-done .vstep-dot { background:#22c55e; }
+.vstep-pending { color:var(--text-muted); }
+.vstep-pending .vstep-dot { background:var(--border-strong); }
+.vstep-current .vstep-dot { background:var(--accent); }
+.vstep-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.vstep-name { flex:1; }
+.vstep a { color:inherit;text-decoration:none; }
+.fade-in { animation:fadeIn .35s ease both; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+{% endblock %}
+
+{% block content %}
+
+<a href="{% url 'purchases:detail' purchase.pk %}" class="back-link fade-in">
+    <i class="bi bi-arrow-left"></i> Retour à l'achat
+</a>
+
+<div class="form-layout fade-in">
+
+    <!-- Form -->
+    <div>
+        <form method="post" id="freightForm">
+            {% csrf_token %}
+
+            <div class="form-card">
+                <div class="form-card-head">
+                    <div class="form-card-title">
+                        <i class="bi bi-truck me-2" style="color:#0284c7;"></i>
+                        Frais de Transport —
+                        <strong>{{ line_item.make }} {{ line_item.model }} #{{ line_item.line_number }}</strong>
+                    </div>
+                </div>
+                <div class="form-card-body">
+
+                    {% if form.non_field_errors %}
+                    <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.20);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:18px;font-size:13px;color:#dc2626;">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Transport mode -->
+                    <div class="form-section-label">Mode de transport</div>
+                    <input type="hidden" name="freight_method" id="freightMethodInput"
+                           value="{{ form.freight_method.value|default:'sea' }}">
+                    <div class="method-toggle">
+                        <div class="method-option {% if form.freight_method.value == 'sea' or not form.freight_method.value %}selected{% endif %}"
+                             onclick="selectMethod('sea', this)">
+                            <i class="bi bi-water"></i>Maritime (Mer)
+                        </div>
+                        <div class="method-option {% if form.freight_method.value == 'air' %}selected{% endif %}"
+                             onclick="selectMethod('air', this)">
+                            <i class="bi bi-airplane"></i>Fret aérien
+                        </div>
+                    </div>
+                    {% for e in form.freight_method.errors %}
+                    <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                    {% endfor %}
+
+                    <div style="height:1px;background:var(--border);margin:8px 0 20px;"></div>
+
+                    <!-- Freight cost -->
+                    <div class="form-section-label">Coût de fret</div>
+                    <div class="field-group-3">
+                        <div class="field">
+                            <label class="field-required">Coût de fret</label>
+                            <input type="number" name="freight_cost" id="freightCost"
+                                   value="{{ form.freight_cost.value|default:'' }}"
+                                   step="0.01" min="0" placeholder="0,00"
+                                   class="form-control {% if form.freight_cost.errors %}border-danger{% endif %}">
+                            {% for e in form.freight_cost.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Devise</label>
+                            <select name="freight_currency" id="freightCurrency"
+                                    class="form-control {% if form.freight_currency.errors %}border-danger{% endif %}" style="cursor:pointer;">
+                                <option value="">— Sélectionner —</option>
+                                {% for cur in form.freight_currency.field.queryset %}
+                                <option value="{{ cur.pk }}" {% if form.freight_currency.value|stringformat:"s" == cur.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ cur.code }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% for e in form.freight_currency.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="field-required">Taux de change → DA</label>
+                            <input type="number" name="freight_exchange_rate" id="freightRate"
+                                   value="{{ form.freight_exchange_rate.value|default:'' }}"
+                                   step="0.000001" min="0" placeholder="0,000000"
+                                   class="form-control {% if form.freight_exchange_rate.errors %}border-danger{% endif %}">
+                            {% for e in form.freight_exchange_rate.errors %}
+                            <div class="form-error"><i class="bi bi-exclamation-circle"></i> {{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
+
+                    <!-- Extra costs -->
+                    <div class="form-section-label">Coûts supplémentaires (DA)</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <label>Assurance</label>
+                            <input type="number" name="insurance_cost_da" id="insuranceCost"
+                                   value="{{ form.insurance_cost_da.value|default:'0' }}"
+                                   step="0.01" min="0" class="form-control">
+                        </div>
+                        <div class="field">
+                            <label>Autres frais logistiques</label>
+                            <input type="number" name="other_logistics_costs_da" id="otherCosts"
+                                   value="{{ form.other_logistics_costs_da.value|default:'0' }}"
+                                   step="0.01" min="0" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="total-preview">
+                        <span class="total-preview-label">
+                            <i class="bi bi-calculator"></i>
+                            Coût total de fret (DA)
+                        </span>
+                        <span class="total-preview-value" id="totalFreight">0 DA</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="submit-row">
+                <button type="submit" class="btn-primary-x">
+                    <i class="bi bi-check-lg"></i> Enregistrer les coûts de fret
+                </button>
+                <a href="{% url 'purchases:detail' purchase.pk %}" class="btn-ghost-x">Annuler</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Vehicle info -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title">
+                <i class="bi bi-car-front" style="color:var(--accent);"></i>
+                Véhicule en cours
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Véhicule</span>
+                <span class="sidebar-row-value">{{ line_item.make }} {{ line_item.model }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Année</span>
+                <span class="sidebar-row-value">{{ line_item.year }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Couleur</span>
+                <span class="sidebar-row-value">{{ line_item.color }}</span>
+            </div>
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Prix FOB</span>
+                <span class="sidebar-row-value" style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);">
+                    {{ line_item.fob_price_da|floatformat:0 }} DA
+                </span>
+            </div>
+        </div>
+
+        <!-- Progress over all vehicles -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title">
+                <i class="bi bi-list-check" style="color:#0284c7;"></i>
+                Progression — Transport
+            </div>
+            <div class="vehicle-steps">
+                {% for item in all_line_items %}
+                <div class="vstep {% if item.pk == line_item.pk %}vstep-current{% elif item.has_own_freight %}vstep-done{% else %}vstep-pending{% endif %}">
+                    <div class="vstep-dot"></div>
+                    <span class="vstep-name">
+                        {% if item.pk == line_item.pk %}
+                            <strong>#{{ item.line_number }} {{ item.make }} {{ item.model }}</strong> ← en cours
+                        {% elif item.has_own_freight %}
+                            <a href="{% url 'purchases:line_item_edit_freight' purchase.pk item.pk %}">
+                                #{{ item.line_number }} {{ item.make }} {{ item.model }}
+                            </a>
+                            <i class="bi bi-check-circle-fill text-success ms-1" style="font-size:11px;"></i>
+                        {% else %}
+                            #{{ item.line_number }} {{ item.make }} {{ item.model }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- CIF note -->
+        <div class="sidebar-card" style="border-left:3px solid #0284c7;background:rgba(2,132,199,.04);">
+            <div class="sidebar-card-title" style="color:#0284c7;">
+                <i class="bi bi-info-circle"></i> Note CIF
+            </div>
+            <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
+                Après le transport, saisissez la <strong style="color:var(--text-primary);">Déclaration en douane</strong>
+                pour ce véhicule. La valeur CIF sera calculée comme FOB + Fret de ce véhicule.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectMethod(value, el) {
+    document.getElementById('freightMethodInput').value = value;
+    document.querySelectorAll('.method-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+}
+function calcTotal() {
+    const cost  = parseFloat(document.getElementById('freightCost').value)    || 0;
+    const rate  = parseFloat(document.getElementById('freightRate').value)     || 0;
+    const ins   = parseFloat(document.getElementById('insuranceCost').value)   || 0;
+    const other = parseFloat(document.getElementById('otherCosts').value)      || 0;
+    const total = (cost * rate) + ins + other;
+    document.getElementById('totalFreight').textContent =
+        total.toLocaleString('fr-DZ', { maximumFractionDigits: 0 }) + ' DA';
+}
+['freightCost','freightRate','insuranceCost','otherCosts'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', calcTotal);
+});
+calcTotal();
+</script>
+{% endblock %}

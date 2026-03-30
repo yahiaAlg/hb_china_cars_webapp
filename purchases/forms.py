@@ -1,6 +1,13 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Purchase, PurchaseLineItem, FreightCost, CustomsDeclaration
+from .models import (
+    Purchase,
+    PurchaseLineItem,
+    FreightCost,
+    CustomsDeclaration,
+    LineItemFreightCost,
+    LineItemCustomsDeclaration,
+)
 from suppliers.models import Supplier
 from core.models import Currency
 from core.utils import TaxCalculator
@@ -14,6 +21,7 @@ class PurchaseForm(forms.ModelForm):
             "supplier",
             "currency",
             "exchange_rate_to_da",
+            "cost_mode",
             "notes",
         ]
         widgets = {
@@ -97,23 +105,68 @@ PurchaseLineItemFormSet = inlineformset_factory(
 )
 
 
+# ── Shared freight widget mixin ────────────────────────────────────────────────
+
+_FREIGHT_FIELDS = [
+    "freight_method",
+    "freight_cost",
+    "freight_currency",
+    "freight_exchange_rate",
+    "insurance_cost_da",
+    "other_logistics_costs_da",
+]
+
+_FREIGHT_WIDGETS = {
+    "freight_cost": forms.NumberInput(attrs={"step": "0.01"}),
+    "freight_exchange_rate": forms.NumberInput(attrs={"step": "0.000001"}),
+    "insurance_cost_da": forms.NumberInput(attrs={"step": "0.01"}),
+    "other_logistics_costs_da": forms.NumberInput(attrs={"step": "0.01"}),
+}
+
+
 class FreightCostForm(forms.ModelForm):
     class Meta:
         model = FreightCost
-        fields = [
-            "freight_method",
-            "freight_cost",
-            "freight_currency",
-            "freight_exchange_rate",
-            "insurance_cost_da",
-            "other_logistics_costs_da",
-        ]
-        widgets = {
-            "freight_cost": forms.NumberInput(attrs={"step": "0.01"}),
-            "freight_exchange_rate": forms.NumberInput(attrs={"step": "0.000001"}),
-            "insurance_cost_da": forms.NumberInput(attrs={"step": "0.01"}),
-            "other_logistics_costs_da": forms.NumberInput(attrs={"step": "0.01"}),
-        }
+        fields = _FREIGHT_FIELDS
+        widgets = _FREIGHT_WIDGETS
+
+
+class LineItemFreightCostForm(forms.ModelForm):
+    """Per-vehicle freight cost form. Identical fields to FreightCostForm."""
+
+    class Meta:
+        model = LineItemFreightCost
+        fields = _FREIGHT_FIELDS
+        widgets = _FREIGHT_WIDGETS
+
+
+# ── Shared customs widget mixin ────────────────────────────────────────────────
+
+_CUSTOMS_FIELDS = [
+    "declaration_date",
+    "declaration_number",
+    "cif_value_da",
+    "customs_tariff_rate",
+    "import_duty_da",
+    "tva_rate",
+    "tva_amount_da",
+    "other_fees_da",
+    "is_cleared",
+    "clearance_date",
+    "notes",
+]
+
+_CUSTOMS_WIDGETS = {
+    "declaration_date": forms.DateInput(attrs={"type": "date"}),
+    "clearance_date": forms.DateInput(attrs={"type": "date"}),
+    "cif_value_da": forms.NumberInput(attrs={"step": "0.01", "readonly": True}),
+    "customs_tariff_rate": forms.NumberInput(attrs={"step": "0.01"}),
+    "import_duty_da": forms.NumberInput(attrs={"step": "0.01"}),
+    "tva_rate": forms.NumberInput(attrs={"step": "0.01"}),
+    "tva_amount_da": forms.NumberInput(attrs={"step": "0.01"}),
+    "other_fees_da": forms.NumberInput(attrs={"step": "0.01"}),
+    "notes": forms.Textarea(attrs={"rows": 3}),
+}
 
 
 class CustomsDeclarationForm(forms.ModelForm):
@@ -123,36 +176,14 @@ class CustomsDeclarationForm(forms.ModelForm):
 
     class Meta:
         model = CustomsDeclaration
-        fields = [
-            "declaration_date",
-            "declaration_number",
-            "cif_value_da",
-            "customs_tariff_rate",
-            "import_duty_da",
-            "tva_rate",
-            "tva_amount_da",
-            "other_fees_da",
-            "is_cleared",
-            "clearance_date",
-            "notes",
-        ]
-        widgets = {
-            "declaration_date": forms.DateInput(attrs={"type": "date"}),
-            "clearance_date": forms.DateInput(attrs={"type": "date"}),
-            "cif_value_da": forms.NumberInput(attrs={"step": "0.01", "readonly": True}),
-            "customs_tariff_rate": forms.NumberInput(attrs={"step": "0.01"}),
-            "import_duty_da": forms.NumberInput(attrs={"step": "0.01"}),
-            "tva_rate": forms.NumberInput(attrs={"step": "0.01"}),
-            "tva_amount_da": forms.NumberInput(attrs={"step": "0.01"}),
-            "other_fees_da": forms.NumberInput(attrs={"step": "0.01"}),
-            "notes": forms.Textarea(attrs={"rows": 3}),
-        }
+        fields = _CUSTOMS_FIELDS
+        widgets = _CUSTOMS_WIDGETS
 
     def __init__(self, *args, **kwargs):
         self.purchase = kwargs.pop("purchase", None)
         super().__init__(*args, **kwargs)
         if self.purchase:
-            self.fields["cif_value_da"].initial = self._calc_cif()
+            self.initial["cif_value_da"] = self._calc_cif()
             if not self.instance.pk:
                 self.fields["customs_tariff_rate"].initial = (
                     TaxCalculator.get_tariff_rate()
@@ -165,6 +196,53 @@ class CustomsDeclarationForm(forms.ModelForm):
         fob = self.purchase.total_fob_da or Decimal("0")
         fc = getattr(self.purchase, "freight_cost", None)
         return fob + (fc.total_freight_cost_da if fc else Decimal("0"))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("auto_calculate"):
+            cif = cleaned_data.get("cif_value_da", 0)
+            tariff = cleaned_data.get("customs_tariff_rate", 0)
+            tva_r = cleaned_data.get("tva_rate", 0)
+            duty = round(cif * (tariff / 100), 2)
+            tva = round((cif + duty) * (tva_r / 100), 2)
+            cleaned_data["import_duty_da"] = duty
+            cleaned_data["tva_amount_da"] = tva
+        return cleaned_data
+
+
+class LineItemCustomsDeclarationForm(forms.ModelForm):
+    """
+    Per-vehicle customs declaration form.
+    CIF is auto-computed as this vehicle's FOB + its own freight cost.
+    """
+
+    auto_calculate = forms.BooleanField(
+        required=False, initial=True, label="Calcul automatique des droits et taxes"
+    )
+
+    class Meta:
+        model = LineItemCustomsDeclaration
+        fields = _CUSTOMS_FIELDS
+        widgets = _CUSTOMS_WIDGETS
+
+    def __init__(self, *args, **kwargs):
+        self.line_item = kwargs.pop("line_item", None)
+        super().__init__(*args, **kwargs)
+        if self.line_item:
+            cif = self._calc_cif()
+            self.initial["cif_value_da"] = cif
+            if not self.instance.pk:
+                self.fields["customs_tariff_rate"].initial = (
+                    TaxCalculator.get_tariff_rate()
+                )
+                self.fields["tva_rate"].initial = TaxCalculator.get_tva_rate()
+
+    def _calc_cif(self):
+        from decimal import Decimal
+
+        fob = self.line_item.fob_price_da or Decimal("0")
+        own_fc = getattr(self.line_item, "freight_cost", None)
+        return fob + (own_fc.total_freight_cost_da if own_fc else Decimal("0"))
 
     def clean(self):
         cleaned_data = super().clean()

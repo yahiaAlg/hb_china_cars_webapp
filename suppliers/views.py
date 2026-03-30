@@ -86,9 +86,16 @@ def supplier_create(request):
 @login_required
 def supplier_detail(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
-    purchases = supplier.purchase_set.all().select_related("currency")
-    total_purchases = purchases.count()
-    total_value = sum(p.purchase_price_da for p in purchases if p.purchase_price_da)
+    purchases = (
+        supplier.purchase_set.all()
+        .select_related("currency")
+        .prefetch_related("line_items__vehicle")
+        .order_by("-purchase_date")
+    )
+
+    # Count individual vehicles (line items), not containers
+    total_purchases = sum(p.line_items.count() for p in purchases)
+    total_value = sum(p.total_fob_da for p in purchases)
     avg_value = total_value / total_purchases if total_purchases > 0 else 0
 
     return render(
@@ -99,7 +106,8 @@ def supplier_detail(request, pk):
             "total_purchases": total_purchases,
             "total_value": total_value,
             "avg_value": avg_value,
-            "recent_purchases": purchases.order_by("-purchase_date")[:5],
+            "recent_purchases": purchases[:5],
+            "total_containers": purchases.count(),
         },
     )
 

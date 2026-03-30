@@ -18,16 +18,29 @@ class SystemConfigurationForm(forms.ModelForm):
     class Meta:
         model = SystemConfiguration
         fields = [
+            # Company
             "company_name",
+            "company_logo",
+            # Legal IDs
             "company_nif",
+            "company_rc",
+            "company_nis",
+            # Contact
             "company_address",
             "company_phone",
             "company_email",
+            # Bank
+            "bank_name",
+            "bank_account_number",
+            "bank_rib",
+            # Rates
             "default_tva_rate",
             "default_tariff_rate",
             "default_commission_rate",
+            # System
             "reservation_duration_days",
             "invoice_due_days",
+            # Notifications
             "enable_email_notifications",
             "enable_overdue_alerts",
             "overdue_alert_days",
@@ -37,6 +50,7 @@ class SystemConfigurationForm(forms.ModelForm):
             "default_tva_rate": forms.NumberInput(attrs={"step": "0.01"}),
             "default_tariff_rate": forms.NumberInput(attrs={"step": "0.01"}),
             "default_commission_rate": forms.NumberInput(attrs={"step": "0.01"}),
+            "company_logo": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -45,13 +59,29 @@ class SystemConfigurationForm(forms.ModelForm):
         self.helper.layout = Layout(
             Fieldset(
                 "Informations de l'Entreprise",
+                "company_logo",
                 "company_name",
-                "company_nif",
                 "company_address",
                 Row(
                     Column("company_phone", css_class="form-group col-md-6"),
                     Column("company_email", css_class="form-group col-md-6"),
                 ),
+            ),
+            Fieldset(
+                "Numéros d'Identification Légale",
+                Row(
+                    Column("company_nif", css_class="form-group col-md-4"),
+                    Column("company_rc", css_class="form-group col-md-4"),
+                    Column("company_nis", css_class="form-group col-md-4"),
+                ),
+            ),
+            Fieldset(
+                "Coordonnées Bancaires",
+                Row(
+                    Column("bank_name", css_class="form-group col-md-6"),
+                    Column("bank_account_number", css_class="form-group col-md-6"),
+                ),
+                "bank_rib",
             ),
             Fieldset(
                 "Taux par Défaut",

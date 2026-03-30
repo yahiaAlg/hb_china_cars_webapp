@@ -33,7 +33,8 @@ from core.decorators import manager_required
 def system_configuration(request):
     config = SystemConfiguration.get_current()
     if request.method == "POST":
-        form = SystemConfigurationForm(request.POST, instance=config)
+        form = SystemConfigurationForm(request.POST, request.FILES, instance=config)
+
         if form.is_valid():
             config = form.save(commit=False)
             config.updated_by = request.user

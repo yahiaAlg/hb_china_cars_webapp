@@ -34,6 +34,13 @@
     align-items: start;
 }
 
+.brand-logo {
+    max-height: 56px;
+    max-width: 200px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    display: block;
+}
 .brand-block-name {
     font-family: 'Syne', sans-serif;
     font-size: 22px; font-weight: 800;
@@ -50,6 +57,17 @@
     margin-top: 12px; line-height: 1.6;
 }
 
+/* Legal IDs strip */
+.brand-legal-ids {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    margin-top: 10px;
+}
+.brand-legal-id {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px;
+}
+.brand-legal-id strong { color: var(--text-secondary); }
+
 .invoice-badge { text-align: right; }
 .invoice-badge-number {
     font-family: 'Syne', sans-serif;
@@ -61,6 +79,7 @@
     letter-spacing: .1em; color: var(--text-muted);
     margin-bottom: 4px;
 }
+/* Status badge shown in screen preview, hidden when printing */
 .invoice-badge-status { margin-top: 8px; display: inline-flex; }
 
 .invoice-parties {
@@ -83,7 +102,7 @@
 }
 .party-detail { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
 
-/* Tableau de lignes */
+/* Items table */
 .invoice-items { padding: 28px 40px; }
 .items-table { width: 100%; border-collapse: collapse; }
 .items-table thead th {
@@ -104,7 +123,7 @@
 .item-detail { font-size: 11.5px; color: var(--text-muted); }
 .item-amount { text-align: right; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 14px; }
 
-/* Totaux */
+/* Totals */
 .invoice-totals {
     padding: 0 40px 28px;
     display: grid;
@@ -143,6 +162,11 @@
 }
 .total-final .tr { color: var(--accent); }
 
+/* Bank info block — hidden on screen, shown on print */
+.invoice-bank-info {
+    display: none; /* hidden in browser */
+}
+
 .invoice-footer {
     padding: 18px 40px;
     border-top: 1px solid var(--border);
@@ -151,73 +175,98 @@
     flex-wrap: wrap; gap: 8px;
 }
 
-/* Impression */
+/* ── Print styles ─────────────────────────────────────────────────────────── */
 @media print {
     @page {
         size: A4 portrait;
-        margin: 8mm 10mm;
+        margin: 12mm 14mm;
     }
 
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
 
     body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
-    .main-content { margin-left: 0 !important; }
+    .main-content { margin-left: 0 !important; padding: 0 !important; }
     .topbar, .sidebar, .sidebar-backdrop, .print-actions { display: none !important; }
     .page-body { padding: 0 !important; margin: 0 !important; }
+
+    /* Status badge hidden on print */
+    .invoice-badge-status { display: none !important; }
 
     .invoice-doc {
         background: #fff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 0 !important;
-        max-width: 100% !important;
-        width: 100% !important;
+        /* Pin to A4 content width (210mm - 28mm margins) so no dead space on the right */
+        width: 182mm !important;
+        max-width: 182mm !important;
+        margin: 0 auto !important;
         box-shadow: none !important;
         page-break-inside: avoid;
         break-inside: avoid;
     }
 
-    /* Header */
+    /* Header — mirror the 1fr/auto grid from the screen preview */
     .invoice-doc-head {
-        padding: 12px 18px 10px !important;
-        gap: 10px !important;
+        padding: 14px 20px 12px !important;
+        grid-template-columns: 1fr auto !important;
+        gap: 16px !important;
     }
+    .brand-logo { max-height: 44px !important; margin-bottom: 6px !important; }
     .brand-block-name { font-size: 15px !important; }
     .brand-block-sub  { font-size: 9px !important; }
-    .brand-block-address { font-size: 10px !important; margin-top: 6px !important; line-height: 1.4 !important; }
-    .invoice-badge-number { font-size: 18px !important; }
+    .brand-block-address { font-size: 10px !important; margin-top: 6px !important; line-height: 1.5 !important; }
+    .brand-legal-ids { margin-top: 6px !important; gap: 8px !important; }
+    .brand-legal-id  { font-size: 9px !important; }
+    .invoice-badge-number { font-size: 20px !important; }
     .invoice-badge-label  { font-size: 8.5px !important; }
-    .invoice-badge-status { margin-top: 4px !important; }
-    .pill { font-size: 9px !important; padding: 2px 7px !important; }
 
-    /* Parties */
-    .invoice-parties { border-bottom: 1px solid #e5e7eb !important; }
-    .party-block { padding: 10px 14px !important; }
+    /* Parties — preserve the 3-column layout from the screen */
+    .invoice-parties {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+    .party-block { padding: 12px 16px !important; }
     .party-eyebrow { font-size: 8px !important; margin-bottom: 4px !important; }
-    .party-name   { font-size: 11px !important; margin-bottom: 2px !important; }
-    .party-detail { font-size: 10px !important; line-height: 1.4 !important; }
+    .party-name   { font-size: 11.5px !important; margin-bottom: 2px !important; }
+    .party-detail { font-size: 10px !important; line-height: 1.5 !important; }
 
     /* Items table */
-    .invoice-items { padding: 12px 18px !important; }
-    .items-table thead th {
-        font-size: 8.5px !important;
-        padding: 0 0 8px !important;
-    }
+    .invoice-items { padding: 14px 20px !important; }
+    .items-table { width: 100% !important; }
+    .items-table thead th { font-size: 8.5px !important; padding: 0 0 8px !important; }
     .items-table tbody td { padding: 10px 0 !important; font-size: 10.5px !important; }
-    .item-name   { font-size: 11px !important; margin-bottom: 2px !important; }
+    .item-name   { font-size: 11.5px !important; margin-bottom: 2px !important; }
     .item-detail { font-size: 9.5px !important; }
-    .item-amount { font-size: 11px !important; }
+    .item-amount { font-size: 11.5px !important; }
 
-    /* Totals */
+    /* Totals — explicit column sizes so notes fills left and totals block sits right,
+       exactly matching the screen preview proportions */
     .invoice-totals {
-        padding: 0 18px 14px !important;
-        gap: 14px !important;
+        padding: 0 20px 16px !important;
+        grid-template-columns: 1fr 240px !important;
+        gap: 16px !important;
+        align-items: start !important;
     }
     .totals-notes { font-size: 10px !important; padding: 10px 12px !important; line-height: 1.5 !important; }
-    .total-row { padding: 6px 12px !important; font-size: 10.5px !important; }
-    .total-final { padding: 9px 12px !important; font-size: 12px !important; }
+    .totals-block { width: 240px !important; }
+    .total-row    { padding: 7px 12px !important; font-size: 10.5px !important; }
+    .total-final  { padding: 10px 12px !important; font-size: 13px !important; }
+
+    /* Bank info — visible on print */
+    .invoice-bank-info {
+        display: flex !important;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px 20px 10px !important;
+        border-top: 1px solid #e5e7eb;
+        font-size: 9.5px;
+        color: #6b7280;
+        flex-wrap: wrap;
+    }
+    .invoice-bank-info strong { color: #374151; }
 
     /* Footer */
-    .invoice-footer { padding: 10px 18px !important; font-size: 9.5px !important; }
+    .invoice-footer { padding: 10px 20px !important; font-size: 9px !important; }
 }
 
 @media (max-width: 768px) {
@@ -248,7 +297,9 @@
     <!-- En-tête : Marque + Numéro -->
     <div class="invoice-doc-head">
         <div>
-            <!-- After (dynamic) -->
+            {% if config.company_logo %}
+            <img src="{{ config.company_logo.url }}" alt="{{ config.company_name }}" class="brand-logo">
+            {% endif %}
             <div class="brand-block-name">{{ config.company_name }}</div>
             <div class="brand-block-sub">Bureau de Commerce Automobile</div>
             <div class="brand-block-address">
@@ -256,10 +307,25 @@
                 {% if config.company_phone %}{{ config.company_phone }}<br>{% endif %}
                 {{ config.company_email }}
             </div>
+            <!-- Legal IDs (RC / NIF / NIS) -->
+            {% if config.company_rc or config.company_nif or config.company_nis %}
+            <div class="brand-legal-ids">
+                {% if config.company_rc %}
+                <span class="brand-legal-id"><strong>RC</strong> {{ config.company_rc }}</span>
+                {% endif %}
+                {% if config.company_nif %}
+                <span class="brand-legal-id"><strong>NIF</strong> {{ config.company_nif }}</span>
+                {% endif %}
+                {% if config.company_nis %}
+                <span class="brand-legal-id"><strong>NIS</strong> {{ config.company_nis }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
         <div class="invoice-badge">
             <div class="invoice-badge-label">Facture</div>
             <div class="invoice-badge-number">{{ invoice.invoice_number }}</div>
+            <!-- Status badge: visible on screen only, hidden when printing -->
             <div class="invoice-badge-status">
                 {% if invoice.status == 'paid' %}
                 <span class="pill pill-success"><i class="bi bi-check-circle"></i> Payée</span>
@@ -280,7 +346,7 @@
             <div class="party-detail">
                 {% if invoice.customer.customer_type == 'company' %}
                     Société<br>
-                    {% if invoice.customer.nif %}NIF : {{ invoice.customer.nif }}<br>{% endif %}
+                    {% if invoice.customer.nif_tax_id %}NIF : {{ invoice.customer.nif_tax_id }}<br>{% endif %}
                 {% endif %}
                 {% if invoice.customer.phone %}{{ invoice.customer.phone }}<br>{% endif %}
                 {% if invoice.customer.wilaya %}{{ invoice.customer.get_wilaya_display }}, Algérie{% endif %}
@@ -302,9 +368,7 @@
                 <strong style="color:var(--text-secondary);">Date d'émission</strong><br>
                 {{ invoice.invoice_date|date:"j M Y" }}<br><br>
                 <strong style="color:var(--text-secondary);">Date d'échéance</strong><br>
-                <span style="{% if invoice.is_overdue %}color:#dc2626;{% endif %}">
-                    {{ invoice.due_date|date:"j M Y" }}
-                </span>
+                {{ invoice.due_date|date:"j M Y" }}
             </div>
         </div>
     </div>
@@ -384,9 +448,19 @@
         </div>
     </div>
 
+    <!-- Bank info — only rendered on print if configured -->
+    {% if config.bank_name or config.bank_account_number or config.bank_rib %}
+    <div class="invoice-bank-info">
+        <span><i class="bi bi-bank" style="margin-right:4px;"></i> <strong>Coordonnées bancaires :</strong></span>
+        {% if config.bank_name %}<span><strong>Banque :</strong> {{ config.bank_name }}</span>{% endif %}
+        {% if config.bank_account_number %}<span><strong>N° de compte :</strong> {{ config.bank_account_number }}</span>{% endif %}
+        {% if config.bank_rib %}<span><strong>RIB :</strong> {{ config.bank_rib }}</span>{% endif %}
+    </div>
+    {% endif %}
+
     <!-- Pied de page -->
     <div class="invoice-footer">
-        <span>Générée le {{ invoice.created_at|date:"j M Y" }} · HB China Cars</span>
+        <span>Générée le {{ invoice.created_at|date:"j M Y" }} · {{ config.company_name }}</span>
         <span>{{ invoice.invoice_number }}</span>
     </div>
 

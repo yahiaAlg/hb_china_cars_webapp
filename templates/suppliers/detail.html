@@ -180,9 +180,15 @@
 </div>
 
 <!-- KPI Stats -->
-<div class="stat-row fade-in">
+<div class="stat-row fade-in" style="grid-template-columns: repeat(4, 1fr);">
     <div class="metric-card">
         <div class="metric-icon ic-teal"><i class="bi bi-box-seam"></i></div>
+        <div class="metric-label">Conteneurs</div>
+        <div class="metric-value">{{ total_containers }}</div>
+        <div class="metric-sub">expédition{{ total_containers|pluralize }}</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background:rgba(99,102,241,.10);color:#6366f1;width:38px;height:38px;border-radius:var(--radius-sm);display:grid;place-items:center;font-size:17px;margin-bottom:12px;"><i class="bi bi-car-front"></i></div>
         <div class="metric-label">Achats totaux</div>
         <div class="metric-value">{{ total_purchases }}</div>
         <div class="metric-sub">véhicule{{ total_purchases|pluralize }} acheté{{ total_purchases|pluralize }}</div>
@@ -210,8 +216,8 @@
                 <div class="panel-title">
                     <i class="bi bi-receipt me-2" style="color:var(--accent);"></i>Achats récents
                 </div>
-                {% if total_purchases > 5 %}
-                <span style="font-size:12px;color:var(--text-muted);">5 derniers sur {{ total_purchases }}</span>
+                {% if total_containers > 5 %}
+                <span style="font-size:12px;color:var(--text-muted);">5 derniers conteneurs sur {{ total_containers }}</span>
                 {% endif %}
             </div>
             {% if recent_purchases %}
@@ -221,8 +227,8 @@
                         <tr>
                             <th>Date</th>
                             <th>Véhicule(s)</th>
-                            <th style="text-align:right;">Prix FOB</th>
-                            <th style="text-align:right;">Prix DA</th>
+                            <th style="text-align:right;">FOB (DA)</th>
+                            <th style="text-align:right;">Coût débarqué</th>
                             <th>Devise</th>
                         </tr>
                     </thead>
@@ -230,28 +236,42 @@
                         {% for purchase in recent_purchases %}
                         <tr>
                             <td style="white-space:nowrap;color:var(--text-secondary);">
-                                {{ purchase.purchase_date|date:"d/m/Y" }}
+                                <a href="{% url 'purchases:detail' purchase.pk %}" style="color:var(--accent);text-decoration:none;font-weight:500;" title="Voir l'achat">
+                                    {{ purchase.purchase_date|date:"d/m/Y" }}
+                                </a>
                             </td>
                             <td>
-                                {% for vehicle in purchase.vehicle_set.all %}
+                                {% for item in purchase.line_items.all %}
+                                {% if item.vehicle %}
+                                <a href="{% url 'inventory:detail' item.vehicle.pk %}" style="text-decoration:none;" title="Voir le véhicule">
+                                    <span style="font-size:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;display:inline-block;margin:2px 2px 2px 0;color:var(--accent);transition:border-color var(--transition);">
+                                        {{ item.make }} {{ item.model }} {{ item.year }}
+                                    </span>
+                                </a>
+                                {% else %}
                                 <span style="font-size:12px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;display:inline-block;margin:2px 2px 2px 0;color:var(--text-secondary);">
-                                    {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year }}
+                                    {{ item.make }} {{ item.model }} {{ item.year }}
                                 </span>
+                                {% endif %}
                                 {% empty %}
                                 <span style="color:var(--text-muted);font-size:12px;">—</span>
                                 {% endfor %}
                             </td>
-                            <td style="text-align:right;white-space:nowrap;color:var(--text-secondary);">
-                                {{ purchase.purchase_price_fob|floatformat:2 }}
-                                <span style="color:var(--text-muted);font-size:11.5px;">{{ purchase.currency.code }}</span>
-                            </td>
                             <td style="text-align:right;white-space:nowrap;">
-                                {% if purchase.purchase_price_da %}
-                                <span style="font-weight:500;color:var(--text-primary);">{{ purchase.purchase_price_da|floatformat:0 }}</span>
+                                {% if purchase.total_fob_da %}
+                                <span style="font-weight:500;color:var(--text-primary);">{{ purchase.total_fob_da|floatformat:0 }}</span>
                                 <span style="color:var(--text-muted);font-size:11.5px;"> DA</span>
                                 {% else %}
                                 <span style="color:var(--text-muted);">—</span>
                                 {% endif %}
+                            </td>
+                            <td style="text-align:right;white-space:nowrap;color:var(--text-secondary);">
+                                {% with item=purchase.line_items.first %}
+                                {% if item %}
+                                <span style="font-weight:500;color:var(--text-primary);">{{ item.landed_cost_da|floatformat:0 }}</span>
+                                <span style="color:var(--text-muted);font-size:11.5px;"> DA/véh.</span>
+                                {% else %}—{% endif %}
+                                {% endwith %}
                             </td>
                             <td>
                                 <span class="pill" style="background:var(--bg-raised);color:var(--text-secondary);border:1px solid var(--border);">
@@ -262,6 +282,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div style="padding:12px 20px;border-top:1px solid var(--border);text-align:right;">
+                <a href="{% url 'purchases:list' %}?supplier={{ supplier.pk }}" style="font-size:12.5px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+                    Voir tous les achats <i class="bi bi-arrow-right" style="font-size:11px;"></i>
+                </a>
             </div>
             {% else %}
             <div style="text-align:center;padding:48px 24px;color:var(--text-muted);">

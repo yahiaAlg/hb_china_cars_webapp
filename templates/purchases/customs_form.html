@@ -39,21 +39,137 @@
     overflow: hidden;
     box-shadow: var(--shadow-sm);
 }
-
 .form-card-head {
     padding: 16px 20px;
     border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
-
 .form-card-title {
     font-family: 'Syne', sans-serif;
     font-size: 14px;
     font-weight: 700;
     color: var(--text-primary);
 }
-
 .form-card-body { padding: 20px; }
 
+/* ── Mode badge ── */
+.mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.mode-badge-container  { background: rgba(217,119,6,.10); color: #d97706; border: 1px solid rgba(217,119,6,.22); }
+.mode-badge-pervehicle { background: rgba(124,58,237,.10); color: #7c3aed; border: 1px solid rgba(124,58,237,.22); }
+
+/* ── Per-vehicle panel ── */
+.pv-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+.pv-panel-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(124,58,237,.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.pv-panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pv-panel-body { padding: 0; }
+
+/* ── Vehicle row ── */
+.vrow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition);
+}
+.vrow:last-child { border-bottom: none; }
+.vrow:hover { background: var(--bg-hover); }
+.vrow-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.vrow-num-done    { background: #dcfce7; color: #16a34a; }
+.vrow-num-pending { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border); }
+.vrow-info { flex: 1; min-width: 0; }
+.vrow-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vrow-sub  { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.vrow-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.vrow-status-done    { background: #dcfce7; color: #16a34a; }
+.vrow-status-cleared { background: rgba(2,132,199,.10); color: #0284c7; border: 1px solid rgba(2,132,199,.22); }
+.vrow-status-nofrt   { background: rgba(220,38,38,.08); color: #dc2626; border: 1px solid rgba(220,38,38,.18); }
+.vrow-status-pending { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border); }
+.vrow-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    padding: 7px 14px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all .15s;
+    min-height: 36px;
+    flex-shrink: 0;
+}
+.vrow-action-primary { background: #7c3aed; color: #fff; }
+.vrow-action-primary:hover { opacity: .88; color: #fff; }
+.vrow-action-edit { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+.vrow-action-edit:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-hover); }
+.vrow-action-disabled { background: var(--bg-raised); border: 1px solid var(--border); color: var(--text-muted); cursor: not-allowed; pointer-events: none; }
+
+/* ── Progress bar ── */
+.pv-progress-wrap { padding: 14px 20px; border-top: 1px solid var(--border); }
+.pv-progress-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-bottom: 7px; }
+.pv-progress-bar-track { height: 6px; background: var(--bg-raised); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+.pv-progress-bar-fill  { height: 100%; background: linear-gradient(90deg,#7c3aed,#a78bfa); border-radius: 3px; transition: width .4s ease; }
+
+/* ── Form fields ── */
 .form-section-label {
     font-size: 10.5px;
     font-weight: 600;
@@ -63,22 +179,9 @@
     margin-bottom: 14px;
     margin-top: 4px;
 }
-
-/* ── Champs ── */
 .field { margin-bottom: 16px; }
-
-.field label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 7px;
-}
-
+.field label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 7px; }
 .field-required::after { content: ' *'; color: var(--accent); }
-
 .form-control {
     width: 100%;
     background: var(--bg-raised);
@@ -93,37 +196,16 @@
     appearance: none;
     min-height: 44px;
 }
-.form-control:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-}
+.form-control:focus  { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .form-control::placeholder { color: var(--text-muted); }
 .form-control[readonly] { opacity: .65; cursor: not-allowed; background: var(--bg-hover); }
 textarea.form-control { resize: vertical; min-height: 80px; }
-
-.field-group {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-}
+.field-group  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 640px) { .field-group { grid-template-columns: 1fr; } }
+.form-error { font-size: 11.5px; color: #dc2626; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+.field-help  { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-.form-error {
-    font-size: 11.5px;
-    color: #dc2626;
-    margin-top: 5px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.field-help {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 4px;
-}
-
-/* ── Bascule de calcul auto ── */
+/* ── Auto-calc toggle ── */
 .toggle-row {
     display: flex;
     align-items: center;
@@ -138,22 +220,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     transition: border-color var(--transition);
 }
 .toggle-row:hover { border-color: var(--border-strong); }
-
-.toggle-label {
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.toggle-switch {
-    position: relative;
-    width: 40px;
-    height: 22px;
-    flex-shrink: 0;
-}
+.toggle-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
 .toggle-switch input { opacity: 0; width: 0; height: 0; }
 .toggle-track {
     position: absolute;
@@ -176,7 +244,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .toggle-switch input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
 .toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
 
-/* ── Bannière CIF ── */
+/* ── CIF banner ── */
 .cif-banner {
     background: var(--accent-dim);
     border: 1px solid rgba(217,119,6,.20);
@@ -190,7 +258,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     margin-bottom: 18px;
 }
 
-/* ── Aperçu total des droits ── */
+/* ── Duty preview ── */
 .duty-preview {
     background: var(--accent-dim);
     border: 1px solid rgba(217,119,6,.20);
@@ -203,23 +271,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     flex-wrap: wrap;
     gap: 8px;
 }
+.duty-preview-label { font-size: 12.5px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+.duty-preview-value { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent); }
 
-.duty-preview-label {
-    font-size: 12.5px;
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.duty-preview-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--accent);
-}
-
-/* ── Section de dédouanement ── */
+/* ── Clearance section ── */
 .clearance-section {
     background: rgba(22,163,74,.05);
     border: 1px solid rgba(22,163,74,.18);
@@ -227,113 +282,44 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     padding: 16px;
     margin-top: 4px;
 }
+.checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; min-height: 44px; }
+.checkbox-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
 
-.checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13.5px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    min-height: 44px;
-}
-
-.checkbox-row input[type=checkbox] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    cursor: pointer;
-}
-
-/* ── Boutons ── */
-.submit-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-top: 8px;
-    flex-wrap: wrap;
-}
-
+/* ── Buttons ── */
+.submit-row { display: flex; align-items: center; gap: 10px; padding-top: 8px; flex-wrap: wrap; }
 .btn-primary-x {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--accent);
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    border-radius: var(--radius-md);
-    padding: 11px 22px;
-    border: none;
-    cursor: pointer;
-    transition: opacity .18s, transform .12s;
-    min-height: 44px;
+    display: inline-flex; align-items: center; gap: 8px; background: var(--accent);
+    color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border-radius: var(--radius-md); padding: 11px 22px; border: none; cursor: pointer;
+    transition: opacity .18s, transform .12s; min-height: 44px;
 }
 .btn-primary-x:hover { opacity: .88; }
 .btn-primary-x:active { transform: scale(.99); }
-
 .btn-ghost-x {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    border-radius: var(--radius-md);
-    padding: 11px 20px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all var(--transition);
-    min-height: 44px;
+    display: inline-flex; align-items: center; gap: 8px; background: transparent;
+    border: 1px solid var(--border); color: var(--text-secondary);
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px;
+    border-radius: var(--radius-md); padding: 11px 20px; cursor: pointer;
+    text-decoration: none; transition: all var(--transition); min-height: 44px;
 }
 .btn-ghost-x:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
-
-/* ── Cartes latérales ── */
-.sidebar-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 18px 20px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow-sm);
+.btn-pv-start {
+    display: inline-flex; align-items: center; gap: 8px; background: #7c3aed;
+    color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    border-radius: var(--radius-md); padding: 11px 22px; text-decoration: none;
+    transition: opacity .18s; min-height: 44px; white-space: nowrap; flex-shrink: 0;
 }
+.btn-pv-start:hover { opacity: .88; color: #fff; }
 
-.sidebar-card-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.sidebar-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 12.5px;
-}
+/* ── Sidebar ── */
+.sidebar-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.sidebar-card-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.sidebar-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
 .sidebar-row:last-child { border-bottom: none; }
 .sidebar-row-label { color: var(--text-muted); }
-.sidebar-row-value { color: var(--text-primary); font-weight: 500; }
-
-/* ── Tableau de décomposition ── */
+.sidebar-row-value  { color: var(--text-primary); font-weight: 500; }
 .calc-breakdown { display: flex; flex-direction: column; gap: 0; }
-.calc-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-}
+.calc-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
 .calc-row:last-child { border-bottom: none; }
 .calc-row-label { color: var(--text-muted); }
 .calc-row-value { font-weight: 600; color: var(--text-secondary); }
@@ -341,29 +327,181 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 /* ── Animation ── */
 .fade-in { animation: fadeIn .35s ease both; }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 {% endblock %}
 
 {% block content %}
 
-<!-- Lien retour -->
 <a href="{% url 'purchases:detail' purchase.pk %}" class="back-link fade-in">
     <i class="bi bi-arrow-left"></i> Retour à l'achat
 </a>
 
+{% with items=purchase.line_items.prefetch_related_objects|default:purchase.line_items.all %}
+
 <div class="form-layout fade-in">
 
-    <!-- Formulaire principal -->
+    <!-- ════════════════════════════════════════════════════════════════
+         LEFT COLUMN
+    ═════════════════════════════════════════════════════════════════ -->
     <div>
+
+        {% if purchase.is_per_vehicle_mode %}
+        <!-- ── PER-VEHICLE CUSTOMS PANEL ──────────────────────────────── -->
+
+        <div class="pv-panel">
+            <div class="pv-panel-head">
+                <div class="pv-panel-title">
+                    <i class="bi bi-file-earmark-text" style="color:#7c3aed;"></i>
+                    Déclarations douanières — par véhicule
+                </div>
+                <span class="mode-badge mode-badge-pervehicle">
+                    <i class="bi bi-person-check"></i> Mode par véhicule
+                </span>
+            </div>
+
+            <div class="pv-panel-body">
+                {% for item in purchase.line_items.all %}
+                <div class="vrow">
+                    <!-- Bubble -->
+                    {% if item.has_own_customs %}
+                    <div class="vrow-num vrow-num-done"><i class="bi bi-check"></i></div>
+                    {% else %}
+                    <div class="vrow-num vrow-num-pending">{{ item.line_number }}</div>
+                    {% endif %}
+
+                    <!-- Info -->
+                    <div class="vrow-info">
+                        <div class="vrow-name">{{ item.make }} {{ item.model }} {{ item.year }}</div>
+                        <div class="vrow-sub">
+                            {{ item.color }}{% if item.vin_chassis %} · {{ item.vin_chassis }}{% endif %}
+                            · FOB {{ item.fob_price_da|floatformat:0 }} DA
+                            {% if item.has_own_freight %}· Fret {{ item.freight_cost.total_freight_cost_da|floatformat:0 }} DA{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    {% if item.has_own_customs %}
+                        {% if item.customs_declaration.is_cleared %}
+                        <span class="vrow-status vrow-status-cleared">
+                            <i class="bi bi-shield-check"></i> Dédouané
+                        </span>
+                        {% else %}
+                        <span class="vrow-status vrow-status-done">
+                            <i class="bi bi-check-circle-fill"></i>
+                            {{ item.customs_declaration.total_customs_cost_da|floatformat:0 }} DA
+                        </span>
+                        {% endif %}
+                    {% elif not item.has_own_freight %}
+                    <span class="vrow-status vrow-status-nofrt">
+                        <i class="bi bi-exclamation-triangle"></i> Fret manquant
+                    </span>
+                    {% else %}
+                    <span class="vrow-status vrow-status-pending">
+                        <i class="bi bi-clock"></i> En attente
+                    </span>
+                    {% endif %}
+
+                    <!-- Action -->
+                    {% if item.has_own_customs %}
+                    <a href="{% url 'purchases:line_item_edit_customs' purchase.pk item.pk %}"
+                       class="vrow-action vrow-action-edit">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    {% elif not item.has_own_freight %}
+                    <a href="{% url 'purchases:line_item_add_freight' purchase.pk item.pk %}"
+                       class="vrow-action vrow-action-disabled" title="Saisir d'abord le fret">
+                        <i class="bi bi-lock"></i> Bloqué
+                    </a>
+                    {% else %}
+                    <a href="{% url 'purchases:line_item_add_customs' purchase.pk item.pk %}"
+                       class="vrow-action vrow-action-primary">
+                        <i class="bi bi-arrow-right"></i> Saisir
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Progress bar -->
+            <div class="pv-progress-wrap">
+                {% with pending_count=purchase.line_items_missing_customs.count %}
+                {% with done_count=purchase.vehicle_count|add:"-"|add:pending_count %}
+                <div class="pv-progress-label">
+                    <span>Progression douane</span>
+                    <span>{{ done_count }} / {{ purchase.vehicle_count }} véhicule{{ purchase.vehicle_count|pluralize }}</span>
+                </div>
+                <div class="pv-progress-bar-track">
+                    <div class="pv-progress-bar-fill" id="pvProgressBar" style="width:0%"></div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+            </div>
+        </div>
+
+        <!-- Next action CTA -->
+        {% with next_item=purchase.line_items_missing_customs.first %}
+        {% if next_item %}
+        <div style="margin-top:14px;padding:16px 20px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.20);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
+                    Prochaine déclaration
+                </div>
+                <div style="font-size:12.5px;color:var(--text-secondary);">
+                    {{ next_item.make }} {{ next_item.model }} #{{ next_item.line_number }}
+                    {% if not next_item.has_own_freight %}
+                    — <span style="color:#dc2626;">Fret non saisi, requis avant la douane</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if next_item.has_own_freight %}
+            <a href="{% url 'purchases:line_item_add_customs' purchase.pk next_item.pk %}"
+               class="btn-pv-start">
+                <i class="bi bi-arrow-right-circle"></i> Continuer la saisie
+            </a>
+            {% else %}
+            <a href="{% url 'purchases:line_item_add_freight' purchase.pk next_item.pk %}"
+               class="btn-pv-start" style="background:#dc2626;">
+                <i class="bi bi-truck"></i> Saisir le fret d'abord
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
+        <!-- All customs complete -->
+        {% with first_vehicle=purchase.line_items.order_by_line_number.first %}
+        <div style="margin-top:14px;padding:16px 20px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.20);border-radius:var(--radius-lg);display:flex;align-items:center;gap:12px;">
+            <i class="bi bi-check-circle-fill" style="font-size:20px;color:#16a34a;flex-shrink:0;"></i>
+            <div style="flex:1;">
+                <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#16a34a;">Toutes les déclarations complètes</div>
+                <div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px;">
+                    Tous les véhicules sont déclarés en douane.
+                </div>
+            </div>
+            {% with first_item=purchase.line_items.first %}
+            {% if first_item.vehicle %}
+            <a href="{% url 'inventory:detail' first_item.vehicle.pk %}"
+               class="btn-pv-start" style="background:#16a34a;">
+                <i class="bi bi-car-front"></i> Voir le 1er véhicule
+            </a>
+            {% endif %}
+            {% endwith %}
+        </div>
+        {% endwith %}
+        {% endif %}
+        {% endwith %}
+
+        {% else %}
+        <!-- ── CONTAINER CUSTOMS FORM ──────────────────────────────────── -->
         <form method="post" id="customsForm" novalidate>
             {% csrf_token %}
 
             <div class="form-card">
                 <div class="form-card-head">
-                    <div class="form-card-title"><i class="bi bi-file-earmark-text me-2" style="color:#d97706;"></i>{{ title }}</div>
+                    <div class="form-card-title">
+                        <i class="bi bi-file-earmark-text me-2" style="color:#d97706;"></i>{{ title }}
+                    </div>
+                    <span class="mode-badge mode-badge-container">
+                        <i class="bi bi-box-seam"></i> Mode conteneur
+                    </span>
                 </div>
                 <div class="form-card-body">
 
@@ -374,7 +512,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                     </div>
                     {% endif %}
 
-                    <!-- Informations de déclaration -->
+                    <!-- Declaration info -->
                     <div class="form-section-label">Informations de la déclaration</div>
                     <div class="field-group">
                         <div class="field">
@@ -398,22 +536,20 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                         </div>
                     </div>
 
-                    <!-- Valeur CIF -->
+                    <!-- CIF value -->
                     <div class="field">
                         <label>Valeur CIF (DA)</label>
                         <input type="text" inputmode="decimal" name="cif_value_da" id="cifValue"
                                value="{{ form.cif_value_da.value|unlocalize|default:'' }}"
-                               readonly
-                               class="form-control">
+                               readonly class="form-control">
                         <div class="field-help">Calculée automatiquement : Prix d'achat FOB + Coûts de fret &amp; logistique</div>
                     </div>
 
                     <div style="height:1px;background:var(--border);margin:4px 0 20px;"></div>
 
-                    <!-- Droits et taxes -->
+                    <!-- Duties & taxes -->
                     <div class="form-section-label">Droits &amp; Taxes</div>
 
-                    <!-- Bascule calcul auto -->
                     <label class="toggle-row" for="autoCalcToggle">
                         <span class="toggle-label">
                             <i class="bi bi-magic" style="color:var(--accent);"></i>
@@ -481,12 +617,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                         <label>Autres frais (DA)</label>
                         <input type="text" inputmode="decimal" name="other_fees_da" id="otherFees"
                                value="{{ form.other_fees_da.value|unlocalize|default:'0' }}"
-                               placeholder="0.00"
-                               class="form-control"
-                               oninput="recalculate()">
+                               placeholder="0.00" class="form-control" oninput="recalculate()">
                     </div>
 
-                    <!-- Total des droits en direct -->
+                    <!-- Live total -->
                     <div class="duty-preview">
                         <span class="duty-preview-label">
                             <i class="bi bi-calculator"></i>
@@ -497,7 +631,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
                     <div style="height:1px;background:var(--border);margin:20px 0;"></div>
 
-                    <!-- Statut de dédouanement -->
+                    <!-- Clearance -->
                     <div class="form-section-label">Statut du dédouanement</div>
                     <div class="clearance-section">
                         <label class="checkbox-row">
@@ -535,11 +669,15 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 <a href="{% url 'purchases:detail' purchase.pk %}" class="btn-ghost-x">Annuler</a>
             </div>
         </form>
+        {% endif %}
+
     </div>
 
-    <!-- Colonne latérale -->
+    <!-- ════════════════════════════════════════════════════════════════
+         SIDEBAR
+    ═════════════════════════════════════════════════════════════════ -->
     <div>
-        <!-- Contexte de l'achat -->
+        <!-- Purchase context -->
         <div class="sidebar-card">
             <div class="sidebar-card-title"><i class="bi bi-truck" style="color:#ea580c;"></i> Contexte de l'achat</div>
             <div class="sidebar-row">
@@ -562,9 +700,60 @@ textarea.form-control { resize: vertical; min-height: 80px; }
             </div>
             {% endif %}
             {% endwith %}
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">Mode des coûts</span>
+                <span class="sidebar-row-value">
+                    {% if purchase.is_per_vehicle_mode %}
+                    <span style="color:#7c3aed;font-weight:600;font-size:12px;">Par véhicule</span>
+                    {% else %}
+                    <span style="color:#d97706;font-weight:600;font-size:12px;">Conteneur</span>
+                    {% endif %}
+                </span>
+            </div>
         </div>
 
-        <!-- Décomposition des droits en temps réel -->
+        {% if purchase.is_per_vehicle_mode %}
+        <!-- Per-vehicle shortcuts -->
+        <div class="sidebar-card">
+            <div class="sidebar-card-title" style="color:#7c3aed;">
+                <i class="bi bi-list-ol"></i> Véhicules du lot
+            </div>
+            {% for item in purchase.line_items.all %}
+            <div class="sidebar-row">
+                <span class="sidebar-row-label">#{{ item.line_number }} {{ item.make }} {{ item.model }}</span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                    {% if item.has_own_freight %}
+                    <i class="bi bi-truck" style="color:#16a34a;font-size:12px;" title="Fret ✓"></i>
+                    {% else %}
+                    <i class="bi bi-truck" style="color:var(--border-strong);font-size:12px;" title="Fret manquant"></i>
+                    {% endif %}
+                    {% if item.has_own_customs %}
+                    <i class="bi bi-shield-check-fill" style="color:#16a34a;font-size:12px;" title="Douane ✓"></i>
+                    {% else %}
+                    <a href="{% if item.has_own_freight %}{% url 'purchases:line_item_add_customs' purchase.pk item.pk %}{% else %}{% url 'purchases:line_item_add_freight' purchase.pk item.pk %}{% endif %}"
+                       style="font-size:12px;color:#7c3aed;font-weight:600;text-decoration:none;">
+                        {% if item.has_own_freight %}Douane{% else %}Fret{% endif %}
+                    </a>
+                    {% endif %}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Workflow guide -->
+        <div class="sidebar-card" style="border-left:3px solid #7c3aed;background:rgba(124,58,237,.04);">
+            <div class="sidebar-card-title" style="color:#7c3aed;"><i class="bi bi-signpost-2"></i> Flux de saisie</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.8;">
+                <div>① Fret véhicule 1 … N</div>
+                <div style="padding-left:14px;color:var(--border-strong);">↓</div>
+                <div>② Douane véhicule 1 … N</div>
+                <div style="padding-left:14px;color:var(--border-strong);">↓</div>
+                <div>③ Fiche du 1er véhicule</div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Container: live breakdown -->
         <div class="sidebar-card">
             <div class="sidebar-card-title"><i class="bi bi-calculator" style="color:#d97706;"></i> Décomposition des droits</div>
             <div class="calc-breakdown">
@@ -591,7 +780,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
             </div>
         </div>
 
-        <!-- Note douanes algériennes -->
+        <!-- Algerian customs note -->
         <div class="sidebar-card" style="border-left:3px solid var(--accent);background:var(--accent-dim);">
             <div class="sidebar-card-title" style="color:var(--accent);"><i class="bi bi-info-circle"></i> Douanes algériennes</div>
             <p style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:0;">
@@ -602,13 +791,23 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 (Coût + Assurance + Fret).
             </p>
         </div>
+        {% endif %}
     </div>
 
 </div>
+{% endwith %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
+{% if purchase.is_per_vehicle_mode %}
+(function() {
+    const bar   = document.getElementById('pvProgressBar');
+    const total = {{ purchase.vehicle_count }};
+    const done  = total - {{ purchase.line_items_missing_customs.count }};
+    if (bar && total > 0) bar.style.width = (done / total * 100) + '%';
+})();
+{% else %}
 const autoToggle = document.getElementById('autoCalcToggle');
 const isAuto     = () => autoToggle && autoToggle.checked;
 
@@ -623,7 +822,6 @@ function recalculate() {
     const other  = parseFloat(document.getElementById('otherFees').value)  || 0;
 
     let duty, tva;
-
     if (isAuto()) {
         duty = cif * (tariff / 100);
         tva  = (cif + duty) * (tvaR / 100);
@@ -637,7 +835,6 @@ function recalculate() {
     }
 
     const total = duty + tva + other;
-
     document.getElementById('totalDuty').textContent  = fmt(total);
     document.getElementById('dispCif').textContent    = fmt(cif);
     document.getElementById('dispDuty').textContent   = fmt(duty);
@@ -647,8 +844,7 @@ function recalculate() {
 }
 
 function toggleAutoCalc(on) {
-    const fields = ['importDuty', 'tvaAmount'];
-    fields.forEach(id => {
+    ['importDuty','tvaAmount'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.readOnly = on;
     });
@@ -660,7 +856,7 @@ function toggleClearance(on) {
     if (wrap) wrap.style.display = on ? 'block' : 'none';
 }
 
-// Normalize commas → dots on submit so Django accepts the values
+// Normalize commas → dots on submit
 document.getElementById('customsForm').addEventListener('submit', function() {
     ['cifValue','tariffRate','importDuty','tvaRate','tvaAmount','otherFees'].forEach(function(id) {
         const el = document.getElementById(id);
@@ -668,7 +864,6 @@ document.getElementById('customsForm').addEventListener('submit', function() {
     });
 });
 
-// Initialisation
 toggleAutoCalc(isAuto());
 recalculate();
 
@@ -676,5 +871,6 @@ recalculate();
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', recalculate);
 });
+{% endif %}
 </script>
 {% endblock %}

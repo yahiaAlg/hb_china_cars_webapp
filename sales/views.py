@@ -68,16 +68,24 @@ def sale_list(request):
 
     sales = sales.annotate(vehicle_count_ann=Count("line_items"))
 
+    # sale_price is a Python property (sum of line items), so compute in Python
+    sales_list = list(sales)
+    total_revenue = sum(sale.sale_price for sale in sales_list)
+    total_sales_count = len(sales_list)
     stats = {
-        "total_sales": sales.count(),
+        "total_sales": total_sales_count,
         "total_vehicles": SaleLineItem.objects.filter(sale__in=sales).count(),
+        "total_revenue": total_revenue,
+        "avg_sale_price": (
+            (total_revenue / total_sales_count) if total_sales_count else 0
+        ),
         "total_commission": sales.aggregate(Sum("commission_amount"))[
             "commission_amount__sum"
         ]
         or 0,
     }
 
-    paginator = Paginator(sales, 20)
+    paginator = Paginator(sales_list, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(

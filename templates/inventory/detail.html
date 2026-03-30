@@ -517,12 +517,6 @@
         </div>
         {% endif %}
 
-        <!-- Informations de suivi -->
-        <div class="panel fade-in">
-
-            </div>
-        </div>
-
         {# ── Status Override Panel (sidebar) ── #}
         {% if vehicle.status != 'sold' %}
         {% if request.user.userprofile.is_finance or request.user.userprofile.is_manager %}
@@ -757,4 +751,3 @@ function changeVehicleStatus(vehicleId) {
 }
 </script>
 {% endblock %}
-
