@@ -337,6 +337,7 @@
 
 {% block extra_js %}
 <script>
+const canEditCommission = {{ can_edit_commission|yesno:'true,false' }};
 const roleLabels = { manager:'Manager', trader:'Trader', finance:'Finance', auditor:'Auditor' };
 const roleColors = { manager:'var(--accent)', trader:'#7dd3fc', finance:'#4ade80', auditor:'#c4b5fd' };
 
@@ -346,7 +347,7 @@ function selectRole(value, el) {
     el.classList.add('selected');
     updatePreview();
     // Show/hide commission field
-    document.getElementById('commissionField').style.opacity = (value === 'trader') ? '1' : '.4';
+    document.getElementById('commissionField').style.opacity = !canEditCommission ? '.4' : (value === 'trader' ? '1' : '.75');
 }
 
 function updatePreview() {
@@ -372,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     // Set commission opacity on load
     const role = document.getElementById('roleInput').value;
-    document.getElementById('commissionField').style.opacity = (role === 'trader') ? '1' : '.4';
+    document.getElementById('commissionField').style.opacity = !canEditCommission ? '.4' : (role === 'trader' ? '1' : '.75');
     updatePreview();
 });
 </script>

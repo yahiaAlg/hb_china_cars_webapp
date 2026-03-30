@@ -406,7 +406,7 @@ def user_list(request):
 def user_create(request):
     if request.method == "POST":
         form = UserCreateForm(request.POST)
-        profile_form = UserProfileForm(request.POST)
+        profile_form = UserProfileForm(request.POST, can_edit_commission=True)
         if form.is_valid() and profile_form.is_valid():
             user = form.save()
             # The signal already creates a UserProfile with role='trader';
@@ -431,7 +431,7 @@ def user_create(request):
             return redirect("system_settings:user_list")
     else:
         form = UserCreateForm()
-        profile_form = UserProfileForm()
+        profile_form = UserProfileForm(can_edit_commission=True)
 
     return render(
         request,
@@ -449,16 +449,19 @@ def user_edit(request, pk):
     target_user = get_object_or_404(User, pk=pk)
     profile, _ = UserProfile.objects.get_or_create(user=target_user)
 
+    # Only managers (admins) can edit the default commission rate
+    can_edit_commission = (
+        hasattr(request.user, "userprofile") and request.user.userprofile.is_manager
+    )
+
     if request.method == "POST":
         form = UserEditForm(request.POST, instance=target_user)
-        profile_form = UserProfileForm(request.POST, instance=profile)
+        profile_form = UserProfileForm(
+            request.POST, instance=profile, can_edit_commission=can_edit_commission
+        )
         if form.is_valid() and profile_form.is_valid():
             form.save()
-            saved_profile = profile_form.save(commit=False)
-            # Only managers may change the default commission rate
-            if not request.user.userprofile.is_manager:
-                saved_profile.default_commission_rate = profile.default_commission_rate
-            saved_profile.save()
+            profile_form.save()
             SystemLog.log(
                 level="info",
                 action_type="update",
@@ -470,7 +473,9 @@ def user_edit(request, pk):
             return redirect("system_settings:user_list")
     else:
         form = UserEditForm(instance=target_user)
-        profile_form = UserProfileForm(instance=profile)
+        profile_form = UserProfileForm(
+            instance=profile, can_edit_commission=can_edit_commission
+        )
 
     return render(
         request,
@@ -480,6 +485,7 @@ def user_edit(request, pk):
             "form": form,
             "profile_form": profile_form,
             "object": target_user,
+            "can_edit_commission": can_edit_commission,
         },
     )
 

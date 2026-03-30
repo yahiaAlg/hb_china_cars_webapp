@@ -269,6 +269,28 @@ class UserProfileForm(forms.ModelForm):
             "default_commission_rate": "Taux de commission par défaut (%)",
         }
 
+    def __init__(self, *args, **kwargs):
+        can_edit_commission = kwargs.pop("can_edit_commission", True)
+        super().__init__(*args, **kwargs)
+        if not can_edit_commission:
+            self.fields["default_commission_rate"].widget.attrs.update(
+                {
+                    "readonly": True,
+                    "style": "opacity:.75;cursor:not-allowed;border-style:dashed;",
+                }
+            )
+            self.fields["default_commission_rate"].help_text = (
+                "Seuls les managers peuvent modifier ce taux."
+            )
+
+    def clean_default_commission_rate(self):
+        # Prevent non-managers from bypassing readonly via crafted POST requests
+        instance = getattr(self, "instance", None)
+        if self.fields["default_commission_rate"].widget.attrs.get("readonly"):
+            if instance and instance.pk:
+                return instance.default_commission_rate
+        return self.cleaned_data["default_commission_rate"]
+
 
 class AdminSetPasswordForm(SetPasswordForm):
     """Password change form that does not require the old password."""
